@@ -59,6 +59,11 @@ export function RouterNode({ data, selected }: RouterNodeProps) {
           <Badge variant="secondary" className="bg-orange-100 text-orange-700 text-xs">
             LOGIC
           </Badge>
+          {data.routings && data.routings.length > 0 && (
+            <div className="mt-1 text-xs text-orange-600">
+              {data.routings.length} route{data.routings.length !== 1 ? 's' : ''}
+            </div>
+          )}
         </div>
       </div>
 

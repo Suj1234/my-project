@@ -47,7 +47,9 @@ export default function App() {
           ? JSON.parse(JSON.stringify(smartBlockDef.generalConfig))
           : [],
         pages: smartBlockDef.pages ? JSON.parse(JSON.stringify(smartBlockDef.pages)) : [],
-        retryConfig: smartBlockDef.hasRetry
+        retryConfig: smartBlockDef.retryConfig
+          ? JSON.parse(JSON.stringify(smartBlockDef.retryConfig))
+          : smartBlockDef.hasRetry
           ? {
               maxAttempts: 3,
               coolingPeriod: 120,
@@ -80,6 +82,7 @@ export default function App() {
         description: 'Branch based on conditions',
         configured: false,
         routings: [],
+        defaultRoute: '',
       };
     } else if (blockType === 'end') {
       newBlock = {
@@ -164,6 +167,7 @@ export default function App() {
       />
       <ConfigurationPanel
         block={selectedBlock}
+        allBlocks={blocks}
         onClose={handleClosePanel}
         onSave={handleSave}
         onDelete={handleBlockDelete}

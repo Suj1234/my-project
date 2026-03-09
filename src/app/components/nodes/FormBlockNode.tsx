@@ -24,6 +24,8 @@ export function FormBlockNode({ data, selected }: FormBlockNodeProps) {
     data.onDelete?.(data.id);
   };
 
+  const hasIncomingConnection = false; // Temporarily disabled
+
   return (
     <div
       className={`relative bg-white rounded-lg shadow-md min-w-[280px] transition-all ${
@@ -83,17 +85,19 @@ export function FormBlockNode({ data, selected }: FormBlockNodeProps) {
         className="!bg-gray-400 !w-3 !h-3 !border-2 !border-white"
       />
 
-      <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 px-2 text-xs bg-white shadow-sm border"
-          onClick={handleAddClick}
-        >
-          <Plus className="h-3 w-3 mr-1" />
-          Add
-        </Button>
-      </div>
+      {!hasIncomingConnection && (
+        <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2 text-xs bg-white shadow-sm border"
+            onClick={handleAddClick}
+          >
+            <Plus className="h-3 w-3 mr-1" />
+            Add
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

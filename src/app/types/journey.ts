@@ -18,6 +18,7 @@ export interface SmartBlockDefinition {
   pages: PageConfig[];
   checks?: CheckConfig[];
   generalConfig?: GeneralConfigField[];
+  retryConfig?: RetryConfigItem[];
 }
 
 // Form Input Field
@@ -78,7 +79,7 @@ export interface BlockData {
   formFields?: FormInputField[];
   checks?: CheckConfig[];
   generalConfig?: GeneralConfigField[];
-  retryConfig?: RetryConfig;
+  retryConfig?: RetryConfig | RetryConfigItem[];
   pages?: PageConfig[];
   endType?: EndBlockType;
   completionMessage?: string;
@@ -92,18 +93,20 @@ export interface RetryConfig {
   velocityCycle: number;
 }
 
+export interface RetryConfigItem {
+  id: string;
+  name: string;
+  maxAttempts: number;
+  coolingPeriod: number;
+  velocityCycle: number;
+}
+
 // Routing Configuration for Conditional Router
 export interface RoutingConfig {
   id: string;
-  conditionGroups: ConditionGroup[];
-  groupOperator: 'AND' | 'OR'; // Operator between groups
-  targetBlockId: string;
-}
-
-export interface ConditionGroup {
-  id: string;
   conditions: Condition[];
-  operator: 'AND' | 'OR'; // Operator within group
+  operator: 'AND' | 'OR'; // Operator between all conditions
+  targetBlockId: string;
 }
 
 export interface Condition {
@@ -118,4 +121,5 @@ export interface FlowNodeData extends BlockData {
   onAddBlock?: (nodeId: string) => void;
   onConfigure?: (nodeId: string) => void;
   onDelete?: (nodeId: string) => void;
+  hasIncomingConnection?: boolean;
 }

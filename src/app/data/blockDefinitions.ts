@@ -271,6 +271,22 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
         ],
       },
     ],
+    retryConfig: [
+      {
+        id: 'face_match_retry',
+        name: 'Face Match Retry',
+        maxAttempts: 3,
+        coolingPeriod: 120,
+        velocityCycle: 3,
+      },
+      {
+        id: 'liveness_retry',
+        name: 'Liveness Retry',
+        maxAttempts: 3,
+        coolingPeriod: 120,
+        velocityCycle: 3,
+      },
+    ],
   },
   // Financial Category
   {
@@ -387,7 +403,7 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
     description: 'Generate loan offers using Business Rule Engine (BRE). Automatically computes personalized offers based on applicant profile, credit assessment, and configured business rules.',
     category: 'financial',
     icon: 'TrendingUp',
-    hasChecks: true,
+    hasChecks: false,
     hasRetry: false,
     pages: [
       {
@@ -403,24 +419,16 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
         userInputs: [],
       },
     ],
-    checks: [
+    generalConfig: [
       {
-        id: 'bre_selection',
-        name: 'BRE Selection',
-        enabled: true,
-        outputResponse: 'reject',
-        fields: [
-          {
-            id: 'bre',
-            name: 'Which BRE to Call',
-            type: 'select',
-            value: 'bre_v1',
-            options: [
-              { label: 'BRE v1 - Standard', value: 'bre_v1' },
-              { label: 'BRE v2 - Advanced', value: 'bre_v2' },
-              { label: 'BRE v3 - Premium', value: 'bre_v3' },
-            ],
-          },
+        id: 'bre',
+        name: 'Which BRE to Call',
+        type: 'select',
+        value: 'bre_v1',
+        options: [
+          { label: 'BRE v1 - Standard', value: 'bre_v1' },
+          { label: 'BRE v2 - Advanced', value: 'bre_v2' },
+          { label: 'BRE v3 - Premium', value: 'bre_v3' },
         ],
       },
     ],
@@ -431,6 +439,7 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
     description: 'Select or add disbursement bank account with penny drop verification. Validates account with name matching against applicant details and checks account validity status.',
     category: 'financial',
     icon: 'Landmark',
+    provider: 'tkyc_api_v1',
     hasChecks: true,
     hasRetry: true,
     pages: [
@@ -477,6 +486,22 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
         fields: [],
       },
     ],
+    retryConfig: [
+      {
+        id: 'penny_entry_retry',
+        name: 'Penny Entry Retry',
+        maxAttempts: 3,
+        coolingPeriod: 120,
+        velocityCycle: 3,
+      },
+      {
+        id: 'ifsc_verification_retry',
+        name: 'IFSC Verification Retry',
+        maxAttempts: 3,
+        coolingPeriod: 120,
+        velocityCycle: 3,
+      },
+    ],
   },
   // Documents Category
   {
@@ -485,7 +510,7 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
     description: 'Display Key Fact Statement (KFS) document to customer and capture digital acknowledgement. Configurable template selection based on product and loan type.',
     category: 'documents',
     icon: 'FileText',
-    hasChecks: true,
+    hasChecks: false,
     hasRetry: false,
     pages: [
       {
@@ -495,20 +520,12 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
         userInputs: [],
       },
     ],
-    checks: [
+    generalConfig: [
       {
-        id: 'template',
+        id: 'template_id',
         name: 'KFS Template Selection',
-        enabled: true,
-        outputResponse: 'reject',
-        fields: [
-          {
-            id: 'template_id',
-            name: 'KFS Template ID',
-            type: 'text',
-            value: '',
-          },
-        ],
+        type: 'text',
+        value: '',
       },
     ],
   },
@@ -518,7 +535,7 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
     description: 'Display sanction letter with loan terms, allow document download, and capture customer acceptance. Template is selectable per product configuration.',
     category: 'documents',
     icon: 'FileCheck',
-    hasChecks: true,
+    hasChecks: false,
     hasRetry: false,
     pages: [
       {
@@ -528,25 +545,12 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
         userInputs: [],
       },
     ],
-    checks: [
+    generalConfig: [
       {
-        id: 'template',
+        id: 'template_id',
         name: 'Sanction Template Selection',
-        enabled: true,
-        outputResponse: 'reject',
-        fields: [
-          {
-            id: 'template_id',
-            name: 'Sanction Template (per product)',
-            type: 'select',
-            value: '',
-            options: [
-              { label: 'Personal Loan Template', value: 'pl_template' },
-              { label: 'Business Loan Template', value: 'bl_template' },
-              { label: 'Home Loan Template', value: 'hl_template' },
-            ],
-          },
-        ],
+        type: 'text',
+        value: '',
       },
     ],
   },
@@ -557,7 +561,7 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
     category: 'documents',
     icon: 'PenTool',
     provider: 'TKYC',
-    hasChecks: true,
+    hasChecks: false,
     hasRetry: true,
     pages: [
       {
@@ -573,20 +577,12 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
         userInputs: [],
       },
     ],
-    checks: [
+    generalConfig: [
       {
-        id: 'template',
+        id: 'template_id',
         name: 'Document Template Selection',
-        enabled: true,
-        outputResponse: 'reject',
-        fields: [
-          {
-            id: 'template_id',
-            name: 'Template ID',
-            type: 'text',
-            value: '',
-          },
-        ],
+        type: 'text',
+        value: '',
       },
     ],
   },
