@@ -71,6 +71,7 @@ export interface BlockData {
   id: string;
   type: BlockType;
   blockTypeId?: string; // For smart blocks, references SmartBlockDefinition.id
+  hasRetry?: boolean;
   category?: BlockCategory;
   name: string;
   description: string;

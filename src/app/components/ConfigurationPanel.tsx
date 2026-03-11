@@ -96,7 +96,7 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
   const hasChecks = block.type === 'smart' && block.checks && block.checks.length > 0;
   const hasGeneralConfig = block.generalConfig && block.generalConfig.length > 0;
   const hasUIConfig = block.pages && block.pages.length > 0;
-  const hasRetry = block.type === 'smart' && block.hasRetry;
+  const hasRetry = block.type === 'smart' && Boolean(block.hasRetry || block.retryConfig);
 
   const getBadgeColor = () => {
     switch (block.type) {

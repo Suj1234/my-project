@@ -37,6 +37,7 @@ export default function App() {
         id: newBlockId,
         type: 'smart',
         blockTypeId: smartBlockDef.id,
+        hasRetry: smartBlockDef.hasRetry,
         category: smartBlockDef.category,
         name: smartBlockDef.name,
         description: smartBlockDef.description,
