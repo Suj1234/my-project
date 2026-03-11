@@ -473,47 +473,49 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
             {/* Other sections (not shown for router blocks) */}
             {block.type !== 'router' && (
               <>
-                {/* Service Provider */}
-                <AccordionItem value="provider">
-                  <AccordionTrigger>Service Provider</AccordionTrigger>
-                  <AccordionContent>
-                    {hasProvider ? (
-                      <div>
-                        <Label>Provider</Label>
-                        {block.blockTypeId === 'bank_account_selection' ? (
-                          <Select 
-                            value={block.provider} 
-                            onValueChange={(value) => handleFieldChange('provider', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue>{block.provider}</SelectValue>
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="tkyc_api_v1">TKYC API v1</SelectItem>
-                              <SelectItem value="tkyc_api_v2">TKYC API v2</SelectItem>
-                              <SelectItem value="tkyc_api_v3">TKYC API v3</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <Select 
-                            value={block.provider} 
-                            onValueChange={(value) => handleFieldChange('provider', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue>{block.provider}</SelectValue>
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value={block.provider!}>{block.provider}</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        )}
-                        <p className="text-xs text-gray-500 mt-1">Current provider configuration</p>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gray-500">No configuration available</p>
-                    )}
-                  </AccordionContent>
-                </AccordionItem>
+                {/* Service Provider (Smart Blocks Only) */}
+                {block.type === 'smart' && (
+                  <AccordionItem value="provider">
+                    <AccordionTrigger>Service Provider</AccordionTrigger>
+                    <AccordionContent>
+                      {hasProvider ? (
+                        <div>
+                          <Label>Provider</Label>
+                          {block.blockTypeId === 'bank_account_selection' ? (
+                            <Select
+                              value={block.provider}
+                              onValueChange={(value) => handleFieldChange('provider', value)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue>{block.provider}</SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="tkyc_api_v1">TKYC API v1</SelectItem>
+                                <SelectItem value="tkyc_api_v2">TKYC API v2</SelectItem>
+                                <SelectItem value="tkyc_api_v3">TKYC API v3</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <Select
+                              value={block.provider}
+                              onValueChange={(value) => handleFieldChange('provider', value)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue>{block.provider}</SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value={block.provider!}>{block.provider}</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                          <p className="text-xs text-gray-500 mt-1">Current provider configuration</p>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500">No configuration available</p>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+                )}
 
                 {/* User Input (Form Block Only) */}
                 {hasUserInput && (
@@ -572,13 +574,14 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
                   </AccordionItem>
                 )}
 
-                {/* Checks & Validations */}
-                <AccordionItem value="checks" disabled={!hasChecks && block.type !== 'smart'}>
-                  <AccordionTrigger className={!hasChecks && block.type !== 'smart' ? 'opacity-50' : ''}>
-                    Checks & Validations
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    {hasChecks ? (
+                {/* Checks & Validations (Smart Blocks Only) */}
+                {block.type === 'smart' && (
+                  <AccordionItem value="checks" disabled={!hasChecks}>
+                    <AccordionTrigger className={!hasChecks ? 'opacity-50' : ''}>
+                      Checks & Validations
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      {hasChecks ? (
                       <div className="space-y-4">
                         <Alert>
                           <Info className="h-4 w-4" />
@@ -674,17 +677,19 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
                           </div>
                         ))}
                       </div>
-                    ) : (
-                      <p className="text-sm text-gray-500">Not applicable for this block type</p>
-                    )}
-                  </AccordionContent>
-                </AccordionItem>
+                      ) : (
+                        <p className="text-sm text-gray-500">Not applicable for this block type</p>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+                )}
 
-                {/* General Configuration */}
-                <AccordionItem value="general-config">
-                  <AccordionTrigger>General Configuration</AccordionTrigger>
-                  <AccordionContent>
-                    {hasGeneralConfig ? (
+                {/* General Configuration (Smart Blocks Only) */}
+                {block.type === 'smart' && (
+                  <AccordionItem value="general-config">
+                    <AccordionTrigger>General Configuration</AccordionTrigger>
+                    <AccordionContent>
+                      {hasGeneralConfig ? (
                       <div className="space-y-3">
                         {block.generalConfig!.map((field) => (
                           <div key={field.id}>
@@ -723,11 +728,12 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
                           </div>
                         ))}
                       </div>
-                    ) : (
-                      <p className="text-sm text-gray-500">No configuration available</p>
-                    )}
-                  </AccordionContent>
-                </AccordionItem>
+                      ) : (
+                        <p className="text-sm text-gray-500">No configuration available</p>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+                )}
 
                 {/* UI Configuration */}
                 <AccordionItem value="ui-config">
@@ -948,13 +954,14 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
                   </AccordionContent>
                 </AccordionItem>
 
-                {/* Retry Rules */}
-                <AccordionItem value="retry" disabled={!hasRetry}>
-                  <AccordionTrigger className={!hasRetry ? 'opacity-50' : ''}>
-                    Retry Rules
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    {hasRetry ? (
+                {/* Retry Rules (Smart Blocks Only) */}
+                {block.type === 'smart' && (
+                  <AccordionItem value="retry" disabled={!hasRetry}>
+                    <AccordionTrigger className={!hasRetry ? 'opacity-50' : ''}>
+                      Retry Rules
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      {hasRetry ? (
                       <div className="space-y-4">
                         {/* How Retry Logic Works Info */}
                         <Alert className="bg-blue-50 border-blue-200">
@@ -1110,11 +1117,12 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
                       </AlertDescription>
                     </Alert>
                   </div>
-                ) : (
-                  <p className="text-sm text-gray-500">Not applicable for this block type</p>
+                      ) : (
+                        <p className="text-sm text-gray-500">Not applicable for this block type</p>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
                 )}
-              </AccordionContent>
-            </AccordionItem>
               </>
             )}
           </Accordion>
