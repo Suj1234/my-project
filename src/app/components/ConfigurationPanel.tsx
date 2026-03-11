@@ -89,13 +89,14 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
     onSave({ ...block, generalConfig: updatedConfig });
   };
 
-  const canEditName = block.type === 'form' || block.type === 'end';
-  const canEditDescription = block.type === 'form' || block.type === 'end';
+  const canEditName = block.type === 'form' || block.type === 'end' || block.type === 'merge';
+  const canEditDescription = block.type === 'form' || block.type === 'end' || block.type === 'merge';
   const hasProvider = block.type === 'smart' && block.provider;
   const hasUserInput = block.type === 'form';
   const hasChecks = block.type === 'smart' && block.checks && block.checks.length > 0;
   const hasGeneralConfig = block.generalConfig && block.generalConfig.length > 0;
   const hasUIConfig = block.pages && block.pages.length > 0;
+  const showUIConfigSection = block.type === 'smart' || block.type === 'form' || block.type === 'end';
   const hasRetry = block.type === 'smart' && Boolean(block.hasRetry || block.retryConfig);
 
   const getBadgeColor = () => {
@@ -106,6 +107,8 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
         return 'bg-green-100 text-green-700';
       case 'router':
         return 'bg-orange-100 text-orange-700';
+      case 'merge':
+        return 'bg-indigo-100 text-indigo-700';
       case 'end':
         return 'bg-red-100 text-red-700';
       default:
@@ -120,6 +123,8 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
       case 'form':
         return 'FORM';
       case 'router':
+        return 'LOGIC';
+      case 'merge':
         return 'LOGIC';
       case 'end':
         return 'END';
@@ -145,9 +150,21 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
   const [selectedAction, setSelectedAction] = useState<string>('');
   const [showAddPage, setShowAddPage] = useState(false);
   const [expandedPageId, setExpandedPageId] = useState<string | null>(null);
+  const [expandedRoutingIds, setExpandedRoutingIds] = useState<Record<string, boolean>>({});
   const [newUserInput, setNewUserInput] = useState({ name: '', dataType: 'STRING' });
 
   const selectedPage = block.pages?.find((p) => p.id === selectedPageId);
+
+  const markRoutingAsDraft = (
+    updatedRoutings: NonNullable<BlockData['routings']>,
+    routingIndex: number
+  ) => {
+    updatedRoutings[routingIndex] = {
+      ...updatedRoutings[routingIndex],
+      saved: false,
+    };
+    handleFieldChange('routings', updatedRoutings);
+  };
 
   const handleAddFormField = () => {
     if (newFormField.name) {
@@ -256,162 +273,219 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
                         {block.routings.map((routing, routingIndex) => (
                           <div key={routing.id} className="border rounded-lg p-4 bg-gray-50">
                             <div className="flex items-center justify-between mb-3">
-                              <h4 className="font-medium text-sm">Route {routingIndex + 1}</h4>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  const updatedRoutings = block.routings!.filter((_, i) => i !== routingIndex);
-                                  handleFieldChange('routings', updatedRoutings);
-                                }}
+                              <button
+                                className="flex items-center gap-2 text-left"
+                                onClick={() =>
+                                  setExpandedRoutingIds((prev) => ({
+                                    ...prev,
+                                    [routing.id]: !prev[routing.id],
+                                  }))
+                                }
                               >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-
-                            {/* Conditions */}
-                            <div className="space-y-3">
-                              <div className="flex items-center gap-2 mb-2">
-                                <Label className="text-sm">All conditions must be:</Label>
-                                <Select
-                                  value={routing.operator}
-                                  onValueChange={(value: 'AND' | 'OR') => {
-                                    const updatedRoutings = [...block.routings!];
-                                    updatedRoutings[routingIndex].operator = value;
+                                {expandedRoutingIds[routing.id] ? (
+                                  <ChevronDown className="h-4 w-4 text-gray-500" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4 text-gray-500" />
+                                )}
+                                <div>
+                                  <h4 className="font-medium text-sm">Route {routingIndex + 1}</h4>
+                                  <p className="text-xs text-gray-500">
+                                    {routing.operator} · {routing.conditions.length} condition
+                                    {routing.conditions.length !== 1 ? 's' : ''} ·{' '}
+                                    {routing.targetBlockId
+                                      ? allBlocks.find((b) => b.id === routing.targetBlockId)?.name || 'Target selected'
+                                      : 'No target selected'}
+                                  </p>
+                                </div>
+                              </button>
+                              <div className="flex items-center gap-2">
+                                <Badge
+                                  variant="secondary"
+                                  className={
+                                    routing.saved
+                                      ? 'bg-emerald-100 text-emerald-700 text-xs'
+                                      : 'bg-amber-100 text-amber-700 text-xs'
+                                  }
+                                >
+                                  {routing.saved ? 'Saved' : 'Draft'}
+                                </Badge>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    const updatedRoutings = block.routings!.filter((_, i) => i !== routingIndex);
                                     handleFieldChange('routings', updatedRoutings);
                                   }}
                                 >
-                                  <SelectTrigger className="w-20 h-8">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="AND">AND</SelectItem>
-                                    <SelectItem value="OR">OR</SelectItem>
-                                  </SelectContent>
-                                </Select>
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
                               </div>
+                            </div>
 
-                              {routing.conditions.map((condition, conditionIndex) => (
-                                <div key={condition.id} className="flex items-center gap-2 p-2 bg-white rounded border">
-                                  <span className="text-sm text-gray-600">If</span>
-                                  
-                                  <Select
-                                    value={condition.parameter}
-                                    onValueChange={(value) => {
-                                      const updatedRoutings = [...block.routings!];
-                                      updatedRoutings[routingIndex].conditions[conditionIndex].parameter = value;
-                                      handleFieldChange('routings', updatedRoutings);
-                                    }}
-                                  >
-                                    <SelectTrigger className="w-32 h-8 text-xs">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {PREDEFINED_FORM_FIELDS.map((field) => (
-                                        <SelectItem key={field.name} value={field.name}>
-                                          {field.name}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
+                            {expandedRoutingIds[routing.id] && (
+                              <>
+                                {/* Conditions */}
+                                <div className="space-y-3">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <Label className="text-sm">All conditions must be:</Label>
+                                    <Select
+                                      value={routing.operator}
+                                      onValueChange={(value: 'AND' | 'OR') => {
+                                        const updatedRoutings = [...block.routings!];
+                                        updatedRoutings[routingIndex].operator = value;
+                                        markRoutingAsDraft(updatedRoutings, routingIndex);
+                                      }}
+                                    >
+                                      <SelectTrigger className="w-20 h-8">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="AND">AND</SelectItem>
+                                        <SelectItem value="OR">OR</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
 
-                                  <Select
-                                    value={condition.operator}
-                                    onValueChange={(value: any) => {
-                                      const updatedRoutings = [...block.routings!];
-                                      updatedRoutings[routingIndex].conditions[conditionIndex].operator = value;
-                                      handleFieldChange('routings', updatedRoutings);
-                                    }}
-                                  >
-                                    <SelectTrigger className="w-24 h-8 text-xs">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="=">equals</SelectItem>
-                                      <SelectItem value="!=">not equals</SelectItem>
-                                      <SelectItem value=">">greater than</SelectItem>
-                                      <SelectItem value="<">less than</SelectItem>
-                                      <SelectItem value=">=">greater or equal</SelectItem>
-                                      <SelectItem value="<=">less or equal</SelectItem>
-                                      <SelectItem value="contains">contains</SelectItem>
-                                      <SelectItem value="not contains">not contains</SelectItem>
-                                      <SelectItem value="is empty">is empty</SelectItem>
-                                      <SelectItem value="is not empty">is not empty</SelectItem>
-                                    </SelectContent>
-                                  </Select>
+                                  {routing.conditions.map((condition, conditionIndex) => (
+                                    <div key={condition.id} className="flex items-center gap-2 p-2 bg-white rounded border">
+                                      <span className="text-sm text-gray-600">If</span>
 
-                                  <Input
-                                    value={condition.value}
-                                    onChange={(e) => {
-                                      const updatedRoutings = [...block.routings!];
-                                      updatedRoutings[routingIndex].conditions[conditionIndex].value = e.target.value;
-                                      handleFieldChange('routings', updatedRoutings);
-                                    }}
-                                    placeholder="value"
-                                    className="flex-1 h-8 text-xs"
-                                  />
+                                      <Select
+                                        value={condition.parameter}
+                                        onValueChange={(value) => {
+                                          const updatedRoutings = [...block.routings!];
+                                          updatedRoutings[routingIndex].conditions[conditionIndex].parameter = value;
+                                          markRoutingAsDraft(updatedRoutings, routingIndex);
+                                        }}
+                                      >
+                                        <SelectTrigger className="w-32 h-8 text-xs">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {PREDEFINED_FORM_FIELDS.map((field) => (
+                                            <SelectItem key={field.name} value={field.name}>
+                                              {field.name}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
 
+                                      <Select
+                                        value={condition.operator}
+                                        onValueChange={(value: any) => {
+                                          const updatedRoutings = [...block.routings!];
+                                          updatedRoutings[routingIndex].conditions[conditionIndex].operator = value;
+                                          markRoutingAsDraft(updatedRoutings, routingIndex);
+                                        }}
+                                      >
+                                        <SelectTrigger className="w-24 h-8 text-xs">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="=">equals</SelectItem>
+                                          <SelectItem value="!=">not equals</SelectItem>
+                                          <SelectItem value=">">greater than</SelectItem>
+                                          <SelectItem value="<">less than</SelectItem>
+                                          <SelectItem value=">=">greater or equal</SelectItem>
+                                          <SelectItem value="<=">less or equal</SelectItem>
+                                          <SelectItem value="contains">contains</SelectItem>
+                                          <SelectItem value="not contains">not contains</SelectItem>
+                                          <SelectItem value="is empty">is empty</SelectItem>
+                                          <SelectItem value="is not empty">is not empty</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+
+                                      <Input
+                                        value={condition.value}
+                                        onChange={(e) => {
+                                          const updatedRoutings = [...block.routings!];
+                                          updatedRoutings[routingIndex].conditions[conditionIndex].value = e.target.value;
+                                          markRoutingAsDraft(updatedRoutings, routingIndex);
+                                        }}
+                                        placeholder="value"
+                                        className="flex-1 h-8 text-xs"
+                                      />
+
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                          const updatedRoutings = [...block.routings!];
+                                          updatedRoutings[routingIndex].conditions = updatedRoutings[routingIndex].conditions.filter((_, i) => i !== conditionIndex);
+                                          markRoutingAsDraft(updatedRoutings, routingIndex);
+                                        }}
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  ))}
+
+                                  {/* Add condition button */}
                                   <Button
-                                    variant="ghost"
+                                    variant="outline"
                                     size="sm"
                                     onClick={() => {
                                       const updatedRoutings = [...block.routings!];
-                                      updatedRoutings[routingIndex].conditions = updatedRoutings[routingIndex].conditions.filter((_, i) => i !== conditionIndex);
-                                      handleFieldChange('routings', updatedRoutings);
+                                      const newCondition = {
+                                        id: `condition-${Date.now()}`,
+                                        parameter: PREDEFINED_FORM_FIELDS[0].name,
+                                        operator: '=' as const,
+                                        value: '',
+                                      };
+                                      updatedRoutings[routingIndex].conditions.push(newCondition);
+                                      markRoutingAsDraft(updatedRoutings, routingIndex);
                                     }}
+                                    className="w-full"
                                   >
-                                    <Trash2 className="h-3 w-3" />
+                                    <Plus className="h-4 w-4 mr-1" />
+                                    Add Condition
                                   </Button>
                                 </div>
-                              ))}
 
-                              {/* Add condition button */}
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  const updatedRoutings = [...block.routings!];
-                                  const newCondition = {
-                                    id: `condition-${Date.now()}`,
-                                    parameter: PREDEFINED_FORM_FIELDS[0].name,
-                                    operator: '=' as const,
-                                    value: '',
-                                  };
-                                  updatedRoutings[routingIndex].conditions.push(newCondition);
-                                  handleFieldChange('routings', updatedRoutings);
-                                }}
-                                className="w-full"
-                              >
-                                <Plus className="h-4 w-4 mr-1" />
-                                Add Condition
-                              </Button>
-                            </div>
+                                {/* Route to */}
+                                <div className="mt-4 pt-3 border-t">
+                                  <Label className="text-sm font-medium">Then route to:</Label>
+                                  <Select
+                                    value={routing.targetBlockId}
+                                    onValueChange={(value) => {
+                                      const updatedRoutings = [...block.routings!];
+                                      updatedRoutings[routingIndex].targetBlockId = value;
+                                      markRoutingAsDraft(updatedRoutings, routingIndex);
+                                    }}
+                                  >
+                                    <SelectTrigger className="h-9 mt-1">
+                                      <SelectValue placeholder="Select target block..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {allBlocks
+                                        .filter(b => b.id !== block.id) // Don't allow routing to self
+                                        .map((b) => (
+                                          <SelectItem key={b.id} value={b.id}>
+                                            {b.name} ({b.type})
+                                          </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
 
-                            {/* Route to */}
-                            <div className="mt-4 pt-3 border-t">
-                              <Label className="text-sm font-medium">Then route to:</Label>
-                              <Select
-                                value={routing.targetBlockId}
-                                onValueChange={(value) => {
-                                  const updatedRoutings = [...block.routings!];
-                                  updatedRoutings[routingIndex].targetBlockId = value;
-                                  handleFieldChange('routings', updatedRoutings);
-                                }}
-                              >
-                                <SelectTrigger className="h-9 mt-1">
-                                  <SelectValue placeholder="Select target block..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {allBlocks
-                                    .filter(b => b.id !== block.id) // Don't allow routing to self
-                                    .map((b) => (
-                                      <SelectItem key={b.id} value={b.id}>
-                                        {b.name} ({b.type})
-                                      </SelectItem>
-                                    ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
+                                <Button
+                                  size="sm"
+                                  className="w-full mt-3"
+                                  onClick={() => {
+                                    if (!routing.targetBlockId) return;
+                                    const updatedRoutings = [...block.routings!];
+                                    updatedRoutings[routingIndex] = {
+                                      ...updatedRoutings[routingIndex],
+                                      saved: true,
+                                    };
+                                    handleFieldChange('routings', updatedRoutings);
+                                  }}
+                                  disabled={!routing.targetBlockId}
+                                >
+                                  Save Route
+                                </Button>
+                              </>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -432,10 +506,12 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
                             value: '',
                           }],
                           operator: 'AND' as const,
-                          targetBlockId: allBlocks.find(b => b.id !== block.id)?.id || '',
+                          targetBlockId: '',
+                          saved: false,
                         };
                         const updatedRoutings = [...(block.routings || []), newRouting];
                         handleFieldChange('routings', updatedRoutings);
+                        setExpandedRoutingIds((prev) => ({ ...prev, [newRouting.id]: true }));
                       }}
                       className="w-full"
                     >
@@ -736,17 +812,18 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
                 )}
 
                 {/* UI Configuration */}
-                <AccordionItem value="ui-config">
-                  <AccordionTrigger>
-                    <div className="flex items-center justify-between flex-1 pr-2">
-                      <span>UI Configuration</span>
-                      <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
-                        Configured
-                      </Badge>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    {hasUIConfig ? (
+                {showUIConfigSection && (
+                  <AccordionItem value="ui-config">
+                    <AccordionTrigger>
+                      <div className="flex items-center justify-between flex-1 pr-2">
+                        <span>UI Configuration</span>
+                        <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
+                          Configured
+                        </Badge>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      {hasUIConfig ? (
                       <div className="space-y-4">
                         {/* Description */}
                         <p className="text-sm text-gray-600">
@@ -948,11 +1025,12 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
                           </div>
                         )}
                       </div>
-                    ) : (
-                      <p className="text-sm text-gray-500">No UI configuration</p>
-                    )}
-                  </AccordionContent>
-                </AccordionItem>
+                      ) : (
+                        <p className="text-sm text-gray-500">No UI configuration</p>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+                )}
 
                 {/* Retry Rules (Smart Blocks Only) */}
                 {block.type === 'smart' && (

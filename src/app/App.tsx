@@ -85,6 +85,14 @@ export default function App() {
         routings: [],
         defaultRoute: '',
       };
+    } else if (blockType === 'merge') {
+      newBlock = {
+        id: newBlockId,
+        type: 'merge',
+        name: 'Merge Block',
+        description: 'Merge multiple branches into a single flow',
+        configured: false,
+      };
     } else if (blockType === 'end') {
       newBlock = {
         id: newBlockId,

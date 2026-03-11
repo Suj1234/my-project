@@ -22,6 +22,7 @@ import {
   User,
   FileInput,
   GitBranch,
+  GitMerge,
   CircleStop,
 } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
@@ -136,23 +137,42 @@ export function AddBlockDialog({ open, onClose, onSelect }: AddBlockDialogProps)
               {/* Logic */}
               <div>
                 <h3 className="text-sm font-semibold text-gray-700 mb-3">Logic</h3>
-                <button
-                  className="w-full border-l-4 border-orange-500 bg-gray-50 p-3 rounded hover:bg-gray-100 transition-colors text-left"
-                  onClick={() => handleSelect('router')}
-                >
-                  <div className="flex items-start gap-2">
-                    <GitBranch className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between gap-1 mb-1">
-                        <span className="text-sm font-medium">Conditional Router</span>
-                        <Badge variant="secondary" className="bg-orange-100 text-orange-700 text-xs">
-                          LOGIC
-                        </Badge>
+                <div className="space-y-2">
+                  <button
+                    className="w-full border-l-4 border-orange-500 bg-gray-50 p-3 rounded hover:bg-gray-100 transition-colors text-left"
+                    onClick={() => handleSelect('router')}
+                  >
+                    <div className="flex items-start gap-2">
+                      <GitBranch className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between gap-1 mb-1">
+                          <span className="text-sm font-medium">Conditional Router</span>
+                          <Badge variant="secondary" className="bg-orange-100 text-orange-700 text-xs">
+                            LOGIC
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-gray-600">Branch journey based on conditions</p>
                       </div>
-                      <p className="text-xs text-gray-600">Branch journey based on conditions</p>
                     </div>
-                  </div>
-                </button>
+                  </button>
+                  <button
+                    className="w-full border-l-4 border-indigo-500 bg-gray-50 p-3 rounded hover:bg-gray-100 transition-colors text-left"
+                    onClick={() => handleSelect('merge')}
+                  >
+                    <div className="flex items-start gap-2">
+                      <GitMerge className="h-4 w-4 text-indigo-500 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between gap-1 mb-1">
+                          <span className="text-sm font-medium">Merge Block</span>
+                          <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 text-xs">
+                            LOGIC
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-gray-600">Merge branched paths into one flow</p>
+                      </div>
+                    </div>
+                  </button>
+                </div>
               </div>
 
               {/* End Block */}

@@ -1,5 +1,5 @@
 // Block Types
-export type BlockType = 'start' | 'smart' | 'form' | 'end' | 'router';
+export type BlockType = 'start' | 'smart' | 'form' | 'end' | 'router' | 'merge';
 
 export type BlockCategory = 'identity' | 'financial' | 'documents' | 'profile';
 
@@ -108,6 +108,7 @@ export interface RoutingConfig {
   conditions: Condition[];
   operator: 'AND' | 'OR'; // Operator between all conditions
   targetBlockId: string;
+  saved?: boolean;
 }
 
 export interface Condition {

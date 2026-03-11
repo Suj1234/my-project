@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Input } from './ui/input';
-import { Search, ChevronDown, ChevronRight, CreditCard, Fingerprint, Camera, Building, TrendingUp, Landmark, FileText, FileCheck, PenTool, User, FileInput, GitBranch, CircleStop } from 'lucide-react';
+import { Search, ChevronDown, ChevronRight, CreditCard, Fingerprint, Camera, Building, TrendingUp, Landmark, FileText, FileCheck, PenTool, User, FileInput, GitBranch, GitMerge, CircleStop } from 'lucide-react';
 import { SMART_BLOCKS } from '../data/blockDefinitions';
 import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
@@ -25,10 +25,10 @@ const iconMap: Record<string, any> = {
 export function BlockLibrary({ onBlockSelect }: BlockLibraryProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
-    identity: true,
-    financial: true,
-    documents: true,
-    profile: true,
+    identity: false,
+    financial: false,
+    documents: false,
+    profile: false,
   });
 
   const toggleCategory = (category: string) => {
@@ -148,22 +148,43 @@ export function BlockLibrary({ onBlockSelect }: BlockLibraryProps) {
           {/* Logic */}
           <div>
             <h3 className="text-sm font-semibold text-gray-700 mb-2">● LOGIC</h3>
-            <div
-              className="border-l-4 border-orange-500 bg-gray-50 p-3 rounded cursor-pointer hover:bg-gray-100 transition-colors"
-              onClick={() => onBlockSelect('router')}
-            >
-              <div className="flex items-start gap-2 mb-1">
-                <GitBranch className="h-4 w-4 text-orange-500 mt-0.5" />
-                <div className="flex-1">
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-sm font-medium">Conditional Router</span>
-                    <Badge variant="secondary" className="bg-orange-100 text-orange-700 text-xs">
-                      LOGIC
-                    </Badge>
+            <div className="space-y-2">
+              <div
+                className="border-l-4 border-orange-500 bg-gray-50 p-3 rounded cursor-pointer hover:bg-gray-100 transition-colors"
+                onClick={() => onBlockSelect('router')}
+              >
+                <div className="flex items-start gap-2 mb-1">
+                  <GitBranch className="h-4 w-4 text-orange-500 mt-0.5" />
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="text-sm font-medium">Conditional Router</span>
+                      <Badge variant="secondary" className="bg-orange-100 text-orange-700 text-xs">
+                        LOGIC
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-gray-600 mt-1">
+                      Branch journey based on conditions
+                    </p>
                   </div>
-                  <p className="text-xs text-gray-600 mt-1">
-                    Branch journey based on conditions
-                  </p>
+                </div>
+              </div>
+              <div
+                className="border-l-4 border-indigo-500 bg-gray-50 p-3 rounded cursor-pointer hover:bg-gray-100 transition-colors"
+                onClick={() => onBlockSelect('merge')}
+              >
+                <div className="flex items-start gap-2 mb-1">
+                  <GitMerge className="h-4 w-4 text-indigo-500 mt-0.5" />
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="text-sm font-medium">Merge Block</span>
+                      <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 text-xs">
+                        LOGIC
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-gray-600 mt-1">
+                      Merge branched paths into one flow
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

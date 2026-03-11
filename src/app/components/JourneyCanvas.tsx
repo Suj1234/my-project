@@ -17,6 +17,7 @@ import { SmartBlockNode } from './nodes/SmartBlockNode';
 import { FormBlockNode } from './nodes/FormBlockNode';
 import { EndNode } from './nodes/EndNode';
 import { RouterNode } from './nodes/RouterNode';
+import { MergeNode } from './nodes/MergeNode';
 import { FlowNodeData, BlockData } from '../types/journey';
 
 // Define nodeTypes outside component to prevent recreation on every render
@@ -26,6 +27,7 @@ const nodeTypes = {
   form: FormBlockNode,
   end: EndNode,
   router: RouterNode,
+  merge: MergeNode,
 };
 
 interface JourneyCanvasProps {
@@ -71,6 +73,53 @@ export function JourneyCanvas({
   const initialEdges: Edge[] = useMemo(() => {
     const edges: Edge[] = [];
     blocks.forEach((block, index) => {
+      // Router connections are driven by saved route configuration.
+      if (block.type === 'router') {
+        (block.routings || []).forEach((routing) => {
+          if (!routing.saved || !routing.targetBlockId) {
+            return;
+          }
+          edges.push({
+            id: `${block.id}-${routing.id}`,
+            source: block.id,
+            target: routing.targetBlockId,
+            type: 'smoothstep',
+            markerEnd: {
+              type: MarkerType.ArrowClosed,
+              color: '#64748b',
+            },
+            style: {
+              stroke: '#64748b',
+              strokeWidth: 2,
+            },
+          });
+        });
+
+        if (block.defaultRoute) {
+          edges.push({
+            id: `${block.id}-default-route`,
+            source: block.id,
+            target: block.defaultRoute,
+            type: 'smoothstep',
+            label: 'Default',
+            markerEnd: {
+              type: MarkerType.ArrowClosed,
+              color: '#94a3b8',
+            },
+            style: {
+              stroke: '#94a3b8',
+              strokeWidth: 1.5,
+              strokeDasharray: '4 2',
+            },
+            labelStyle: {
+              fill: '#64748b',
+              fontSize: 10,
+            },
+          });
+        }
+        return;
+      }
+
       if (index < blocks.length - 1) {
         edges.push({
           id: `${block.id}-${blocks[index + 1].id}`,
