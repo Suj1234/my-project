@@ -28,6 +28,10 @@ export interface FormInputField {
   type: 'text' | 'number' | 'email' | 'tel' | 'date' | 'select';
   dataType?: 'STRING' | 'NUMBER' | 'BOOLEAN' | 'DATE'; // For UI configuration display
   required: boolean;
+  fieldSource?: 'native' | 'custom'; // Only set for user-added page fields
+  description?: string;
+  category?: string;
+  alias?: string;
   min?: number;
   max?: number;
   regex?: string;
