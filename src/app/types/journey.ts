@@ -21,20 +21,41 @@ export interface SmartBlockDefinition {
   retryConfig?: RetryConfigItem[];
 }
 
+// Validation Rule for a FormInputField
+export type ValidationType =
+  | 'regex'
+  | 'min_length'
+  | 'max_length'
+  | 'min_date'
+  | 'max_date'
+  | 'boolean_match'
+  | 'api'
+  | 'is_in_list'
+  | 'not_allowed';
+
+export interface ValidationRule {
+  id: string;
+  type: ValidationType;
+  value: string;
+  errorMessage: string;
+}
+
 // Form Input Field
 export interface FormInputField {
   id: string;
-  name: string;
+  name: string;                                              // Display label shown to applicant
   type: 'text' | 'number' | 'email' | 'tel' | 'date' | 'select';
-  dataType?: 'STRING' | 'NUMBER' | 'BOOLEAN' | 'DATE'; // For UI configuration display
+  dataType?: 'STRING' | 'NUMBER' | 'BOOLEAN' | 'DATE';
   required: boolean;
-  fieldSource?: 'native' | 'custom'; // Only set for user-added page fields
+  fieldSource?: 'native' | 'custom';                        // Source of the backend field
+  key?: string;                                             // Non-editable backend key, e.g. "pan_number"
   description?: string;
   category?: string;
   alias?: string;
   min?: number;
   max?: number;
   regex?: string;
+  validations?: ValidationRule[];                           // Rich validation rules
 }
 
 // Page Configuration
@@ -43,6 +64,9 @@ export interface PageConfig {
   name: string;
   action: string;
   userInputs: FormInputField[];
+  isConfigured?: boolean;
+  configurationMethod?: 'assigned' | 'ai_generated';
+  assignedPageId?: string; // Used in Option 1 (Assign Existing Page)
 }
 
 // Check Configuration

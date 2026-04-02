@@ -1,5 +1,5 @@
-import { BlockData, FormInputField } from '../types/journey';
-import { X, ChevronDown, ChevronRight, Pencil, RefreshCw } from 'lucide-react';
+import { BlockData, PageConfig } from '../types/journey';
+import { X, Info, Trash2, Plus, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
@@ -9,11 +9,10 @@ import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Switch } from './ui/switch';
 import { Alert, AlertDescription } from './ui/alert';
-import { Info, Trash2, Plus } from 'lucide-react';
 import { Badge } from './ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { getShortDescription } from '../data/blockDefinitions';
 import { useState } from 'react';
+import { PageConfigCard } from './PageConfigCard';
 
 interface ConfigurationPanelProps {
   block: BlockData | null;
@@ -23,7 +22,8 @@ interface ConfigurationPanelProps {
   onDelete: (blockId: string) => void;
 }
 
-// Predefined form fields
+
+// Predefined form fields (used for router block condition dropdowns)
 const PREDEFINED_FORM_FIELDS = [
   { name: "Father's Name", type: 'text' as const, required: false },
   { name: "Mother's Name", type: 'text' as const, required: false },
@@ -42,67 +42,6 @@ const PREDEFINED_FORM_FIELDS = [
   { name: 'Education Level', type: 'select' as const, required: false },
 ];
 
-const UI_DATA_TYPE_OPTIONS = ['STRING', 'NUMBER', 'BOOLEAN', 'DATE'] as const;
-
-const UI_CATEGORY_OPTIONS = [
-  'Identity',
-  'Personal',
-  'Contact',
-  'Address',
-  'Employment',
-  'Financial',
-  'Documents',
-  'Other',
-] as const;
-
-const NATIVE_UI_FIELDS = [
-  { id: 'pan_number', name: 'PAN Number', dataType: 'STRING' as const },
-  { id: 'aadhaar_number', name: 'Aadhaar Number', dataType: 'STRING' as const },
-  { id: 'mobile_number', name: 'Mobile Number', dataType: 'STRING' as const },
-  { id: 'email_address', name: 'Email Address', dataType: 'STRING' as const },
-  { id: 'full_name', name: 'Full Name', dataType: 'STRING' as const },
-  { id: 'date_of_birth', name: 'Date Of Birth', dataType: 'DATE' as const },
-  { id: 'annual_income', name: 'Annual Income', dataType: 'NUMBER' as const },
-  { id: 'loan_amount', name: 'Requested Loan Amount', dataType: 'NUMBER' as const },
-  { id: 'employment_type', name: 'Employment Type', dataType: 'STRING' as const },
-  { id: 'accept_terms', name: 'Terms Accepted', dataType: 'BOOLEAN' as const },
-];
-
-type UIFieldDataType = (typeof UI_DATA_TYPE_OPTIONS)[number];
-type UIFieldSource = 'native' | 'custom';
-
-interface UIFieldDraft {
-  source: UIFieldSource;
-  nativeFieldId: string;
-  fieldName: string;
-  dataType: UIFieldDataType;
-  description: string;
-  category: string;
-  alias: string;
-  required: boolean;
-}
-
-const getDefaultUIFieldDraft = (source: UIFieldSource = 'native'): UIFieldDraft => ({
-  source,
-  nativeFieldId: '',
-  fieldName: '',
-  dataType: 'STRING',
-  description: '',
-  category: UI_CATEGORY_OPTIONS[0],
-  alias: '',
-  required: false,
-});
-
-const mapDataTypeToInputType = (dataType: UIFieldDataType): FormInputField['type'] => {
-  switch (dataType) {
-    case 'NUMBER':
-      return 'number';
-    case 'DATE':
-      return 'date';
-    default:
-      return 'text';
-  }
-};
 
 export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete }: ConfigurationPanelProps) {
   if (!block) {
@@ -209,11 +148,8 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
     required: boolean;
   } | null>(null);
 
-  const [expandedPageId, setExpandedPageId] = useState<string | null>(null);
   const [expandedRoutingIds, setExpandedRoutingIds] = useState<Record<string, boolean>>({});
-  const [activeFieldModalPageId, setActiveFieldModalPageId] = useState<string | null>(null);
-  const [uiFieldDraft, setUIFieldDraft] = useState<UIFieldDraft>(getDefaultUIFieldDraft());
-  const [editingField, setEditingField] = useState<{ pageId: string; fieldId: string } | null>(null);
+
 
   const markRoutingAsDraft = (
     updatedRoutings: NonNullable<BlockData['routings']>,
@@ -233,7 +169,7 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
         {
           id: newFormField.id || `field-${Date.now()}`,
           name: newFormField.name,
-          type: newFormField.type,
+          type: newFormField.type as 'text' | 'number' | 'email' | 'tel' | 'date' | 'select',
           required: newFormField.required,
         },
       ];
@@ -263,178 +199,7 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
     }
   };
 
-  const updateUIFieldDraft = (updates: Partial<UIFieldDraft>) => {
-    setUIFieldDraft((prev) => ({ ...prev, ...updates }));
-  };
 
-  const openAddFieldForm = (pageId: string) => {
-    setActiveFieldModalPageId(pageId);
-    setUIFieldDraft(getDefaultUIFieldDraft('native'));
-    setEditingField(null);
-  };
-
-  const handleAddPageField = (pageId: string) => {
-    const selectedNativeFieldByName = NATIVE_UI_FIELDS.find(
-      (field) => field.name.toLowerCase() === uiFieldDraft.fieldName.trim().toLowerCase()
-    );
-    const selectedNativeField =
-      uiFieldDraft.source === 'native'
-        ? NATIVE_UI_FIELDS.find((field) => field.id === uiFieldDraft.nativeFieldId) ||
-          selectedNativeFieldByName
-        : undefined;
-
-    if (uiFieldDraft.source === 'native' && !selectedNativeField) {
-      return;
-    }
-
-    if (uiFieldDraft.source === 'custom' && !uiFieldDraft.fieldName.trim()) {
-      return;
-    }
-
-    const newField: FormInputField = {
-      id: `user-input-${Date.now()}`,
-      name:
-        uiFieldDraft.source === 'native'
-          ? selectedNativeField!.name
-          : uiFieldDraft.fieldName.trim(),
-      type: mapDataTypeToInputType(uiFieldDraft.dataType),
-      dataType: uiFieldDraft.dataType,
-      required: uiFieldDraft.source === 'custom' ? uiFieldDraft.required : false,
-      fieldSource: uiFieldDraft.source,
-      description: uiFieldDraft.source === 'custom' ? uiFieldDraft.description.trim() : '',
-      category: uiFieldDraft.source === 'custom' ? uiFieldDraft.category : '',
-      alias: uiFieldDraft.source === 'custom' ? uiFieldDraft.alias.trim() : '',
-    };
-
-    const updatedPages = (block.pages || []).map((page) =>
-      page.id === pageId
-        ? {
-            ...page,
-            userInputs: [...page.userInputs, newField],
-          }
-        : page
-    );
-
-    onSave({ ...block, pages: updatedPages });
-    setUIFieldDraft(getDefaultUIFieldDraft('native'));
-    setActiveFieldModalPageId(null);
-  };
-
-  const handleDeletePageField = (pageId: string, fieldId: string) => {
-    const updatedPages = (block.pages || []).map((page) =>
-      page.id === pageId
-        ? {
-            ...page,
-            userInputs: page.userInputs.filter((field) => field.id !== fieldId),
-          }
-        : page
-    );
-    onSave({ ...block, pages: updatedPages });
-    setEditingField((prev) =>
-      prev && prev.pageId === pageId && prev.fieldId === fieldId ? null : prev
-    );
-  };
-
-  const startEditingField = (pageId: string, field: FormInputField) => {
-    setActiveFieldModalPageId(pageId);
-    setEditingField({ pageId, fieldId: field.id });
-    setUIFieldDraft({
-      source: field.fieldSource || 'custom',
-      nativeFieldId:
-        field.fieldSource === 'native'
-          ? NATIVE_UI_FIELDS.find((nativeField) => nativeField.name === field.name)?.id || ''
-          : '',
-      fieldName: field.name,
-      dataType: (field.dataType as UIFieldDataType) || 'STRING',
-      description: field.description || '',
-      category: field.category || UI_CATEGORY_OPTIONS[0],
-      alias: field.alias || '',
-      required: field.required,
-    });
-  };
-
-  const handleSaveEditedField = () => {
-    if (!editingField) {
-      return;
-    }
-
-    const selectedNativeFieldByName = NATIVE_UI_FIELDS.find(
-      (field) => field.name.toLowerCase() === uiFieldDraft.fieldName.trim().toLowerCase()
-    );
-    const selectedNativeField =
-      uiFieldDraft.source === 'native'
-        ? NATIVE_UI_FIELDS.find((field) => field.id === uiFieldDraft.nativeFieldId) ||
-          selectedNativeFieldByName
-        : undefined;
-
-    if (uiFieldDraft.source === 'native' && !selectedNativeField) {
-      return;
-    }
-
-    if (uiFieldDraft.source === 'custom' && !uiFieldDraft.fieldName.trim()) {
-      return;
-    }
-
-    const updatedPages = (block.pages || []).map((page) => {
-      if (page.id !== editingField.pageId) {
-        return page;
-      }
-
-      return {
-        ...page,
-        userInputs: page.userInputs.map((field) => {
-          if (field.id !== editingField.fieldId) {
-            return field;
-          }
-
-          return {
-            ...field,
-            name:
-              uiFieldDraft.source === 'native'
-                ? selectedNativeField!.name
-                : uiFieldDraft.fieldName.trim(),
-            type: mapDataTypeToInputType(uiFieldDraft.dataType),
-            dataType: uiFieldDraft.dataType,
-            required: uiFieldDraft.source === 'custom' ? uiFieldDraft.required : false,
-            fieldSource: uiFieldDraft.source,
-            description: uiFieldDraft.source === 'custom' ? uiFieldDraft.description.trim() : '',
-            category: uiFieldDraft.source === 'custom' ? uiFieldDraft.category : '',
-            alias: uiFieldDraft.source === 'custom' ? uiFieldDraft.alias.trim() : '',
-          };
-        }),
-      };
-    });
-
-    onSave({ ...block, pages: updatedPages });
-    setEditingField(null);
-    setActiveFieldModalPageId(null);
-    setUIFieldDraft(getDefaultUIFieldDraft('native'));
-  };
-
-  const cancelPageFieldForm = () => {
-    setActiveFieldModalPageId(null);
-    setEditingField(null);
-    setUIFieldDraft(getDefaultUIFieldDraft('native'));
-  };
-
-  const handleRegeneratePage = (_pageId: string) => {
-    // Placeholder action hook for regeneration flow.
-  };
-
-  const handleNativeFieldNameChange = (value: string) => {
-    const matchedField = NATIVE_UI_FIELDS.find(
-      (field) => field.name.toLowerCase() === value.trim().toLowerCase()
-    );
-
-    updateUIFieldDraft({
-      fieldName: value,
-      nativeFieldId: matchedField?.id || '',
-      dataType: matchedField?.dataType || uiFieldDraft.dataType,
-    });
-  };
-
-  const modalPageId = editingField?.pageId || activeFieldModalPageId;
-  const isFieldDialogOpen = Boolean(modalPageId);
 
   return (
     <div className="w-[420px] bg-white border-l border-gray-200 flex flex-col h-screen">
@@ -1050,363 +815,33 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
                     <AccordionTrigger>
                       <div className="flex items-center justify-between flex-1 pr-2">
                         <span>UI Configuration</span>
-                        <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
-                          Configured
-                        </Badge>
+                        {block.pages && block.pages.every((p) => p.isConfigured) && (
+                          <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
+                            All Configured
+                          </Badge>
+                        )}
                       </div>
                     </AccordionTrigger>
                     <AccordionContent>
                       {hasUIConfig ? (
-                      <div className="space-y-4">
-                        <p className="text-sm text-gray-600">
-                          Configure fields under each predefined page.
-                        </p>
-
                         <div className="space-y-2">
-                          {block.pages!.map((page, index) => {
-                            const predefinedInputs = page.userInputs.filter((input) => !input.fieldSource);
-                            const addedInputs = page.userInputs.filter((input) => Boolean(input.fieldSource));
-
-                            return (
-                              <div key={page.id} className="border rounded">
-                                <button
-                                  className="w-full flex items-center justify-between p-3 text-left hover:bg-gray-50"
-                                  onClick={() =>
-                                    setExpandedPageId(expandedPageId === page.id ? null : page.id)
-                                  }
-                                >
-                                  <div className="flex items-center gap-2">
-                                    {expandedPageId === page.id ? (
-                                      <ChevronDown className="h-4 w-4 text-gray-500" />
-                                    ) : (
-                                      <ChevronRight className="h-4 w-4 text-gray-500" />
-                                    )}
-                                    <span className="text-sm font-medium">
-                                      {index + 1} {page.name}
-                                    </span>
-                                  </div>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-7 text-xs"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleRegeneratePage(page.id);
-                                    }}
-                                  >
-                                    <RefreshCw className="h-3 w-3 mr-1" />
-                                    Re-generate Page
-                                  </Button>
-                                </button>
-
-                                {expandedPageId === page.id && (
-                                  <div className="p-3 pt-0 space-y-4 border-t">
-                                    <div>
-                                      <Label className="text-xs text-gray-700">Page Name</Label>
-                                      <div className="mt-1 text-sm font-medium">{page.name}</div>
-                                    </div>
-
-                                    <div>
-                                      <Label className="text-xs text-gray-700">Action</Label>
-                                      <div className="mt-1 p-2 bg-gray-50 rounded border text-sm">
-                                        {page.action}
-                                      </div>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                      <div className="flex items-center justify-between">
-                                        <Label className="text-xs text-gray-700">Predefined Fields</Label>
-                                        <Badge variant="outline" className="text-[10px]">Read only</Badge>
-                                      </div>
-                                      <div className="space-y-2">
-                                        {predefinedInputs.length > 0 ? (
-                                          predefinedInputs.map((input) => (
-                                            <div key={input.id} className="flex items-center gap-2 text-sm">
-                                              <span>•</span>
-                                              <span className="font-medium">{input.name}</span>
-                                              <Badge
-                                                variant="outline"
-                                                className="text-xs bg-blue-50 text-blue-700 border-blue-200"
-                                              >
-                                                {input.dataType || 'STRING'}
-                                              </Badge>
-                                              {input.required && (
-                                                <Badge
-                                                  variant="outline"
-                                                  className="text-xs bg-orange-50 text-orange-700 border-orange-200"
-                                                >
-                                                  Required
-                                                </Badge>
-                                              )}
-                                            </div>
-                                          ))
-                                        ) : (
-                                          <div className="text-sm text-gray-500 italic">
-                                            No predefined fields
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                      <div className="flex items-center justify-between">
-                                        <Label className="text-xs text-gray-700">Added Fields</Label>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="h-7 text-xs"
-                                          onClick={() => openAddFieldForm(page.id)}
-                                        >
-                                          <Plus className="h-3 w-3 mr-1" />
-                                          Add Field
-                                        </Button>
-                                      </div>
-
-                                      <div className="space-y-2">
-                                        {addedInputs.length > 0 ? (
-                                          addedInputs.map((input) => {
-                                            const sourceLabel = input.fieldSource === 'native' ? 'Native' : 'Custom';
-
-                                            return (
-                                              <div key={input.id} className="border rounded p-2 bg-white space-y-2">
-                                                <div className="flex items-start justify-between gap-2">
-                                                  <div className="space-y-1">
-                                                    <div className="flex items-center gap-2 flex-wrap">
-                                                      <span className="text-sm font-medium">{input.name}</span>
-                                                      <Badge
-                                                        variant="outline"
-                                                        className={
-                                                          input.fieldSource === 'native'
-                                                            ? 'text-xs bg-sky-50 text-sky-700 border-sky-200'
-                                                            : 'text-xs bg-violet-50 text-violet-700 border-violet-200'
-                                                        }
-                                                      >
-                                                        {sourceLabel}
-                                                      </Badge>
-                                                      <Badge
-                                                        variant="outline"
-                                                        className="text-xs bg-blue-50 text-blue-700 border-blue-200"
-                                                      >
-                                                        {input.dataType || 'STRING'}
-                                                      </Badge>
-                                                      {input.required && (
-                                                        <Badge
-                                                          variant="outline"
-                                                          className="text-xs bg-orange-50 text-orange-700 border-orange-200"
-                                                        >
-                                                          Required
-                                                        </Badge>
-                                                      )}
-                                                    </div>
-                                                    {input.fieldSource === 'custom' && (
-                                                      <div className="text-xs text-gray-600 space-y-0.5">
-                                                        {input.alias && <p>Alias: {input.alias}</p>}
-                                                        {input.category && <p>Category: {input.category}</p>}
-                                                        {input.description && <p>{input.description}</p>}
-                                                      </div>
-                                                    )}
-                                                  </div>
-                                                  <div className="flex items-center gap-1">
-                                                      <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="h-7 px-2"
-                                                        onClick={() => startEditingField(page.id, input)}
-                                                      >
-                                                        <Pencil className="h-3 w-3" />
-                                                      </Button>
-                                                    <Button
-                                                      variant="ghost"
-                                                      size="sm"
-                                                      className="h-7 px-2 text-red-600 hover:text-red-700"
-                                                      onClick={() => handleDeletePageField(page.id, input.id)}
-                                                    >
-                                                      <Trash2 className="h-3 w-3" />
-                                                    </Button>
-                                                  </div>
-                                                </div>
-                                              </div>
-                                            );
-                                          })
-                                        ) : (
-                                          <div className="text-sm text-gray-500 italic">
-                                            No added fields
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
+                          <p className="text-xs text-gray-500 mb-3">
+                            Each card below represents a required page for this block. Open a card to configure it.
+                          </p>
+                          {block.pages!.map((page, index) => (
+                            <PageConfigCard
+                              key={page.id}
+                              page={page}
+                              index={index}
+                              onChange={(updated: PageConfig) => {
+                                const updatedPages = block.pages!.map((p) =>
+                                  p.id === updated.id ? updated : p
+                                );
+                                onSave({ ...block, pages: updatedPages });
+                              }}
+                            />
+                          ))}
                         </div>
-
-                        <Dialog open={isFieldDialogOpen} onOpenChange={(open) => !open && cancelPageFieldForm()}>
-                          <DialogContent className="sm:max-w-md">
-                            <DialogHeader>
-                              <DialogTitle>{editingField ? 'Edit Field' : 'Add Field'}</DialogTitle>
-                              <DialogDescription>
-                                Configure field details for this page.
-                              </DialogDescription>
-                            </DialogHeader>
-
-                            <div className="space-y-3">
-                              <div>
-                                <Label className="text-xs">Field Source</Label>
-                                <Select
-                                  value={uiFieldDraft.source}
-                                  onValueChange={(value: UIFieldSource) =>
-                                    setUIFieldDraft(getDefaultUIFieldDraft(value))
-                                  }
-                                >
-                                  <SelectTrigger className="h-8 text-sm mt-1">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="native">Native</SelectItem>
-                                    <SelectItem value="custom">Custom</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-
-                              {uiFieldDraft.source === 'native' ? (
-                                <>
-                                  <div>
-                                    <Label className="text-xs">Native Field</Label>
-                                    <Input
-                                      className="h-8 text-sm mt-1"
-                                      value={uiFieldDraft.fieldName}
-                                      onChange={(e) => handleNativeFieldNameChange(e.target.value)}
-                                      placeholder="Search and select native field..."
-                                      list="native-field-options"
-                                    />
-                                    <datalist id="native-field-options">
-                                      {NATIVE_UI_FIELDS.map((field) => (
-                                        <option key={field.id} value={field.name} />
-                                      ))}
-                                    </datalist>
-                                  </div>
-                                  <div>
-                                    <Label className="text-xs">Data Type</Label>
-                                    <Select
-                                      value={uiFieldDraft.dataType}
-                                      onValueChange={(value: UIFieldDataType) =>
-                                        updateUIFieldDraft({ dataType: value })
-                                      }
-                                    >
-                                      <SelectTrigger className="h-8 text-sm mt-1">
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {UI_DATA_TYPE_OPTIONS.map((option) => (
-                                          <SelectItem key={option} value={option}>
-                                            {option}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-                                </>
-                              ) : (
-                                <>
-                                  <div>
-                                    <Label className="text-xs">Field Name</Label>
-                                    <Input
-                                      className="h-8 text-sm mt-1"
-                                      value={uiFieldDraft.fieldName}
-                                      onChange={(e) => updateUIFieldDraft({ fieldName: e.target.value })}
-                                      placeholder="Enter field name"
-                                    />
-                                  </div>
-                                  <div>
-                                    <Label className="text-xs">Data Type</Label>
-                                    <Select
-                                      value={uiFieldDraft.dataType}
-                                      onValueChange={(value: UIFieldDataType) =>
-                                        updateUIFieldDraft({ dataType: value })
-                                      }
-                                    >
-                                      <SelectTrigger className="h-8 text-sm mt-1">
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {UI_DATA_TYPE_OPTIONS.map((option) => (
-                                          <SelectItem key={option} value={option}>
-                                            {option}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-                                  <div>
-                                    <Label className="text-xs">Description</Label>
-                                    <Textarea
-                                      rows={2}
-                                      className="text-sm mt-1"
-                                      value={uiFieldDraft.description}
-                                      onChange={(e) => updateUIFieldDraft({ description: e.target.value })}
-                                      placeholder="Enter description"
-                                    />
-                                  </div>
-                                  <div>
-                                    <Label className="text-xs">Category</Label>
-                                    <Select
-                                      value={uiFieldDraft.category}
-                                      onValueChange={(value) => updateUIFieldDraft({ category: value })}
-                                    >
-                                      <SelectTrigger className="h-8 text-sm mt-1">
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {UI_CATEGORY_OPTIONS.map((category) => (
-                                          <SelectItem key={category} value={category}>
-                                            {category}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-                                  <div>
-                                    <Label className="text-xs">Alias</Label>
-                                    <Input
-                                      className="h-8 text-sm mt-1"
-                                      value={uiFieldDraft.alias}
-                                      onChange={(e) => updateUIFieldDraft({ alias: e.target.value })}
-                                      placeholder="Enter alias"
-                                    />
-                                  </div>
-                                  <div className="flex items-center justify-between rounded border bg-white px-3 py-2">
-                                    <Label className="text-xs">Required field</Label>
-                                    <Switch
-                                      checked={uiFieldDraft.required}
-                                      onCheckedChange={(value) => updateUIFieldDraft({ required: value })}
-                                    />
-                                  </div>
-                                </>
-                              )}
-                            </div>
-
-                            <DialogFooter>
-                              <Button variant="outline" size="sm" onClick={cancelPageFieldForm}>
-                                Cancel
-                              </Button>
-                              <Button
-                                size="sm"
-                                onClick={() =>
-                                  editingField
-                                    ? handleSaveEditedField()
-                                    : modalPageId
-                                      ? handleAddPageField(modalPageId)
-                                      : null
-                                }
-                              >
-                                {editingField ? 'Save Changes' : 'Save Field'}
-                              </Button>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
-                      </div>
                       ) : (
                         <p className="text-sm text-gray-500">No UI configuration</p>
                       )}
