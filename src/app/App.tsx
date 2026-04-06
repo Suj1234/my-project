@@ -93,6 +93,18 @@ export default function App() {
         description: 'Merge multiple branches into a single flow',
         configured: false,
       };
+    } else if (blockType === 'decision') {
+      newBlock = {
+        id: newBlockId,
+        type: 'decision',
+        name: 'Decision Block',
+        description: 'Evaluate rules to produce PASS / REJECT / FLAG verdict',
+        configured: false,
+        decisionConfig: {
+          rules: [],
+          defaultVerdict: 'PASS',
+        },
+      };
     } else if (blockType === 'end') {
       newBlock = {
         id: newBlockId,

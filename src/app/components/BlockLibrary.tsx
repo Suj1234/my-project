@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Input } from './ui/input';
-import { Search, ChevronDown, ChevronRight, CreditCard, Fingerprint, Camera, Building, TrendingUp, Landmark, FileText, FileCheck, PenTool, User, FileInput, GitBranch, GitMerge, CircleStop } from 'lucide-react';
+import { Search, ChevronDown, ChevronRight, CreditCard, Fingerprint, Camera, Building, TrendingUp, Landmark, FileText, FileCheck, PenTool, User, FileInput, GitBranch, GitMerge, CircleStop, SplitSquareHorizontal } from 'lucide-react';
 import { SMART_BLOCKS } from '../data/blockDefinitions';
 import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
@@ -183,6 +183,25 @@ export function BlockLibrary({ onBlockSelect }: BlockLibraryProps) {
                     </div>
                     <p className="text-xs text-gray-600 mt-1">
                       Merge branched paths into one flow
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div
+                className="border-l-4 border-purple-500 bg-gray-50 p-3 rounded cursor-pointer hover:bg-gray-100 transition-colors"
+                onClick={() => onBlockSelect('decision')}
+              >
+                <div className="flex items-start gap-2 mb-1">
+                  <SplitSquareHorizontal className="h-4 w-4 text-purple-500 mt-0.5" />
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="text-sm font-medium">Decision Block</span>
+                      <Badge variant="secondary" className="bg-purple-100 text-purple-700 text-xs">
+                        DECISION
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-gray-600 mt-1">
+                      Rule-based verdict: PASS, REJECT, FLAG
                     </p>
                   </div>
                 </div>

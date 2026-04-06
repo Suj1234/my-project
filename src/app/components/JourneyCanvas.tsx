@@ -18,6 +18,7 @@ import { FormBlockNode } from './nodes/FormBlockNode';
 import { EndNode } from './nodes/EndNode';
 import { RouterNode } from './nodes/RouterNode';
 import { MergeNode } from './nodes/MergeNode';
+import { DecisionNode } from './nodes/DecisionNode';
 import { FlowNodeData, BlockData } from '../types/journey';
 
 // Define nodeTypes outside component to prevent recreation on every render
@@ -28,6 +29,7 @@ const nodeTypes = {
   end: EndNode,
   router: RouterNode,
   merge: MergeNode,
+  decision: DecisionNode,
 };
 
 interface JourneyCanvasProps {

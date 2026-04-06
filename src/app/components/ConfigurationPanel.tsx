@@ -1,4 +1,4 @@
-import { BlockData, PageConfig } from '../types/journey';
+import { BlockData, PageConfig, DecisionBlockConfig } from '../types/journey';
 import { X, Info, Trash2, Plus, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
@@ -13,6 +13,9 @@ import { Badge } from './ui/badge';
 import { getShortDescription } from '../data/blockDefinitions';
 import { useState } from 'react';
 import { PageConfigCard } from './PageConfigCard';
+import { DataHooksSection } from './DataHooksSection';
+import { DecisionRulesSection } from './DecisionRulesSection';
+import { getDefaultHookEventSlots, mergeWithDefaultSlots } from '../data/hookEventTemplates';
 
 interface ConfigurationPanelProps {
   block: BlockData | null;
@@ -100,6 +103,7 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
   const hasUIConfig = block.pages && block.pages.length > 0;
   const showUIConfigSection = block.type === 'smart' || block.type === 'form' || block.type === 'end';
   const hasRetry = block.type === 'smart' && Boolean(block.hasRetry || block.retryConfig);
+  const hookSlots = mergeWithDefaultSlots(block.dataHooks, getDefaultHookEventSlots(block));
 
   const getBadgeColor = () => {
     switch (block.type) {
@@ -113,6 +117,8 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
         return 'bg-indigo-100 text-indigo-700';
       case 'end':
         return 'bg-red-100 text-red-700';
+      case 'decision':
+        return 'bg-purple-100 text-purple-700';
       default:
         return 'bg-gray-100 text-gray-700';
     }
@@ -120,19 +126,21 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
 
   const getBadgeText = () => {
     switch (block.type) {
-      case 'smart':
-        return 'SMART';
-      case 'form':
-        return 'FORM';
-      case 'router':
-        return 'LOGIC';
-      case 'merge':
-        return 'LOGIC';
-      case 'end':
-        return 'END';
-      default:
-        return '';
+      case 'smart':    return 'SMART';
+      case 'form':     return 'FORM';
+      case 'router':   return 'LOGIC';
+      case 'merge':    return 'LOGIC';
+      case 'end':      return 'END';
+      case 'decision': return 'DECISION';
+      default:         return '';
     }
+  };
+
+  // Decision block config helpers
+  const decisionConfig: DecisionBlockConfig = block.decisionConfig ?? { rules: [], defaultVerdict: 'PASS' };
+
+  const handleDecisionConfigChange = (config: DecisionBlockConfig) => {
+    onSave({ ...block, decisionConfig: config });
   };
 
   const [newFormField, setNewFormField] = useState({
@@ -805,6 +813,44 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
                       ) : (
                         <p className="text-sm text-gray-500">No configuration available</p>
                       )}
+                    </AccordionContent>
+                  </AccordionItem>
+                )}
+
+                {/* Data Hooks (Smart + Form blocks) */}
+                {(block.type === 'smart' || block.type === 'form') && (
+                  <AccordionItem value="data-hooks">
+                    <AccordionTrigger>
+                      <div className="flex items-center gap-2 flex-1 pr-2">
+                        <span>Data Hooks</span>
+                        {block.dataHooks && block.dataHooks.length > 0 && (
+                          <Badge variant="secondary" className="bg-purple-100 text-purple-700 text-xs">
+                            {block.dataHooks.length}
+                          </Badge>
+                        )}
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <DataHooksSection
+                        block={block}
+                        slots={hookSlots}
+                        onChange={(slots) => onSave({ ...block, dataHooks: slots })}
+                      />
+                    </AccordionContent>
+                  </AccordionItem>
+                )}
+
+                {/* Decision Rules (Decision blocks only) */}
+                {block.type === 'decision' && (
+                  <AccordionItem value="decision-rules">
+                    <AccordionTrigger>Decision Rules</AccordionTrigger>
+                    <AccordionContent>
+                      <DecisionRulesSection
+                        config={decisionConfig}
+                        allBlocks={allBlocks}
+                        currentBlockId={block.id}
+                        onChange={handleDecisionConfigChange}
+                      />
                     </AccordionContent>
                   </AccordionItem>
                 )}

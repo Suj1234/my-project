@@ -1,5 +1,5 @@
 // Block Types
-export type BlockType = 'start' | 'smart' | 'form' | 'end' | 'router' | 'merge';
+export type BlockType = 'start' | 'smart' | 'form' | 'end' | 'router' | 'merge' | 'decision';
 
 export type BlockCategory = 'identity' | 'financial' | 'documents' | 'profile';
 
@@ -114,6 +114,8 @@ export interface BlockData {
   completionMessage?: string;
   routings?: RoutingConfig[];
   defaultRoute?: string;
+  dataHooks?: HookEventSlot[];
+  decisionConfig?: DecisionBlockConfig;
 }
 
 export interface RetryConfig {
@@ -145,6 +147,123 @@ export interface Condition {
   operator: '=' | '!=' | '>' | '<' | '>=' | '<=' | 'contains' | 'not contains' | 'is empty' | 'is not empty';
   value: string;
 }
+
+// ─── Data Hooks ──────────────────────────────────────────────────────────────
+
+export type HookTrigger =
+  | 'before_block_start'
+  | 'after_block_start'
+  | 'before_user_submit'
+  | 'after_user_submit'
+  | 'after_block_complete';
+
+export type InputSourceType = 'native' | 'custom' | 'static' | 'system' | 'api_output';
+
+export type TransformationType =
+  | 'trim'
+  | 'uppercase'
+  | 'lowercase'
+  | 'replace'
+  | 'regex_extract'
+  | 'to_number'
+  | 'round'
+  | 'default_if_empty'
+  | 'timezone_convert'
+  | 'date_format'
+  | 'join'
+  | 'unique';
+
+export interface TransformationStep {
+  id: string;
+  type: TransformationType;
+  config?: Record<string, string>;
+}
+
+export interface InputMapping {
+  requestPath: string;   // e.g. "applicant.name.firstName"
+  label: string;         // human-readable label
+  sourceType: InputSourceType;
+  sourceValue: string;   // e.g. "first_name" | "true" | "cibil_api.scoreDetails.score"
+  extractPath?: string;  // extraction path before transforms
+  transforms?: TransformationStep[];
+  isAutoMapped: boolean;
+}
+
+export type AggregationType =
+  | 'max'
+  | 'min'
+  | 'sum'
+  | 'count'
+  | 'first'
+  | 'last'
+  | 'all'
+  | 'unique'
+  | 'join'
+  | 'latest_by_field';
+
+export interface OutputCapture {
+  id: string;
+  path: string;          // e.g. "scoreDetails.score"
+  label: string;         // e.g. "Credit Score"
+  storeType: 'custom' | 'native' | 'none'; // none = reference-only (pass-through)
+  storeName: string;     // e.g. "cibil_score"
+  // Array extraction extras
+  isArrayExtract?: boolean;
+  arrayPath?: string;    // e.g. "accountDetails"
+  arrayField?: string;   // e.g. "dpdSummary"
+  arraySubField?: string;// e.g. "maxDPD"
+  aggregation?: AggregationType;
+  filterField?: string;
+  filterValue?: string;
+  latestByField?: string;
+  joinDelimiter?: string;
+  transforms?: TransformationStep[];
+}
+
+export interface DataHookApiBinding {
+  id: string;
+  apiId: string;
+  apiName: string;
+  trigger?: HookTrigger;
+  latencyP95Ms?: number;
+  inputMappings: InputMapping[];
+  outputCaptures: OutputCapture[];
+}
+
+export interface HookEventSlot {
+  id: string;
+  eventKey: string;
+  eventLabel: string;
+  apis: DataHookApiBinding[];
+  decisionConfig?: DecisionBlockConfig;
+}
+
+// ─── Decision Block ───────────────────────────────────────────────────────────
+
+export type DecisionVerdict = 'PASS' | 'REJECT' | 'FLAG' | 'MANUAL_REVIEW';
+
+export interface DecisionCondition {
+  id: string;
+  field: string;
+  operator: '=' | '!=' | '>' | '<' | '>=' | '<=' | 'between' | 'contains' | 'is empty' | 'is not empty';
+  value: string;
+  valueTo?: string; // used for "between"
+}
+
+export interface DecisionRule {
+  id: string;
+  conditions: DecisionCondition[];
+  conditionOperator: 'AND' | 'OR';
+  verdict: DecisionVerdict;
+  targetBlockId?: string;
+}
+
+export interface DecisionBlockConfig {
+  rules: DecisionRule[];
+  defaultVerdict: DecisionVerdict;
+}
+
+// ─── React Flow Node Data ─────────────────────────────────────────────────────
 
 // React Flow Node Data
 export interface FlowNodeData extends BlockData {

@@ -28,6 +28,7 @@ const iconMap: Record<string, any> = {
 export function SmartBlockNode({ data, selected }: SmartBlockNodeProps) {
   const [showDelete, setShowDelete] = useState(false);
   const Icon = data.blockTypeId ? iconMap[getIconForBlockType(data.blockTypeId)] : CreditCard;
+  const apis = (data.dataHooks ?? []).flatMap((slot) => slot.apis ?? []);
 
   const handleAddClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -77,11 +78,21 @@ export function SmartBlockNode({ data, selected }: SmartBlockNodeProps) {
             SMART
           </Badge>
         </div>
-        <p className="text-xs text-gray-600 mb-3">
+        <p className="text-xs text-gray-600 mb-2">
           {data.blockTypeId ? getShortDescription(data.blockTypeId) : data.description}
         </p>
         {data.provider && (
-          <p className="text-xs text-gray-500 mb-3">Provider: {data.provider}</p>
+          <p className="text-xs text-gray-500 mb-2">Provider: {data.provider}</p>
+        )}
+        {apis.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-2">
+            {apis.map((hook) => (
+              <span key={hook.id} className="inline-flex items-center gap-1 text-xs bg-purple-50 border border-purple-200 rounded-full px-2 py-0.5 text-purple-700">
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-400 inline-block" />
+                {hook.apiName}
+              </span>
+            ))}
+          </div>
         )}
         <div className="flex justify-center">
           <Badge

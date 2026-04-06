@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find \"c:/Users/sujeet.kumar/OneDrive - Perfios SW Solns P L/Desktop/Antigravity/my-project/src/app/components\" -type f \\\\\\( -name \"*.tsx\" -o -name \"*.ts\" \\\\\\) ! -path \"*/ui/*\" -exec basename {} \\\\;)",
+      "Bash(start \"c:/Users/sujeet.kumar/OneDrive - Perfios SW Solns P L/Desktop/Antigravity/my-project/prototype-flow.html\")",
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)"
+    ]
+  }
+}

@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Journey Builder — Data Hooks & Decision Block Prototype</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* ─── TOP BAR ─────────────────────────────────────────── */
+  .topbar { background: #1e293b; border-bottom: 1px solid #334155; padding: 10px 20px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+  .topbar h1 { font-size: 14px; font-weight: 600; color: #94a3b8; }
+  .topbar .badge { background: #7c3aed; color: white; font-size: 11px; padding: 2px 8px; border-radius: 999px; }
+  .tab-group { display: flex; gap: 4px; margin-left: auto; }
+  .tab-btn { padding: 5px 14px; border-radius: 6px; font-size: 12px; border: none; cursor: pointer; font-weight: 500; }
+  .tab-btn.active { background: #3b82f6; color: white; }
+  .tab-btn:not(.active) { background: #1e293b; color: #64748b; border: 1px solid #334155; }
+  .tab-btn:not(.active):hover { background: #334155; color: #94a3b8; }
+
+  /* ─── MAIN LAYOUT ─────────────────────────────────────── */
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  /* ─── CANVAS ──────────────────────────────────────────── */
+  .canvas { flex: 1; overflow-y: auto; padding: 40px; display: flex; flex-direction: column; align-items: center; gap: 0; background: #0f172a; position: relative; }
+  .canvas-label { position: absolute; top: 16px; left: 20px; font-size: 11px; color: #475569; text-transform: uppercase; letter-spacing: 1px; }
+
+  /* Connector line */
+  .connector { width: 2px; height: 32px; background: #334155; margin: 0 auto; position: relative; }
+  .connector::after { content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid #334155; }
+
+  /* ─── NODES ───────────────────────────────────────────── */
+  .node { width: 280px; border-radius: 12px; border: 2px solid; cursor: pointer; transition: all 0.15s; position: relative; }
+  .node:hover { transform: translateY(-1px); filter: brightness(1.1); }
+  .node.selected { box-shadow: 0 0 0 3px rgba(59,130,246,0.5); }
+
+  .node-start { border-color: #22c55e; background: #052e16; }
+  .node-smart { border-color: #3b82f6; background: #0f1e3d; }
+  .node-form  { border-color: #22c55e; background: #052e16; }
+  .node-decision { border-color: #a855f7; background: #1e0a3d; }
+  .node-end-pass { border-color: #22c55e; background: #052e16; }
+  .node-end-reject { border-color: #ef4444; background: #1e0505; }
+  .node-end-flag { border-color: #f59e0b; background: #1e1205; }
+  .node-end-manual { border-color: #64748b; background: #0f1e2a; }
+
+  .node-header { padding: 10px 14px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .node-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+  .node-title { font-size: 13px; font-weight: 600; flex: 1; }
+  .node-badges { display: flex; gap: 4px; }
+  .nbadge { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.5px; }
+
+  .node-body { padding: 10px 14px 12px; }
+  .node-desc { font-size: 11px; color: #64748b; margin-bottom: 8px; }
+
+  /* Hook indicator pill */
+  .hook-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+  .hook-pill { background: #1e293b; border: 1px solid #334155; border-radius: 6px; padding: 3px 8px; font-size: 10px; color: #94a3b8; display: flex; align-items: center; gap: 4px; }
+  .hook-dot { width: 6px; height: 6px; border-radius: 50%; background: #3b82f6; }
+
+  /* Decision outputs */
+  .decision-outputs { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .dout { padding: 2px 10px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+  .dout-pass { background: #14532d; color: #4ade80; border: 1px solid #166534; }
+  .dout-reject { background: #450a0a; color: #f87171; border: 1px solid #7f1d1d; }
+  .dout-flag { background: #431407; color: #fb923c; border: 1px solid #7c2d12; }
+  .dout-manual { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
+
+  /* Branch lines for decision */
+  .branch-container { display: flex; gap: 20px; align-items: flex-start; justify-content: center; width: 100%; }
+  .branch-line { display: flex; flex-direction: column; align-items: center; }
+  .branch-label { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-bottom: 6px; }
+
+  /* ─── RIGHT PANEL ─────────────────────────────────────── */
+  .panel { width: 460px; background: #1e293b; border-left: 1px solid #334155; overflow-y: auto; flex-shrink: 0; }
+  .panel-inner { padding: 20px; }
+  .panel-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+  .panel-sub { font-size: 11px; color: #64748b; margin-bottom: 20px; }
+
+  /* Accordion section */
+  .acc-section { border: 1px solid #334155; border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
+  .acc-header { padding: 12px 16px; display: flex; align-items: center; gap: 8px; cursor: pointer; background: #263148; user-select: none; }
+  .acc-header:hover { background: #2d3a54; }
+  .acc-icon { font-size: 14px; }
+  .acc-title { font-size: 13px; font-weight: 600; flex: 1; }
+  .acc-badge { background: #3b82f6; color: white; font-size: 10px; padding: 1px 6px; border-radius: 999px; }
+  .acc-badge-new { background: #7c3aed; color: white; font-size: 10px; padding: 1px 6px; border-radius: 999px; }
+  .acc-chevron { color: #64748b; font-size: 11px; transition: transform 0.2s; }
+  .acc-chevron.open { transform: rotate(180deg); }
+  .acc-body { padding: 16px; background: #1a2540; display: none; }
+  .acc-body.open { display: block; }
+
+  /* Hook card */
+  .hook-card { border: 1px solid #334155; border-radius: 8px; padding: 12px; margin-bottom: 8px; background: #0f172a; }
+  .hook-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .hook-card-title { font-size: 12px; font-weight: 600; flex: 1; }
+  .hook-trigger { font-size: 10px; color: #64748b; }
+
+  .mapping-row { display: flex; align-items: center; gap: 6px; padding: 4px 0; font-size: 11px; border-bottom: 1px solid #1e293b; }
+  .mapping-field { color: #94a3b8; flex: 1; font-family: monospace; font-size: 10px; }
+  .mapping-arrow { color: #475569; }
+  .mapping-value { color: #60a5fa; font-family: monospace; font-size: 10px; }
+  .mapping-auto { color: #22c55e; font-size: 9px; font-weight: 700; background: #052e16; padding: 1px 5px; border-radius: 3px; }
+  .mapping-manual { color: #f59e0b; font-size: 9px; font-weight: 700; background: #1c1407; padding: 1px 5px; border-radius: 3px; }
+
+  .output-capture-row { display: flex; align-items: center; gap: 6px; padding: 4px 0; font-size: 11px; }
+  .oc-path { color: #94a3b8; font-family: monospace; font-size: 10px; flex: 1; }
+  .oc-arrow { color: #475569; }
+  .oc-stored { color: #a78bfa; font-family: monospace; font-size: 10px; }
+
+  .btn-add { display: flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 7px; border: 1px dashed #334155; background: transparent; color: #64748b; font-size: 12px; cursor: pointer; width: 100%; justify-content: center; margin-top: 8px; }
+  .btn-add:hover { background: #1e293b; color: #94a3b8; border-color: #475569; }
+  .btn-primary { background: #3b82f6; color: white; border: none; padding: 7px 14px; border-radius: 7px; font-size: 12px; cursor: pointer; font-weight: 600; }
+  .btn-primary:hover { background: #2563eb; }
+
+  /* Decision rules */
+  .rule-card { border: 1px solid #334155; border-radius: 8px; margin-bottom: 8px; background: #0f172a; overflow: hidden; }
+  .rule-header { background: #1a2540; padding: 8px 12px; display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 600; color: #94a3b8; }
+  .drag-handle { color: #334155; cursor: grab; }
+  .rule-body { padding: 10px 12px; }
+  .condition-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
+  .cond-tag { background: #1e293b; border: 1px solid #334155; border-radius: 4px; padding: 3px 8px; font-size: 10px; color: #94a3b8; }
+  .cond-op { background: #1e1a2e; border: 1px solid #4f3d8a; border-radius: 4px; padding: 3px 8px; font-size: 10px; color: #a78bfa; font-weight: 600; }
+  .cond-val { background: #1a2a1a; border: 1px solid #2d5a2d; border-radius: 4px; padding: 3px 8px; font-size: 10px; color: #4ade80; font-weight: 600; }
+  .logic-badge { background: #1e2a1e; border: 1px solid #2d5a2d; border-radius: 4px; padding: 2px 6px; font-size: 9px; font-weight: 700; color: #4ade80; margin: 2px 0; }
+  .logic-badge.or { background: #2a1a0a; border-color: #7c3a0a; color: #fb923c; }
+  .verdict-row { display: flex; align-items: center; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px solid #1e293b; }
+  .verdict-label { font-size: 10px; color: #64748b; }
+  .verdict-chip { padding: 3px 10px; border-radius: 4px; font-size: 10px; font-weight: 700; }
+  .v-reject { background: #450a0a; color: #f87171; border: 1px solid #7f1d1d; }
+  .v-pass { background: #14532d; color: #4ade80; border: 1px solid #166534; }
+  .v-flag { background: #431407; color: #fb923c; border: 1px solid #7c2d12; }
+  .v-manual { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
+
+  .default-verdict { background: #1a2540; border: 1px solid #334155; border-radius: 7px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+  .default-label { font-size: 11px; color: #64748b; flex: 1; }
+
+  /* ─── STEP TABS ────────────────────────────────────────── */
+  .step-tabs { display: flex; gap: 0; border: 1px solid #334155; border-radius: 8px; overflow: hidden; margin-bottom: 14px; }
+  .step-tab { flex: 1; padding: 8px; font-size: 11px; text-align: center; cursor: pointer; background: #1a2540; color: #64748b; border: none; }
+  .step-tab.active { background: #3b82f6; color: white; font-weight: 600; }
+  .step-content { display: none; }
+  .step-content.active { display: block; }
+
+  /* Wizard dialog */
+  .wizard-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .wizard-api-icon { width: 36px; height: 36px; background: #1e1a2e; border: 1px solid #4f3d8a; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .wizard-api-name { font-size: 13px; font-weight: 700; }
+  .wizard-api-sub { font-size: 10px; color: #64748b; }
+
+  /* Response tree */
+  .rtree { font-size: 11px; }
+  .rtree-group { margin-bottom: 4px; }
+  .rtree-key { color: #60a5fa; font-family: monospace; }
+  .rtree-val { color: #4ade80; font-family: monospace; }
+  .rtree-type { color: #64748b; font-style: italic; }
+  .rtree-row { display: flex; align-items: center; gap: 6px; padding: 3px 0; padding-left: 12px; border-left: 1px solid #1e293b; margin-left: 4px; }
+  .rtree-root-row { display: flex; align-items: center; gap: 6px; padding: 4px 0; }
+  .rtree-capture-btn { margin-left: auto; background: #1e293b; border: 1px solid #334155; color: #60a5fa; font-size: 9px; padding: 2px 7px; border-radius: 4px; cursor: pointer; white-space: nowrap; }
+  .rtree-capture-btn:hover { background: #3b82f6; color: white; border-color: #3b82f6; }
+  .rtree-extract-btn { margin-left: auto; background: #1a1a2e; border: 1px solid #4f3d8a; color: #a78bfa; font-size: 9px; padding: 2px 7px; border-radius: 4px; cursor: pointer; white-space: nowrap; }
+  .rtree-expand { color: #475569; cursor: pointer; font-size: 10px; }
+  .section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; margin: 10px 0 6px; }
+  .divider { border: none; border-top: 1px solid #334155; margin: 12px 0; }
+  .info-box { background: #1a2540; border: 1px solid #334155; border-radius: 7px; padding: 10px 12px; font-size: 11px; color: #64748b; margin-bottom: 10px; }
+  .info-box strong { color: #94a3b8; }
+
+  /* Scroll */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: #0f172a; }
+  ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+
+  /* Highlight animation */
+  @keyframes pulse-border { 0%,100% { box-shadow: 0 0 0 3px rgba(59,130,246,0.3); } 50% { box-shadow: 0 0 0 6px rgba(59,130,246,0.5); } }
+  .node.selected { animation: pulse-border 2s infinite; }
+
+  .empty-panel { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 10px; color: #334155; padding: 40px; text-align: center; }
+  .empty-panel svg { opacity: 0.3; }
+  .empty-panel p { font-size: 13px; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <h1>Journey Builder</h1>
+  <span class="badge">Prototype</span>
+  <div class="tab-group">
+    <button class="tab-btn active" onclick="showView('journey')">Journey Canvas</button>
+    <button class="tab-btn" onclick="showView('wizard')">Hook Wizard (Step-by-Step)</button>
+    <button class="tab-btn" onclick="showView('decision')">Decision Block Config</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- VIEW 1: JOURNEY CANVAS                                      -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="main" id="view-journey">
+  <!-- CANVAS -->
+  <div class="canvas">
+    <div class="canvas-label">Journey Canvas</div>
+
+    <!-- START -->
+    <div class="node node-start" onclick="selectNode('start')" id="node-start">
+      <div class="node-header">
+        <div class="node-icon" style="background:#14532d">🟢</div>
+        <div class="node-title">Start</div>
+        <div class="node-badges"><span class="nbadge" style="background:#14532d;color:#4ade80">START</span></div>
+      </div>
+    </div>
+    <div class="connector"></div>
+
+    <!-- FORM BLOCK -->
+    <div class="node node-form" onclick="selectNode('form')" id="node-form">
+      <div class="node-header">
+        <div class="node-icon" style="background:#14532d">📋</div>
+        <div class="node-title">Customer KYC Form</div>
+        <div class="node-badges"><span class="nbadge" style="background:#14532d;color:#4ade80">FORM</span></div>
+      </div>
+      <div class="node-body">
+        <div class="node-desc">Collects PAN, DOB, mobile, email, pincode</div>
+      </div>
+    </div>
+    <div class="connector"></div>
+
+    <!-- PAN VERIFICATION (SMART) with Hook indicator -->
+    <div class="node node-smart" onclick="selectNode('pan')" id="node-pan">
+      <div class="node-header">
+        <div class="node-icon" style="background:#1e3a8a">🪪</div>
+        <div class="node-title">PAN Verification</div>
+        <div class="node-badges">
+          <span class="nbadge" style="background:#1e3a8a;color:#93c5fd">SMART</span>
+          <span class="nbadge" style="background:#4c1d95;color:#c4b5fd">2 HOOKS</span>
+        </div>
+      </div>
+      <div class="node-body">
+        <div class="node-desc">Verifies PAN via PAN Profile Detailed API</div>
+        <div class="hook-pills">
+          <div class="hook-pill"><div class="hook-dot"></div>CIBIL Report · After complete</div>
+          <div class="hook-pill"><div class="hook-dot" style="background:#a855f7"></div>CRM Lookup · Before start</div>
+        </div>
+      </div>
+    </div>
+    <div class="connector"></div>
+
+    <!-- DECISION BLOCK -->
+    <div class="node node-decision" onclick="selectNode('decision')" id="node-decision">
+      <div class="node-header">
+        <div class="node-icon" style="background:#4c1d95">⬡</div>
+        <div class="node-title">Credit Policy Check</div>
+        <div class="node-badges"><span class="nbadge" style="background:#4c1d95;color:#c4b5fd">DECISION</span></div>
+      </div>
+      <div class="node-body">
+        <div class="node-desc">3 rules · evaluates cibil_score, max_dpd, delinquencies</div>
+        <div class="decision-outputs">
+          <span class="dout dout-pass">PASS</span>
+          <span class="dout dout-reject">REJECT</span>
+          <span class="dout dout-flag">FLAG</span>
+          <span class="dout dout-manual">MANUAL REVIEW</span>
+        </div>
+      </div>
+    </div>
+    <div class="connector" style="height:12px;background:transparent"></div>
+
+    <!-- BRANCHES -->
+    <div class="branch-container">
+      <div class="branch-line">
+        <span class="branch-label" style="background:#14532d;color:#4ade80">PASS</span>
+        <div class="connector" style="height:20px"></div>
+        <div class="node node-end-pass" style="width:160px;font-size:11px" onclick="selectNode('end-pass')" id="node-end-pass">
+          <div class="node-header" style="padding:8px 12px">
+            <div class="node-icon" style="background:#14532d;width:24px;height:24px;font-size:11px">✅</div>
+            <div class="node-title" style="font-size:11px">Loan Approved</div>
+          </div>
+          <div class="node-body" style="padding:6px 12px 8px">
+            <span class="nbadge" style="background:#14532d;color:#4ade80;font-size:9px">SUCCESS END</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="branch-line">
+        <span class="branch-label" style="background:#450a0a;color:#f87171">REJECT</span>
+        <div class="connector" style="height:20px"></div>
+        <div class="node node-end-reject" style="width:160px" onclick="selectNode('end-reject')" id="node-end-reject">
+          <div class="node-header" style="padding:8px 12px">
+            <div class="node-icon" style="background:#450a0a;width:24px;height:24px;font-size:11px">❌</div>
+            <div class="node-title" style="font-size:11px">Loan Rejected</div>
+          </div>
+          <div class="node-body" style="padding:6px 12px 8px">
+            <span class="nbadge" style="background:#450a0a;color:#f87171;font-size:9px">REJECTION END</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="branch-line">
+        <span class="branch-label" style="background:#431407;color:#fb923c">FLAG</span>
+        <div class="connector" style="height:20px"></div>
+        <div class="node node-end-flag" style="width:160px" onclick="selectNode('end-flag')" id="node-end-flag">
+          <div class="node-header" style="padding:8px 12px">
+            <div class="node-icon" style="background:#431407;width:24px;height:24px;font-size:11px">🚩</div>
+            <div class="node-title" style="font-size:11px">Manual Review Queue</div>
+          </div>
+          <div class="node-body" style="padding:6px 12px 8px">
+            <span class="nbadge" style="background:#431407;color:#fb923c;font-size:9px">MANUAL REVIEW</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="panel" id="right-panel">
+    <div class="empty-panel" id="panel-empty">
+      <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+      <p>Click any block on the canvas<br/>to see its configuration</p>
+    </div>
+
+    <!-- PAN BLOCK PANEL -->
+    <div id="panel-pan" class="panel-inner" style="display:none">
+      <div class="panel-title">🪪 PAN Verification</div>
+      <div class="panel-sub">Smart Block · PAN Profile Detailed API · <span style="color:#22c55e">Configured ✓</span></div>
+
+      <!-- DATA HOOKS SECTION (NEW) -->
+      <div class="acc-section">
+        <div class="acc-header" onclick="toggleAcc('hooks-pan')">
+          <span class="acc-icon">🔗</span>
+          <span class="acc-title">Data Hooks</span>
+          <span class="acc-badge-new">NEW</span>
+          <span class="acc-badge">2</span>
+          <span class="acc-chevron open" id="chev-hooks-pan">▼</span>
+        </div>
+        <div class="acc-body open" id="acc-hooks-pan">
+          <!-- HOOK 1: CIBIL -->
+          <div class="hook-card">
+            <div class="hook-card-header">
+              <span style="font-size:16px">📊</span>
+              <span class="hook-card-title">CIBIL Bureau Report</span>
+              <span class="hook-trigger">After block completes</span>
+            </div>
+
+            <div class="section-label">Inputs (13 fields)</div>
+            <div class="mapping-row">
+              <span class="mapping-field">firstName</span>
+              <span class="mapping-arrow">←</span>
+              <span class="mapping-value">native.first_name</span>
+              <span class="mapping-auto">AUTO</span>
+            </div>
+            <div class="mapping-row">
+              <span class="mapping-field">pan</span>
+              <span class="mapping-arrow">←</span>
+              <span class="mapping-value">native.pan_number</span>
+              <span class="mapping-auto">AUTO</span>
+            </div>
+            <div class="mapping-row">
+              <span class="mapping-field">dateOfBirth</span>
+              <span class="mapping-arrow">←</span>
+              <span class="mapping-value">native.dob</span>
+              <span class="mapping-auto">AUTO</span>
+            </div>
+            <div class="mapping-row" style="opacity:0.5;font-style:italic">
+              <span class="mapping-field">+ 8 more auto-mapped fields</span>
+            </div>
+            <div class="mapping-row">
+              <span class="mapping-field">consent.purpose</span>
+              <span class="mapping-arrow">←</span>
+              <span class="mapping-value">custom.loan_purpose</span>
+              <span class="mapping-manual">MANUAL</span>
+            </div>
+            <div class="mapping-row">
+              <span class="mapping-field">config.includeEnquiries</span>
+              <span class="mapping-arrow">←</span>
+              <span class="mapping-value">static: true</span>
+              <span class="mapping-manual">MANUAL</span>
+            </div>
+
+            <div class="section-label">Outputs captured (4 fields)</div>
+            <div class="output-capture-row">
+              <span class="oc-path">scoreDetails.score</span>
+              <span class="oc-arrow">→</span>
+              <span class="oc-stored">custom.cibil_score</span>
+            </div>
+            <div class="output-capture-row">
+              <span class="oc-path">summary.totalOutstanding</span>
+              <span class="oc-arrow">→</span>
+              <span class="oc-stored">custom.total_outstanding</span>
+            </div>
+            <div class="output-capture-row">
+              <span class="oc-path">MAX(accountDetails[].dpdSummary.maxDPD)</span>
+              <span class="oc-arrow">→</span>
+              <span class="oc-stored">custom.max_dpd</span>
+            </div>
+            <div class="output-capture-row">
+              <span class="oc-path">derogatorySummary.totalDelinquencies</span>
+              <span class="oc-arrow">→</span>
+              <span class="oc-stored">custom.delinquency_count</span>
+            </div>
+          </div>
+
+          <!-- HOOK 2: CRM -->
+          <div class="hook-card">
+            <div class="hook-card-header">
+              <span style="font-size:16px">🏢</span>
+              <span class="hook-card-title">CRM Customer Lookup</span>
+              <span class="hook-trigger">Before block starts</span>
+            </div>
+            <div class="section-label">Inputs (1 field)</div>
+            <div class="mapping-row">
+              <span class="mapping-field">pan</span>
+              <span class="mapping-arrow">←</span>
+              <span class="mapping-value">native.pan_number</span>
+              <span class="mapping-auto">AUTO</span>
+            </div>
+            <div class="section-label">Outputs captured (1 field)</div>
+            <div class="output-capture-row">
+              <span class="oc-path">customer.existingLoanCount</span>
+              <span class="oc-arrow">→</span>
+              <span class="oc-stored">custom.existing_loans</span>
+            </div>
+          </div>
+
+          <button class="btn-add" onclick="showView('wizard')">+ Add Data Hook</button>
+        </div>
+      </div>
+
+      <!-- OTHER SECTIONS (collapsed) -->
+      <div class="acc-section">
+        <div class="acc-header" onclick="toggleAcc('checks-pan')">
+          <span class="acc-icon">✅</span>
+          <span class="acc-title">Checks</span>
+          <span class="acc-badge">3 enabled</span>
+          <span class="acc-chevron" id="chev-checks-pan">▼</span>
+        </div>
+        <div class="acc-body" id="acc-checks-pan">
+          <p style="font-size:11px;color:#64748b">AML Check, CFR Check, Age Verification...</p>
+        </div>
+      </div>
+
+      <div class="acc-section">
+        <div class="acc-header">
+          <span class="acc-icon">⚙️</span>
+          <span class="acc-title">General Config</span>
+          <span class="acc-chevron">▼</span>
+        </div>
+      </div>
+
+      <div class="acc-section">
+        <div class="acc-header">
+          <span class="acc-icon">🔄</span>
+          <span class="acc-title">Retry Configuration</span>
+          <span class="acc-chevron">▼</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- DECISION BLOCK PANEL -->
+    <div id="panel-decision" class="panel-inner" style="display:none">
+      <div class="panel-title">⬡ Credit Policy Check</div>
+      <div class="panel-sub">Decision Block · 3 rules configured</div>
+
+      <div class="info-box">
+        <strong>How it works:</strong> Rules are evaluated top to bottom. First matching rule determines the verdict. If no rule matches, the default verdict applies.
+      </div>
+
+      <div class="section-label">Available fields for conditions</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:14px">
+        <span style="background:#1a2540;border:1px solid #334155;border-radius:4px;padding:2px 7px;font-size:10px;color:#60a5fa">cibil_score</span>
+        <span style="background:#1a2540;border:1px solid #334155;border-radius:4px;padding:2px 7px;font-size:10px;color:#60a5fa">max_dpd</span>
+        <span style="background:#1a2540;border:1px solid #334155;border-radius:4px;padding:2px 7px;font-size:10px;color:#60a5fa">total_outstanding</span>
+        <span style="background:#1a2540;border:1px solid #334155;border-radius:4px;padding:2px 7px;font-size:10px;color:#60a5fa">delinquency_count</span>
+        <span style="background:#1a2540;border:1px solid #334155;border-radius:4px;padding:2px 7px;font-size:10px;color:#60a5fa">existing_loans</span>
+        <span style="background:#0f1e3d;border:1px solid #334155;border-radius:4px;padding:2px 7px;font-size:10px;color:#94a3b8">native.pan_number</span>
+        <span style="background:#0f1e3d;border:1px solid #334155;border-radius:4px;padding:2px 7px;font-size:10px;color:#94a3b8">native.dob</span>
+        <span style="font-size:10px;color:#475569;padding:2px 4px">+ 12 more</span>
+      </div>
+
+      <div class="section-label">Rules (3)</div>
+
+      <!-- RULE 1 -->
+      <div class="rule-card">
+        <div class="rule-header">
+          <span class="drag-handle">⠿</span>
+          <span>Rule 1</span>
+          <span style="margin-left:auto;color:#475569;cursor:pointer;font-size:12px">🗑</span>
+        </div>
+        <div class="rule-body">
+          <div class="condition-row">
+            <span style="font-size:10px;color:#64748b">IF</span>
+            <span class="cond-tag">cibil_score</span>
+            <span class="cond-op">is less than</span>
+            <span class="cond-val">550</span>
+          </div>
+          <div class="verdict-row">
+            <span class="verdict-label">VERDICT →</span>
+            <span class="verdict-chip v-reject">REJECT</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- RULE 2 -->
+      <div class="rule-card">
+        <div class="rule-header">
+          <span class="drag-handle">⠿</span>
+          <span>Rule 2</span>
+          <span style="margin-left:auto;color:#475569;cursor:pointer;font-size:12px">🗑</span>
+        </div>
+        <div class="rule-body">
+          <div class="condition-row">
+            <span style="font-size:10px;color:#64748b">IF</span>
+            <span class="cond-tag">max_dpd</span>
+            <span class="cond-op">≥</span>
+            <span class="cond-val">90</span>
+          </div>
+          <div class="logic-badge">AND</div>
+          <div class="condition-row">
+            <span class="cond-tag">delinquency_count</span>
+            <span class="cond-op">greater than</span>
+            <span class="cond-val">2</span>
+          </div>
+          <div class="verdict-row">
+            <span class="verdict-label">VERDICT →</span>
+            <span class="verdict-chip v-reject">REJECT</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- RULE 3 -->
+      <div class="rule-card">
+        <div class="rule-header">
+          <span class="drag-handle">⠿</span>
+          <span>Rule 3</span>
+          <span style="margin-left:auto;color:#475569;cursor:pointer;font-size:12px">🗑</span>
+        </div>
+        <div class="rule-body">
+          <div class="condition-row">
+            <span style="font-size:10px;color:#64748b">IF</span>
+            <span class="cond-tag">cibil_score</span>
+            <span class="cond-op">between</span>
+            <span class="cond-val">550 – 649</span>
+          </div>
+          <div class="logic-badge or">OR</div>
+          <div class="condition-row">
+            <span class="cond-tag">max_dpd</span>
+            <span class="cond-op">between</span>
+            <span class="cond-val">30 – 89</span>
+          </div>
+          <div class="verdict-row">
+            <span class="verdict-label">VERDICT →</span>
+            <span class="verdict-chip v-flag">FLAG</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-add">+ Add Rule</button>
+
+      <div class="default-verdict">
+        <span class="verdict-label">Default verdict (no rule matched):</span>
+        <span class="verdict-chip v-pass">PASS</span>
+      </div>
+
+      <div style="margin-top:16px">
+        <button class="btn-primary" style="width:100%">Save Decision Block</button>
+      </div>
+    </div>
+
+    <!-- FORM BLOCK PANEL -->
+    <div id="panel-form" class="panel-inner" style="display:none">
+      <div class="panel-title">📋 Customer KYC Form</div>
+      <div class="panel-sub">Form Block · 5 fields configured · <span style="color:#22c55e">Configured ✓</span></div>
+      <div class="acc-section">
+        <div class="acc-header" onclick="toggleAcc('hooks-form')">
+          <span class="acc-icon">🔗</span>
+          <span class="acc-title">Data Hooks</span>
+          <span class="acc-badge-new">NEW</span>
+          <span class="acc-chevron" id="chev-hooks-form">▼</span>
+        </div>
+        <div class="acc-body" id="acc-hooks-form">
+          <div style="text-align:center;padding:20px 0;color:#475569;font-size:12px">
+            No data hooks configured yet<br/>
+            <button class="btn-primary" style="margin-top:10px;font-size:11px" onclick="showView('wizard')">+ Add First Hook</button>
+          </div>
+        </div>
+      </div>
+      <div class="acc-section">
+        <div class="acc-header"><span class="acc-icon">📝</span><span class="acc-title">Form Fields</span><span class="acc-badge">5 fields</span><span class="acc-chevron">▼</span></div>
+      </div>
+      <div class="acc-section">
+        <div class="acc-header"><span class="acc-icon">🖥️</span><span class="acc-title">UI Configuration</span><span class="acc-chevron">▼</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- VIEW 2: HOOK WIZARD                                         -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="main" id="view-wizard" style="display:none">
+  <div style="flex:1;display:flex;align-items:flex-start;justify-content:center;padding:40px;overflow-y:auto;background:#0f172a">
+    <div style="width:520px">
+      <div style="margin-bottom:20px;display:flex;align-items:center;gap:10px">
+        <button onclick="showView('journey')" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px">← Back to Journey</button>
+        <span style="font-size:14px;font-weight:700;color:#e2e8f0">Add Data Hook</span>
+        <span style="font-size:11px;color:#475569">PAN Verification block</span>
+      </div>
+
+      <!-- STEP INDICATOR -->
+      <div style="display:flex;align-items:center;gap:0;margin-bottom:24px">
+        <div id="si1" style="flex:1;text-align:center;padding:8px;background:#3b82f6;color:white;font-size:11px;font-weight:600;border-radius:8px 0 0 8px">1. Select API</div>
+        <div id="si2" style="flex:1;text-align:center;padding:8px;background:#1e293b;color:#64748b;font-size:11px;border:1px solid #334155">2. Map Inputs</div>
+        <div id="si3" style="flex:1;text-align:center;padding:8px;background:#1e293b;color:#64748b;font-size:11px;border-radius:0 8px 8px 0;border:1px solid #334155;border-left:none">3. Capture Outputs</div>
+      </div>
+
+      <!-- STEP 1 -->
+      <div id="wz-step1" class="step-content active">
+        <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:16px;margin-bottom:16px">
+          <div style="font-size:11px;color:#64748b;margin-bottom:10px">Which API do you want to call?</div>
+          <input type="text" placeholder="Search APIs..." style="width:100%;background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:8px 12px;border-radius:7px;font-size:12px;margin-bottom:10px">
+
+          <div onclick="selectAPI(this)" style="padding:12px;border-radius:8px;border:2px solid #3b82f6;background:#0f1e3d;cursor:pointer;margin-bottom:6px;display:flex;gap:10px;align-items:flex-start">
+            <span style="font-size:20px">📊</span>
+            <div>
+              <div style="font-size:12px;font-weight:600;color:#e2e8f0">CIBIL Bureau Report</div>
+              <div style="font-size:10px;color:#64748b">Credit score, account history, DPD, derogatory summary</div>
+              <div style="display:flex;gap:4px;margin-top:4px">
+                <span style="background:#1e3a8a;color:#93c5fd;font-size:9px;padding:1px 5px;border-radius:3px">Credit Bureau</span>
+                <span style="background:#1e293b;color:#64748b;font-size:9px;padding:1px 5px;border-radius:3px">13 inputs</span>
+                <span style="background:#1e293b;color:#64748b;font-size:9px;padding:1px 5px;border-radius:3px">Complex response</span>
+              </div>
+            </div>
+          </div>
+
+          <div onclick="selectAPI(this)" style="padding:12px;border-radius:8px;border:1px solid #334155;background:#0f172a;cursor:pointer;margin-bottom:6px;display:flex;gap:10px;align-items:flex-start">
+            <span style="font-size:20px">🏢</span>
+            <div>
+              <div style="font-size:12px;font-weight:600;color:#e2e8f0">CRM Customer Lookup</div>
+              <div style="font-size:10px;color:#64748b">Existing customer profile, loan history from CRM</div>
+              <div style="display:flex;gap:4px;margin-top:4px">
+                <span style="background:#14532d;color:#4ade80;font-size:9px;padding:1px 5px;border-radius:3px">Internal CRM</span>
+                <span style="background:#1e293b;color:#64748b;font-size:9px;padding:1px 5px;border-radius:3px">1 input</span>
+              </div>
+            </div>
+          </div>
+
+          <div onclick="selectAPI(this)" style="padding:12px;border-radius:8px;border:1px solid #334155;background:#0f172a;cursor:pointer;display:flex;gap:10px;align-items:flex-start">
+            <span style="font-size:20px">📋</span>
+            <div>
+              <div style="font-size:12px;font-weight:600;color:#e2e8f0">MCA Company Check</div>
+              <div style="font-size:10px;color:#64748b">Director verification, company status via MCA21</div>
+              <div style="display:flex;gap:4px;margin-top:4px">
+                <span style="background:#431407;color:#fb923c;font-size:9px;padding:1px 5px;border-radius:3px">Government</span>
+                <span style="background:#1e293b;color:#64748b;font-size:9px;padding:1px 5px;border-radius:3px">2 inputs</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:16px;margin-bottom:16px">
+          <div style="font-size:11px;color:#64748b;margin-bottom:10px">When should this API be called?</div>
+          <select style="width:100%;background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:8px 12px;border-radius:7px;font-size:12px">
+            <option>Before this block starts</option>
+            <option>After this block starts</option>
+            <option>Before user submits</option>
+            <option>After user submits</option>
+            <option selected>After this block completes</option>
+          </select>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end">
+          <button class="btn-primary" onclick="wizStep(2)">Next: Map Inputs →</button>
+        </div>
+      </div>
+
+      <!-- STEP 2 -->
+      <div id="wz-step2" class="step-content">
+        <div class="wizard-header">
+          <div class="wizard-api-icon">📊</div>
+          <div>
+            <div class="wizard-api-name">CIBIL Bureau Report</div>
+            <div class="wizard-api-sub">Map where each input comes from</div>
+          </div>
+        </div>
+
+        <!-- Auto-mapped -->
+        <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;overflow:hidden;margin-bottom:12px">
+          <div onclick="toggleAcc('auto-mapped')" style="padding:12px 16px;display:flex;align-items:center;gap:8px;cursor:pointer">
+            <span style="color:#22c55e;font-size:13px">✅</span>
+            <span style="font-size:12px;font-weight:600;flex:1">Auto-mapped (11 fields)</span>
+            <span style="font-size:10px;color:#64748b">These are automatically filled from journey data</span>
+            <span class="acc-chevron" id="chev-auto-mapped">▼</span>
+          </div>
+          <div id="acc-auto-mapped" class="acc-body" style="background:#0f172a">
+            <div class="mapping-row" style="padding:5px 0">
+              <span class="mapping-field">applicant.name.firstName</span>
+              <span class="mapping-arrow">←</span>
+              <span class="mapping-value">native.first_name</span>
+            </div>
+            <div class="mapping-row" style="padding:5px 0">
+              <span class="mapping-field">applicant.name.lastName</span>
+              <span class="mapping-arrow">←</span>
+              <span class="mapping-value">native.last_name</span>
+            </div>
+            <div class="mapping-row" style="padding:5px 0">
+              <span class="mapping-field">applicant.dateOfBirth</span>
+              <span class="mapping-arrow">←</span>
+              <span class="mapping-value">native.dob</span>
+            </div>
+            <div class="mapping-row" style="padding:5px 0">
+              <span class="mapping-field">applicant.gender</span>
+              <span class="mapping-arrow">←</span>
+              <span class="mapping-value">native.gender</span>
+            </div>
+            <div class="mapping-row" style="padding:5px 0">
+              <span class="mapping-field">applicant.identifiers.pan</span>
+              <span class="mapping-arrow">←</span>
+              <span class="mapping-value">native.pan_number</span>
+            </div>
+            <div class="mapping-row" style="padding:5px 0">
+              <span class="mapping-field">applicant.contact.mobile</span>
+              <span class="mapping-arrow">←</span>
+              <span class="mapping-value">native.mobile</span>
+            </div>
+            <div class="mapping-row" style="padding:5px 0">
+              <span class="mapping-field">applicant.contact.email</span>
+              <span class="mapping-arrow">←</span>
+              <span class="mapping-value">native.email</span>
+            </div>
+            <div class="mapping-row" style="padding:5px 0">
+              <span class="mapping-field">applicant.addresses[0].pincode</span>
+              <span class="mapping-arrow">←</span>
+              <span class="mapping-value">native.pincode</span>
+            </div>
+            <div class="mapping-row" style="padding:5px 0">
+              <span class="mapping-field">consent.consentGiven</span>
+              <span class="mapping-arrow">←</span>
+              <span class="mapping-value">system: true</span>
+            </div>
+            <div class="mapping-row" style="padding:5px 0">
+              <span class="mapping-field">consent.consentTimestamp</span>
+              <span class="mapping-arrow">←</span>
+              <span class="mapping-value">system: current timestamp</span>
+            </div>
+            <div class="mapping-row" style="padding:5px 0">
+              <span class="mapping-field">config.reportType</span>
+              <span class="mapping-arrow">←</span>
+              <span class="mapping-value">static: "CCR_FULL"</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Needs input -->
+        <div style="background:#1e293b;border:1px solid #f59e0b55;border-radius:10px;overflow:hidden;margin-bottom:16px">
+          <div style="padding:12px 16px;display:flex;align-items:center;gap:8px;background:#1c1407">
+            <span style="color:#f59e0b;font-size:13px">⚠️</span>
+            <span style="font-size:12px;font-weight:600;flex:1;color:#f59e0b">Needs your input (2 fields)</span>
+          </div>
+          <div style="padding:14px;background:#0f172a">
+            <div style="margin-bottom:14px">
+              <div style="font-size:11px;font-weight:600;color:#e2e8f0;margin-bottom:4px">consent.purpose</div>
+              <div style="font-size:10px;color:#64748b;margin-bottom:8px">What is the purpose of this credit enquiry?</div>
+              <div style="display:flex;gap:8px">
+                <select style="flex:1;background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:6px 10px;border-radius:6px;font-size:11px">
+                  <option>Custom field</option>
+                  <option>Static value</option>
+                  <option>Native field</option>
+                </select>
+                <select style="flex:1;background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:6px 10px;border-radius:6px;font-size:11px">
+                  <option>loan_purpose</option>
+                  <option>product_type</option>
+                  <option>+ Create new field</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:11px;font-weight:600;color:#e2e8f0;margin-bottom:4px">config.includeEnquiries</div>
+              <div style="font-size:10px;color:#64748b;margin-bottom:8px">Include hard enquiry history in the report?</div>
+              <div style="display:flex;gap:8px">
+                <select style="flex:1;background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:6px 10px;border-radius:6px;font-size:11px">
+                  <option>Static value</option>
+                  <option>Custom field</option>
+                </select>
+                <input value="true" style="flex:1;background:#1e293b;border:1px solid #334155;color:#4ade80;padding:6px 10px;border-radius:6px;font-size:11px">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between">
+          <button onclick="wizStep(1)" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:7px 14px;border-radius:7px;cursor:pointer;font-size:12px">← Back</button>
+          <button class="btn-primary" onclick="wizStep(3)">Next: Capture Outputs →</button>
+        </div>
+      </div>
+
+      <!-- STEP 3 -->
+      <div id="wz-step3" class="step-content">
+        <div class="wizard-header">
+          <div class="wizard-api-icon">📊</div>
+          <div>
+            <div class="wizard-api-name">CIBIL Bureau Report</div>
+            <div class="wizard-api-sub">Select which fields to store from the response</div>
+          </div>
+        </div>
+
+        <!-- Response Tree -->
+        <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:14px;margin-bottom:12px;font-size:11px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#475569;margin-bottom:10px">Response Fields</div>
+
+          <!-- scoreDetails -->
+          <div style="margin-bottom:8px">
+            <div class="rtree-root-row" style="cursor:pointer" onclick="toggleTree('score-tree')">
+              <span style="color:#a78bfa;font-size:10px">▼</span>
+              <span class="rtree-key">scoreDetails</span>
+              <span class="rtree-type">&nbsp;{ object }</span>
+            </div>
+            <div id="score-tree">
+              <div class="rtree-row">
+                <span class="rtree-key">score</span>
+                <span style="color:#475569">&nbsp;:&nbsp;</span>
+                <span class="rtree-val">752</span>
+                <span style="color:#64748b;font-size:9px;margin-left:4px">number</span>
+                <button class="rtree-capture-btn" onclick="addCapture('scoreDetails.score', 'cibil_score')">+ Capture</button>
+              </div>
+              <div class="rtree-row">
+                <span class="rtree-key">scoreVersion</span>
+                <span style="color:#475569">&nbsp;:&nbsp;</span>
+                <span class="rtree-val">"CIBIL 3.0"</span>
+              </div>
+              <div class="rtree-row" style="cursor:pointer">
+                <span style="color:#475569;font-size:10px">▶</span>
+                <span class="rtree-key">&nbsp;scoreFactors</span>
+                <span class="rtree-type">&nbsp;[ 3 strings ]</span>
+                <button class="rtree-extract-btn">Extract from list ▸</button>
+              </div>
+              <div class="rtree-row" style="cursor:pointer">
+                <span style="color:#475569;font-size:10px">▶</span>
+                <span class="rtree-key">&nbsp;scoreHistory</span>
+                <span class="rtree-type">&nbsp;[ 2 months ]</span>
+                <button class="rtree-extract-btn">Extract from list ▸</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- summary -->
+          <div style="margin-bottom:8px">
+            <div class="rtree-root-row" style="cursor:pointer">
+              <span style="color:#a78bfa;font-size:10px">▼</span>
+              <span class="rtree-key">summary</span>
+              <span class="rtree-type">&nbsp;{ object }</span>
+            </div>
+            <div>
+              <div class="rtree-row">
+                <span class="rtree-key">totalAccounts</span><span style="color:#475569">&nbsp;:&nbsp;</span><span class="rtree-val">3</span>
+                <button class="rtree-capture-btn">+ Capture</button>
+              </div>
+              <div class="rtree-row">
+                <span class="rtree-key">totalOutstanding</span><span style="color:#475569">&nbsp;:&nbsp;</span><span class="rtree-val">1975000</span>
+                <button class="rtree-capture-btn" onclick="addCapture('summary.totalOutstanding','total_outstanding')">+ Capture</button>
+              </div>
+              <div class="rtree-row">
+                <span class="rtree-key">creditUtilization</span><span style="color:#475569">&nbsp;:&nbsp;</span><span class="rtree-val">32</span>
+                <button class="rtree-capture-btn">+ Capture</button>
+              </div>
+              <div class="rtree-row">
+                <span class="rtree-key">totalOverdue</span><span style="color:#475569">&nbsp;:&nbsp;</span><span class="rtree-val">2000</span>
+                <button class="rtree-capture-btn">+ Capture</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- accountDetails - ARRAY -->
+          <div style="margin-bottom:8px">
+            <div class="rtree-root-row" style="cursor:pointer">
+              <span style="color:#a78bfa;font-size:10px">▶</span>
+              <span class="rtree-key">accountDetails</span>
+              <span class="rtree-type">&nbsp;[ 3 accounts ]</span>
+              <button class="rtree-extract-btn" onclick="showArrayExtract()">Extract from array ▸</button>
+            </div>
+          </div>
+
+          <!-- derogatorySummary -->
+          <div style="margin-bottom:8px">
+            <div class="rtree-root-row" style="cursor:pointer">
+              <span style="color:#a78bfa;font-size:10px">▼</span>
+              <span class="rtree-key">derogatorySummary</span>
+              <span class="rtree-type">&nbsp;{ object }</span>
+            </div>
+            <div>
+              <div class="rtree-row">
+                <span class="rtree-key">totalDelinquencies</span><span style="color:#475569">&nbsp;:&nbsp;</span><span class="rtree-val">4</span>
+                <button class="rtree-capture-btn">+ Capture</button>
+              </div>
+              <div class="rtree-row">
+                <span class="rtree-key">dpd30Count</span><span style="color:#475569">&nbsp;:&nbsp;</span><span class="rtree-val">3</span>
+                <button class="rtree-capture-btn">+ Capture</button>
+              </div>
+              <div class="rtree-row">
+                <span class="rtree-key">dpd60Count</span><span style="color:#475569">&nbsp;:&nbsp;</span><span class="rtree-val">3</span>
+                <button class="rtree-capture-btn">+ Capture</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- riskIndicators -->
+          <div>
+            <div class="rtree-root-row" style="cursor:pointer">
+              <span style="color:#a78bfa;font-size:10px">▼</span>
+              <span class="rtree-key">riskIndicators</span>
+              <span class="rtree-type">&nbsp;{ object }</span>
+            </div>
+            <div>
+              <div class="rtree-row">
+                <span class="rtree-key">hasRecentDelinquency</span><span style="color:#475569">&nbsp;:&nbsp;</span><span class="rtree-val" style="color:#f87171">true</span>
+                <button class="rtree-capture-btn">+ Capture</button>
+              </div>
+              <div class="rtree-row">
+                <span class="rtree-key">hasMultipleEnquiries</span><span style="color:#475569">&nbsp;:&nbsp;</span><span class="rtree-val" style="color:#f87171">true</span>
+                <button class="rtree-capture-btn">+ Capture</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Array extract inline panel -->
+        <div id="array-extract-panel" style="display:none;background:#1a1a2e;border:1px solid #4f3d8a;border-radius:10px;padding:16px;margin-bottom:12px">
+          <div style="font-size:12px;font-weight:700;color:#c4b5fd;margin-bottom:12px">⬡ Extract from accountDetails (3 accounts)</div>
+          <div style="margin-bottom:10px">
+            <div style="font-size:10px;color:#94a3b8;margin-bottom:6px;font-weight:600">Step 1 — Pick a field</div>
+            <div style="display:flex;gap:6px">
+              <select style="flex:1;background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:7px 10px;border-radius:6px;font-size:11px">
+                <option>dpdSummary</option>
+                <option>currentBalance</option>
+                <option>creditLimit</option>
+                <option>emiAmount</option>
+                <option>accountStatus</option>
+              </select>
+              <span style="color:#64748b;padding-top:8px">›</span>
+              <select style="flex:1;background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:7px 10px;border-radius:6px;font-size:11px">
+                <option selected>maxDPD</option>
+                <option>dpd30</option>
+                <option>dpd60</option>
+                <option>dpd90</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-bottom:10px">
+            <div style="font-size:10px;color:#94a3b8;margin-bottom:6px;font-weight:600">Step 2 — How to summarize across all accounts?</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <label style="display:flex;align-items:center;gap:4px;background:#0f172a;border:1px solid #3b82f6;border-radius:5px;padding:4px 8px;cursor:pointer;font-size:10px;color:#60a5fa">
+                <input type="radio" name="agg" checked style="margin:0"> Maximum
+              </label>
+              <label style="display:flex;align-items:center;gap:4px;background:#0f172a;border:1px solid #334155;border-radius:5px;padding:4px 8px;cursor:pointer;font-size:10px;color:#64748b">
+                <input type="radio" name="agg" style="margin:0"> Minimum
+              </label>
+              <label style="display:flex;align-items:center;gap:4px;background:#0f172a;border:1px solid #334155;border-radius:5px;padding:4px 8px;cursor:pointer;font-size:10px;color:#64748b">
+                <input type="radio" name="agg" style="margin:0"> Total (Sum)
+              </label>
+              <label style="display:flex;align-items:center;gap:4px;background:#0f172a;border:1px solid #334155;border-radius:5px;padding:4px 8px;cursor:pointer;font-size:10px;color:#64748b">
+                <input type="radio" name="agg" style="margin:0"> Count
+              </label>
+              <label style="display:flex;align-items:center;gap:4px;background:#0f172a;border:1px solid #334155;border-radius:5px;padding:4px 8px;cursor:pointer;font-size:10px;color:#64748b">
+                <input type="radio" name="agg" style="margin:0"> First only
+              </label>
+              <label style="display:flex;align-items:center;gap:4px;background:#0f172a;border:1px solid #334155;border-radius:5px;padding:4px 8px;cursor:pointer;font-size:10px;color:#64748b">
+                <input type="radio" name="agg" style="margin:0"> All (list)
+              </label>
+            </div>
+          </div>
+          <div style="margin-bottom:12px">
+            <div style="font-size:10px;color:#94a3b8;margin-bottom:6px;font-weight:600">Step 3 — Filter accounts (optional)</div>
+            <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
+              <label style="display:flex;align-items:center;gap:4px;font-size:10px;color:#64748b">
+                <input type="radio" name="filt" checked> All accounts
+              </label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:10px;color:#64748b">
+                <input type="radio" name="filt"> Only where:
+              </label>
+            </div>
+            <div style="display:flex;gap:6px;opacity:0.4">
+              <select disabled style="flex:1;background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:6px 10px;border-radius:6px;font-size:11px">
+                <option>accountType</option>
+              </select>
+              <select disabled style="background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:6px 10px;border-radius:6px;font-size:11px">
+                <option>=</option>
+              </select>
+              <select disabled style="flex:1;background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:6px 10px;border-radius:6px;font-size:11px">
+                <option>Credit Card</option>
+                <option>Personal Loan</option>
+                <option>Home Loan</option>
+              </select>
+            </div>
+          </div>
+          <div style="background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px 10px;margin-bottom:10px;font-size:10px">
+            <span style="color:#64748b">Result preview: </span>
+            <span style="color:#c4b5fd;font-weight:600">"Maximum maxDPD across all accounts"</span>
+            <span style="color:#64748b;display:block;margin-top:4px">Example value from sample data: <span style="color:#4ade80">90</span></span>
+          </div>
+          <div style="font-size:10px;color:#94a3b8;margin-bottom:6px;font-weight:600">Store as</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <label style="display:flex;align-items:center;gap:4px;font-size:10px;color:#a78bfa">
+              <input type="radio" name="store" checked> Custom field:
+            </label>
+            <input value="max_dpd" style="flex:1;background:#0f172a;border:1px solid #4f3d8a;color:#c4b5fd;padding:5px 8px;border-radius:5px;font-size:11px">
+          </div>
+          <div style="margin-top:10px;display:flex;gap:6px;justify-content:flex-end">
+            <button onclick="document.getElementById('array-extract-panel').style.display='none'" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:11px">Cancel</button>
+            <button class="btn-primary" style="font-size:11px" onclick="addCapture('MAX(accountDetails[].dpdSummary.maxDPD)','max_dpd');document.getElementById('array-extract-panel').style.display='none'">Add Capture</button>
+          </div>
+        </div>
+
+        <!-- Captured fields -->
+        <div id="captured-list" style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:12px;margin-bottom:16px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#475569;margin-bottom:8px">Captured Fields <span id="capture-count" style="color:#3b82f6">0</span></div>
+          <div id="captures-inner" style="font-size:11px;color:#64748b;text-align:center;padding:8px 0">
+            No fields captured yet. Click "+ Capture" or "Extract from array" above.
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between">
+          <button onclick="wizStep(2)" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:7px 14px;border-radius:7px;cursor:pointer;font-size:12px">← Back</button>
+          <button class="btn-primary" onclick="showView('journey');selectNode('pan')">Save Hook ✓</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- VIEW 3: DECISION CONFIG (full page)                         -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="main" id="view-decision" style="display:none">
+  <div style="flex:1;display:flex;align-items:flex-start;justify-content:center;padding:40px;overflow-y:auto;background:#0f172a">
+    <div style="width:560px">
+      <div style="margin-bottom:20px;display:flex;align-items:center;gap:10px">
+        <button onclick="showView('journey');selectNode('decision')" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px">← Back to Journey</button>
+        <span style="font-size:14px;font-weight:700;color:#e2e8f0">⬡ Configure Decision Block</span>
+      </div>
+
+      <input value="Credit Policy Check" style="width:100%;background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:10px 14px;border-radius:8px;font-size:14px;font-weight:600;margin-bottom:6px">
+      <div style="font-size:11px;color:#64748b;margin-bottom:20px">Rules are checked top to bottom. First matching rule wins.</div>
+
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#475569;flex:1">Rules (3)</div>
+        <div style="font-size:10px;color:#64748b">Available fields:</div>
+        <div style="display:flex;gap:4px">
+          <span style="background:#1a2540;border:1px solid #334155;border-radius:4px;padding:1px 6px;font-size:9px;color:#60a5fa">cibil_score</span>
+          <span style="background:#1a2540;border:1px solid #334155;border-radius:4px;padding:1px 6px;font-size:9px;color:#60a5fa">max_dpd</span>
+          <span style="background:#1a2540;border:1px solid #334155;border-radius:4px;padding:1px 6px;font-size:9px;color:#64748b">+7 more</span>
+        </div>
+      </div>
+
+      <!-- RULE 1 - editable -->
+      <div class="rule-card" style="margin-bottom:10px">
+        <div class="rule-header">
+          <span class="drag-handle" style="font-size:16px;cursor:grab">⠿</span>
+          <span>Rule 1</span>
+          <span style="margin-left:auto;background:#450a0a;color:#f87171;font-size:9px;padding:1px 6px;border-radius:3px;font-weight:700">REJECT</span>
+          <span style="color:#475569;cursor:pointer;font-size:12px;margin-left:6px">🗑</span>
+        </div>
+        <div class="rule-body">
+          <div style="font-size:10px;color:#64748b;margin-bottom:8px">IF all conditions below match →</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+            <select style="flex:2;background:#1e293b;border:1px solid #334155;color:#60a5fa;padding:6px 8px;border-radius:6px;font-size:11px">
+              <option selected>cibil_score</option>
+              <option>max_dpd</option>
+              <option>total_outstanding</option>
+              <option>delinquency_count</option>
+            </select>
+            <select style="flex:2;background:#1e293b;border:1px solid #334155;color:#a78bfa;padding:6px 8px;border-radius:6px;font-size:11px">
+              <option>is less than</option>
+              <option>is greater than</option>
+              <option selected>is less than</option>
+              <option>equals</option>
+              <option>between</option>
+            </select>
+            <input value="550" style="flex:1;background:#1e293b;border:1px solid #334155;color:#4ade80;padding:6px 8px;border-radius:6px;font-size:11px;text-align:center">
+            <button style="background:transparent;border:none;color:#475569;cursor:pointer;font-size:14px">✕</button>
+          </div>
+          <button style="background:transparent;border:1px dashed #334155;color:#64748b;padding:4px 10px;border-radius:5px;font-size:10px;cursor:pointer;margin-top:4px;margin-bottom:10px">+ Add condition</button>
+          <div style="display:flex;align-items:center;gap:8px;padding-top:8px;border-top:1px solid #1e293b">
+            <span style="font-size:10px;color:#64748b">Then verdict is:</span>
+            <div style="display:flex;gap:5px">
+              <button style="background:#14532d;color:#4ade80;border:1px solid #166534;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:600;cursor:pointer">PASS</button>
+              <button style="background:#450a0a;color:#f87171;border:2px solid #dc2626;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer">REJECT</button>
+              <button style="background:#1e293b;color:#64748b;border:1px solid #334155;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:600;cursor:pointer">FLAG</button>
+              <button style="background:#1e293b;color:#64748b;border:1px solid #334155;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:600;cursor:pointer">MANUAL</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RULE 2 -->
+      <div class="rule-card" style="margin-bottom:10px">
+        <div class="rule-header">
+          <span class="drag-handle" style="font-size:16px;cursor:grab">⠿</span>
+          <span>Rule 2</span>
+          <span style="margin-left:auto;background:#450a0a;color:#f87171;font-size:9px;padding:1px 6px;border-radius:3px;font-weight:700">REJECT</span>
+          <span style="color:#475569;cursor:pointer;font-size:12px;margin-left:6px">🗑</span>
+        </div>
+        <div class="rule-body">
+          <div style="font-size:10px;color:#64748b;margin-bottom:8px">IF all conditions below match →</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+            <select style="flex:2;background:#1e293b;border:1px solid #334155;color:#60a5fa;padding:6px 8px;border-radius:6px;font-size:11px"><option>max_dpd</option></select>
+            <select style="flex:2;background:#1e293b;border:1px solid #334155;color:#a78bfa;padding:6px 8px;border-radius:6px;font-size:11px"><option>is greater or equal</option></select>
+            <input value="90" style="flex:1;background:#1e293b;border:1px solid #334155;color:#4ade80;padding:6px 8px;border-radius:6px;font-size:11px;text-align:center">
+            <button style="background:transparent;border:none;color:#475569;cursor:pointer;font-size:14px">✕</button>
+          </div>
+          <div style="display:flex;gap:6px;margin-bottom:4px">
+            <div style="display:flex;border:1px solid #334155;border-radius:5px;overflow:hidden;font-size:10px">
+              <button style="background:#14532d;color:#4ade80;border:none;padding:3px 8px;cursor:pointer;font-weight:700">AND</button>
+              <button style="background:#1e293b;color:#64748b;border:none;padding:3px 8px;cursor:pointer">OR</button>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+            <select style="flex:2;background:#1e293b;border:1px solid #334155;color:#60a5fa;padding:6px 8px;border-radius:6px;font-size:11px"><option>delinquency_count</option></select>
+            <select style="flex:2;background:#1e293b;border:1px solid #334155;color:#a78bfa;padding:6px 8px;border-radius:6px;font-size:11px"><option>is greater than</option></select>
+            <input value="2" style="flex:1;background:#1e293b;border:1px solid #334155;color:#4ade80;padding:6px 8px;border-radius:6px;font-size:11px;text-align:center">
+            <button style="background:transparent;border:none;color:#475569;cursor:pointer;font-size:14px">✕</button>
+          </div>
+          <button style="background:transparent;border:1px dashed #334155;color:#64748b;padding:4px 10px;border-radius:5px;font-size:10px;cursor:pointer;margin-top:4px;margin-bottom:10px">+ Add condition</button>
+          <div style="display:flex;align-items:center;gap:8px;padding-top:8px;border-top:1px solid #1e293b">
+            <span style="font-size:10px;color:#64748b">Then verdict is:</span>
+            <div style="display:flex;gap:5px">
+              <button style="background:#1e293b;color:#64748b;border:1px solid #334155;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:600;cursor:pointer">PASS</button>
+              <button style="background:#450a0a;color:#f87171;border:2px solid #dc2626;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer">REJECT</button>
+              <button style="background:#1e293b;color:#64748b;border:1px solid #334155;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:600;cursor:pointer">FLAG</button>
+              <button style="background:#1e293b;color:#64748b;border:1px solid #334155;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:600;cursor:pointer">MANUAL</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RULE 3 -->
+      <div class="rule-card" style="margin-bottom:10px">
+        <div class="rule-header">
+          <span class="drag-handle" style="font-size:16px;cursor:grab">⠿</span>
+          <span>Rule 3</span>
+          <span style="margin-left:auto;background:#431407;color:#fb923c;font-size:9px;padding:1px 6px;border-radius:3px;font-weight:700">FLAG</span>
+          <span style="color:#475569;cursor:pointer;font-size:12px;margin-left:6px">🗑</span>
+        </div>
+        <div class="rule-body">
+          <div style="font-size:10px;color:#64748b;margin-bottom:8px">IF any condition below matches →</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+            <select style="flex:2;background:#1e293b;border:1px solid #334155;color:#60a5fa;padding:6px 8px;border-radius:6px;font-size:11px"><option>cibil_score</option></select>
+            <select style="flex:2;background:#1e293b;border:1px solid #334155;color:#a78bfa;padding:6px 8px;border-radius:6px;font-size:11px"><option>between</option></select>
+            <input value="550" style="width:48px;background:#1e293b;border:1px solid #334155;color:#4ade80;padding:6px 6px;border-radius:6px;font-size:11px;text-align:center">
+            <span style="color:#64748b;font-size:10px">and</span>
+            <input value="649" style="width:48px;background:#1e293b;border:1px solid #334155;color:#4ade80;padding:6px 6px;border-radius:6px;font-size:11px;text-align:center">
+            <button style="background:transparent;border:none;color:#475569;cursor:pointer;font-size:14px">✕</button>
+          </div>
+          <div style="display:flex;gap:6px;margin-bottom:4px">
+            <div style="display:flex;border:1px solid #334155;border-radius:5px;overflow:hidden;font-size:10px">
+              <button style="background:#1e293b;color:#64748b;border:none;padding:3px 8px;cursor:pointer">AND</button>
+              <button style="background:#431407;color:#fb923c;border:none;padding:3px 8px;cursor:pointer;font-weight:700">OR</button>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+            <select style="flex:2;background:#1e293b;border:1px solid #334155;color:#60a5fa;padding:6px 8px;border-radius:6px;font-size:11px"><option>max_dpd</option></select>
+            <select style="flex:2;background:#1e293b;border:1px solid #334155;color:#a78bfa;padding:6px 8px;border-radius:6px;font-size:11px"><option>between</option></select>
+            <input value="30" style="width:48px;background:#1e293b;border:1px solid #334155;color:#4ade80;padding:6px 6px;border-radius:6px;font-size:11px;text-align:center">
+            <span style="color:#64748b;font-size:10px">and</span>
+            <input value="89" style="width:48px;background:#1e293b;border:1px solid #334155;color:#4ade80;padding:6px 6px;border-radius:6px;font-size:11px;text-align:center">
+            <button style="background:transparent;border:none;color:#475569;cursor:pointer;font-size:14px">✕</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding-top:8px;border-top:1px solid #1e293b">
+            <span style="font-size:10px;color:#64748b">Then verdict is:</span>
+            <div style="display:flex;gap:5px">
+              <button style="background:#1e293b;color:#64748b;border:1px solid #334155;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:600;cursor:pointer">PASS</button>
+              <button style="background:#1e293b;color:#64748b;border:1px solid #334155;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:600;cursor:pointer">REJECT</button>
+              <button style="background:#431407;color:#fb923c;border:2px solid #c2410c;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer">FLAG</button>
+              <button style="background:#1e293b;color:#64748b;border:1px solid #334155;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:600;cursor:pointer">MANUAL</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-add" style="margin-bottom:16px">+ Add Rule</button>
+
+      <div style="background:#1a2540;border:1px solid #334155;border-radius:8px;padding:12px 16px;display:flex;align-items:center;gap:10px;margin-bottom:20px">
+        <span style="font-size:11px;color:#64748b;flex:1">If no rule matches, default verdict:</span>
+        <div style="display:flex;gap:5px">
+          <button style="background:#14532d;color:#4ade80;border:2px solid #16a34a;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer">PASS</button>
+          <button style="background:#1e293b;color:#64748b;border:1px solid #334155;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:600;cursor:pointer">REJECT</button>
+          <button style="background:#1e293b;color:#64748b;border:1px solid #334155;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:600;cursor:pointer">FLAG</button>
+          <button style="background:#1e293b;color:#64748b;border:1px solid #334155;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:600;cursor:pointer">MANUAL</button>
+        </div>
+      </div>
+
+      <button class="btn-primary" style="width:100%;padding:10px;font-size:13px" onclick="showView('journey');selectNode('decision')">Save Decision Block ✓</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let captureRows = [];
+
+function showView(v) {
+  document.getElementById('view-journey').style.display = v==='journey' ? 'flex' : 'none';
+  document.getElementById('view-wizard').style.display  = v==='wizard'  ? 'flex' : 'none';
+  document.getElementById('view-decision').style.display= v==='decision'? 'flex' : 'none';
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>{
+    b.classList.toggle('active', ['journey','wizard','decision'][i]===v);
+  });
+}
+
+function selectNode(id) {
+  document.querySelectorAll('.node').forEach(n=>n.classList.remove('selected'));
+  const n = document.getElementById('node-'+id);
+  if(n) n.classList.add('selected');
+  document.getElementById('panel-empty').style.display='none';
+  ['pan','decision','form'].forEach(p=>{
+    const el=document.getElementById('panel-'+p);
+    if(el) el.style.display='none';
+  });
+  const panel = document.getElementById('panel-'+id);
+  if(panel) panel.style.display='block';
+  else document.getElementById('panel-empty').style.display='flex';
+}
+
+function toggleAcc(id) {
+  const body = document.getElementById('acc-'+id);
+  const chev = document.getElementById('chev-'+id);
+  if(!body) return;
+  const open = body.classList.toggle('open');
+  if(chev) chev.classList.toggle('open', open);
+}
+
+function toggleTree(id) {
+  const el = document.getElementById(id);
+  if(el) el.style.display = el.style.display==='none' ? 'block' : 'none';
+}
+
+function wizStep(s) {
+  [1,2,3].forEach(i=>{
+    document.getElementById('wz-step'+i).classList.toggle('active', i===s);
+    const si = document.getElementById('si'+i);
+    si.style.background = i===s ? '#3b82f6' : i<s ? '#1e3a8a' : '#1e293b';
+    si.style.color = i<=s ? 'white' : '#64748b';
+  });
+}
+
+function selectAPI(el) {
+  document.querySelectorAll('[onclick^="selectAPI"]').forEach(e=>{
+    e.style.borderColor='#334155'; e.style.borderWidth='1px';
+  });
+  el.style.borderColor='#3b82f6'; el.style.borderWidth='2px';
+}
+
+function showArrayExtract() {
+  const p = document.getElementById('array-extract-panel');
+  p.style.display = p.style.display==='none' ? 'block' : 'none';
+}
+
+function addCapture(path, fieldName) {
+  if(captureRows.find(r=>r.path===path)) return;
+  captureRows.push({path, fieldName});
+  const inner = document.getElementById('captures-inner');
+  const count = document.getElementById('capture-count');
+  count.textContent = captureRows.length;
+  inner.innerHTML = captureRows.map(r=>`
+    <div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid #334155;font-size:11px">
+      <span style="font-family:monospace;color:#94a3b8;flex:1;font-size:10px">${r.path}</span>
+      <span style="color:#475569">→</span>
+      <span style="font-family:monospace;color:#a78bfa;font-size:10px">custom.${r.fieldName}</span>
+      <span style="color:#475569;cursor:pointer">✕</span>
+    </div>
+  `).join('');
+}
+</script>
+</body>
+</html>
