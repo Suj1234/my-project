@@ -179,12 +179,39 @@ export interface TransformationStep {
   config?: Record<string, string>;
 }
 
+export type ExtractionType =
+  | 'none'
+  | 'json_path'
+  | 'array_index'
+  | 'array_first'
+  | 'array_last'
+  | 'array_aggregate'
+  | 'array_filter_aggregate'
+  | 'regex_extract'
+  | 'string_split'
+  | 'date_component';
+
+export interface ExtractionConfig {
+  type: ExtractionType;
+  path?: string;              // json_path: dot notation e.g. ".customer.segment"
+  index?: number;             // array_index: 0-based
+  fieldPath?: string;         // array_first/last/aggregate/filter_aggregate: field within item
+  aggregate?: AggregationType;// array_aggregate / array_filter_aggregate
+  filterField?: string;       // array_filter_aggregate
+  filterValue?: string;       // array_filter_aggregate
+  pattern?: string;           // regex_extract
+  groupIndex?: number;        // regex_extract: 0=full match, 1=first group
+  delimiter?: string;         // string_split
+  splitIndex?: number;        // string_split: 0-based
+  dateComponent?: 'year' | 'month' | 'day' | 'hour' | 'minute' | 'second';
+}
+
 export interface InputMapping {
-  requestPath: string;   // e.g. "applicant.name.firstName"
-  label: string;         // human-readable label
+  requestPath: string;
+  label: string;
   sourceType: InputSourceType;
-  sourceValue: string;   // e.g. "first_name" | "true" | "cibil_api.scoreDetails.score"
-  extractPath?: string;  // extraction path before transforms
+  sourceValue: string;
+  extraction?: ExtractionConfig;
   transforms?: TransformationStep[];
   isAutoMapped: boolean;
 }

@@ -264,7 +264,7 @@ export function DataHooksSection({ block, slots, onChange }: DataHooksSectionPro
                               <Badge variant="secondary" className="text-[10px] bg-amber-100 text-amber-700">p95 {api.latencyP95Ms}ms</Badge>
                             ) : null}
                           </div>
-                          <div className="text-xs text-gray-500">{api.outputCaptures.length} captures · {manualInputs} manual inputs</div>
+                          <div className="text-xs text-gray-500">{api.outputCaptures.length} captures ï¿½ {manualInputs} manual inputs</div>
                         </div>
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); removeApiFromSlot(slot.id, api.id); }}>
                           <Trash2 className="h-3.5 w-3.5 text-red-500" />
@@ -331,6 +331,17 @@ export function DataHooksSection({ block, slots, onChange }: DataHooksSectionPro
           if (!activeSlotId) return;
           addApiToSlot(activeSlotId, api);
         }}
+        availableFields={slots.flatMap(slot =>
+          slot.apis.flatMap(api =>
+            api.outputCaptures
+              .filter(c => c.storeType !== 'none' && c.storeName.trim())
+              .map(c => ({
+                storeName: c.storeName.trim(),
+                label: c.label || c.storeName,
+                isArray: c.aggregation === 'all',
+              }))
+          )
+        )}
       />
     </div>
   );
