@@ -116,6 +116,7 @@ export interface BlockData {
   defaultRoute?: string;
   dataHooks?: HookEventSlot[];
   decisionConfig?: DecisionBlockConfig;
+  abPages?: PageConfig[]; // A/B Testing UI Configuration — mirrors pages[] with independent configs
 }
 
 export interface RetryConfig {

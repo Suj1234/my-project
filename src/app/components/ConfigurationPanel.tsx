@@ -13,6 +13,7 @@ import { Badge } from './ui/badge';
 import { getShortDescription } from '../data/blockDefinitions';
 import { useState } from 'react';
 import { PageConfigCard } from './PageConfigCard';
+import { ABTestingPageCard } from './ABTestingPageCard';
 import { DataHooksSection } from './DataHooksSection';
 import { DecisionRulesSection } from './DecisionRulesSection';
 import { getDefaultHookEventSlots, mergeWithDefaultSlots } from '../data/hookEventTemplates';
@@ -234,7 +235,7 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
       </div>
 
       {/* Content */}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 min-h-0">
         <div className="p-4">
           <Accordion type="multiple" defaultValue={[]}>
             {/* Block Info */}
@@ -884,6 +885,47 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
                                   p.id === updated.id ? updated : p
                                 );
                                 onSave({ ...block, pages: updatedPages });
+                              }}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500">No UI configuration</p>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+                )}
+
+                {/* UI Configuration (A/B) */}
+                {showUIConfigSection && (
+                  <AccordionItem value="ui-config-ab">
+                    <AccordionTrigger>
+                      <div className="flex items-center justify-between flex-1 pr-2">
+                        <span>UI Configuration (A/B)</span>
+                        {block.abPages && block.abPages.every((p) => p.isConfigured) && (
+                          <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
+                            All Configured
+                          </Badge>
+                        )}
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      {hasUIConfig ? (
+                        <div className="space-y-2">
+                          <p className="text-xs text-gray-500 mb-3">
+                            Configure A/B test pages for this block. Each card can be assigned from existing pages or generated with AI.
+                          </p>
+                          {(block.abPages ?? block.pages!).map((page, index) => (
+                            <ABTestingPageCard
+                              key={page.id}
+                              page={page}
+                              index={index}
+                              onChange={(updated: PageConfig) => {
+                                const base = block.abPages ?? block.pages!;
+                                const updatedPages = base.map((p) =>
+                                  p.id === updated.id ? updated : p
+                                );
+                                onSave({ ...block, abPages: updatedPages });
                               }}
                             />
                           ))}
