@@ -238,18 +238,22 @@ export function ABTestingPageCard({ page, index, onChange }: ABTestingPageCardPr
     }, 2500);
   };
 
-  // ── Generate with AI (bottom button) — modal then loader inside modal ──────
+  // ── Generate with AI — close modal immediately, show button loader ──────────
+
+  const [pendingGenerateName, setPendingGenerateName] = useState('');
 
   const handleGenerateSubmit = () => {
-    if (!generatePageName.trim()) return;
+    const name = generatePageName.trim();
+    if (!name) return;
+    setPendingGenerateName(name);
+    setGenerateModalOpen(false);
+    setGeneratePageName('');
     setGenerating(true);
     setTimeout(() => {
       setGenerating(false);
-      setGenerateModalOpen(false);
-      setGeneratePageName('');
       onChange({
         ...page,
-        name: generatePageName.trim(),
+        name,
         action,
         userInputs: inputs,
         isConfigured: true,
@@ -355,15 +359,19 @@ export function ABTestingPageCard({ page, index, onChange }: ABTestingPageCardPr
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-9 w-9 p-0 shrink-0 text-purple-600 hover:text-purple-700 hover:border-purple-300 hover:bg-purple-50"
+                    className={`h-9 shrink-0 text-purple-600 hover:text-purple-700 hover:border-purple-300 hover:bg-purple-50 transition-all ${updatingWithAI ? 'px-3 gap-1.5' : 'w-9 p-0'}`}
                     title="Update this page with AI"
                     disabled={!selectedPageId || updatingWithAI}
                     onClick={handleUpdateWithAI}
                   >
-                    {updatingWithAI
-                      ? <Loader2 className="h-4 w-4 animate-spin" />
-                      : <Wand2 className="h-4 w-4" />
-                    }
+                    {updatingWithAI ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                        <span className="text-xs font-medium">Updating…</span>
+                      </>
+                    ) : (
+                      <Wand2 className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
                 <p className="text-[10px] text-gray-400">
@@ -407,12 +415,22 @@ export function ABTestingPageCard({ page, index, onChange }: ABTestingPageCardPr
               {/* Generate new page with AI button */}
               <Button
                 variant="outline"
-                className="w-full border-purple-200 text-purple-700 hover:bg-purple-50 hover:border-purple-400"
+                className={`w-full transition-colors ${generating ? 'border-purple-300 bg-purple-50 text-purple-700 cursor-not-allowed' : 'border-purple-200 text-purple-700 hover:bg-purple-50 hover:border-purple-400'}`}
                 size="sm"
+                disabled={generating}
                 onClick={() => { setGeneratePageName(''); setGenerateModalOpen(true); }}
               >
-                <Sparkles className="h-4 w-4 mr-2" />
-                Generate new page with AI
+                {generating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Generating new page with AI…
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Generate new page with AI
+                  </>
+                )}
               </Button>
 
             </div>
