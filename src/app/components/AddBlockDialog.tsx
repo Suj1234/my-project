@@ -24,6 +24,8 @@ import {
   GitBranch,
   GitMerge,
   CircleStop,
+  FileBarChart,
+  ReceiptText,
 } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 
@@ -44,6 +46,8 @@ const iconMap: Record<string, any> = {
   FileCheck,
   PenTool,
   User,
+  FileBarChart,
+  ReceiptText,
 };
 
 export function AddBlockDialog({ open, onClose, onSelect }: AddBlockDialogProps) {
@@ -87,7 +91,7 @@ export function AddBlockDialog({ open, onClose, onSelect }: AddBlockDialogProps)
                 <h3 className="text-sm font-semibold text-gray-700 mb-3">Smart Blocks</h3>
                 <div className="space-y-2">
                   {filteredSmartBlocks.map((block) => {
-                    const Icon = iconMap[block.icon];
+                    const Icon = iconMap[block.icon] ?? FileText;
                     return (
                       <button
                         key={block.id}

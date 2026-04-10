@@ -66,6 +66,7 @@ export interface KeyValuePair {
   value: string;
   enabled: boolean;
   description?: string;
+  mapped?: boolean;
 }
 
 // ─── Body ─────────────────────────────────────────────────────────────────────
@@ -81,7 +82,7 @@ export type BodyContentType =
   | 'text/html'
   | 'custom';
 
-export type BodyInputMode = 'form_builder' | 'raw';
+export type BodyInputMode = 'form_builder' | 'raw' | 'data_structure';
 
 export interface FormBodyField {
   id: string;
@@ -91,12 +92,34 @@ export interface FormBodyField {
   enabled: boolean;
 }
 
+// ─── Data Structures ─────────────────────────────────────────────────────────
+
+export type DataStructureFieldType = 'text' | 'number' | 'boolean' | 'date' | 'buffer' | 'array' | 'collection';
+
+export interface DataStructureField {
+  id: string;
+  name: string;
+  description?: string;
+  type: DataStructureFieldType;
+  defaultValue?: string;
+  required: boolean;
+  multiline: boolean;
+}
+
+export interface DataStructure {
+  id: string;
+  name: string;
+  strict: boolean;
+  fields: DataStructureField[];
+}
+
 export interface BodyConfig {
   contentType: BodyContentType;
   customContentType?: string;
   inputMode: BodyInputMode;
   rawValue: string;            // Used for raw/json string mode
   formFields: FormBodyField[]; // Used for form builder mode
+  dataStructureId?: string;
 }
 
 // ─── Response ────────────────────────────────────────────────────────────────

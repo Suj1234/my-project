@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Input } from './ui/input';
-import { Search, ChevronDown, ChevronRight, CreditCard, Fingerprint, Camera, Building, TrendingUp, Landmark, FileText, FileCheck, PenTool, User, FileInput, GitBranch, GitMerge, CircleStop, SplitSquareHorizontal } from 'lucide-react';
+import { Search, ChevronDown, ChevronRight, CreditCard, Fingerprint, Camera, Building, TrendingUp, Landmark, FileText, FileCheck, PenTool, User, FileInput, GitBranch, GitMerge, CircleStop, SplitSquareHorizontal, FileBarChart, ReceiptText } from 'lucide-react';
 import { SMART_BLOCKS } from '../data/blockDefinitions';
 import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
@@ -20,6 +20,8 @@ const iconMap: Record<string, any> = {
   FileCheck,
   PenTool,
   User,
+  FileBarChart,
+  ReceiptText,
 };
 
 export function BlockLibrary({ onBlockSelect }: BlockLibraryProps) {
@@ -27,8 +29,8 @@ export function BlockLibrary({ onBlockSelect }: BlockLibraryProps) {
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
     identity: false,
     financial: false,
-    documents: false,
-    profile: false,
+    decision: false,
+    fulfilment: false,
   });
 
   const toggleCategory = (category: string) => {
@@ -45,10 +47,10 @@ export function BlockLibrary({ onBlockSelect }: BlockLibraryProps) {
   );
 
   const blocksByCategory = {
-    identity: filteredBlocks.filter((b) => b.category === 'identity'),
+    identity: filteredBlocks.filter((b) => b.category === 'identity' || b.category === 'profile'),
     financial: filteredBlocks.filter((b) => b.category === 'financial'),
-    documents: filteredBlocks.filter((b) => b.category === 'documents'),
-    profile: filteredBlocks.filter((b) => b.category === 'profile'),
+    decision: filteredBlocks.filter((b) => b.category === 'decision'),
+    fulfilment: filteredBlocks.filter((b) => b.category === 'fulfilment' || b.category === 'documents'),
   };
 
   return (

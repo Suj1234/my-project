@@ -1,7 +1,7 @@
 // Block Types
 export type BlockType = 'start' | 'smart' | 'form' | 'end' | 'router' | 'merge' | 'decision';
 
-export type BlockCategory = 'identity' | 'financial' | 'documents' | 'profile';
+export type BlockCategory = 'identity' | 'financial' | 'documents' | 'profile' | 'fulfilment' | 'decision' | 'data_collection';
 
 export type EndBlockType = 'success' | 'rejection' | 'manual_review';
 
