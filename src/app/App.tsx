@@ -1,22 +1,72 @@
-import { useState } from 'react';
-import { Sidebar, AppView } from './components/shell/Sidebar';
-import CanvasView from './CanvasView';
-import { ManageProgramsPage } from './pages/ManageProgramsPage';
-import { ApiIntegrationPage } from './pages/manage-actions/ApiIntegrationPage';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
+import { Layout } from './components/shell/Layout';
+
+// Manage Program
+import { ManageProgramList }   from './pages/manage-program/ManageProgramList';
+import { ManageProgramView }   from './pages/manage-program/ManageProgramView';
+
+// Manage Workflow (accessed as tab in ManageProgramView; detail + canvas are standalone routes)
+import { ManageWorkflowDetail } from './pages/manage-workflow/ManageWorkflowDetail';
+
+// Manage Actions
+import CanvasView                from './CanvasView';
+import { ApiIntegrationsPage }   from './pages/manage-actions/ApiIntegrationsPage';
+
+// Required Documents
+import { RequiredDocumentList } from './pages/required-documents/RequiredDocumentList';
+import { RequiredDocumentForm } from './pages/required-documents/RequiredDocumentForm';
+import { RequiredDocumentView } from './pages/required-documents/RequiredDocumentView';
+
+// Field Management
+import { FieldManagementList } from './pages/field-management/FieldManagementList';
+
+// Ops Dashboard
+import { OpsDashboardPage }   from './pages/ops-dashboard/OpsDashboardPage';
+import { ApplicationViewPage } from './pages/ops-dashboard/ApplicationViewPage';
+
+// Application Management
+import { ApplicationManagementPage } from './pages/application-management/ApplicationManagementPage';
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<AppView>('manage-programs');
-
   return (
-    <div className="h-screen flex overflow-hidden bg-gray-50">
-      <Sidebar currentView={currentView} onNavigate={setCurrentView} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {currentView === 'manage-programs' && (
-          <ManageProgramsPage onOpenCanvas={() => setCurrentView('canvas')} />
-        )}
-        {currentView === 'canvas' && <CanvasView />}
-        {currentView === 'api-integration' && <ApiIntegrationPage />}
-      </div>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route element={<Layout />}>
+          {/* Default */}
+          <Route index element={<Navigate to="/manage-programs" replace />} />
+
+          {/* Manage Programs */}
+          <Route path="manage-programs" element={<ManageProgramList />} />
+          <Route path="manage-programs/:id/view" element={<ManageProgramView />} />
+
+          {/* Manage Workflow — list is a tab inside ManageProgramView */}
+          <Route path="manage-programs/workflows/:id" element={<ManageWorkflowDetail />} />
+          <Route path="manage-programs/workflows/:workflowId/versions/:versionId/canvas" element={<CanvasView />} />
+
+          {/* Manage Actions */}
+          <Route path="manage-actions/canvas" element={<CanvasView />} />
+          <Route path="manage-actions/api-integrations" element={<ApiIntegrationsPage />} />
+
+          {/* Required Documents */}
+          <Route path="required-documents" element={<RequiredDocumentList />} />
+          <Route path="required-documents/new" element={<RequiredDocumentForm />} />
+          <Route path="required-documents/:id/edit" element={<RequiredDocumentForm />} />
+          <Route path="required-documents/:id/view" element={<RequiredDocumentView />} />
+
+          {/* Field Management */}
+          <Route path="field-management" element={<FieldManagementList />} />
+
+          {/* Ops Dashboard */}
+          <Route path="ops-dashboard" element={<OpsDashboardPage />} />
+          <Route path="ops-dashboard/:appId/view" element={<ApplicationViewPage />} />
+
+          {/* Application Management */}
+          <Route path="application-management" element={<ApplicationManagementPage />} />
+
+          {/* Catch-all */}
+          <Route path="*" element={<Navigate to="/manage-programs" replace />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }

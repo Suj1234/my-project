@@ -3,6 +3,8 @@ import { Terminal, FileJson, Package } from 'lucide-react';
 import { ApiIntegration, HttpMethod } from '../../../types/apiIntegration';
 import { VariableInput } from '../components/VariableInput';
 import { CurlImportModal } from '../components/CurlImportModal';
+import { OpenApiImportModal } from '../components/OpenApiImportModal';
+import { PostmanImportModal } from '../components/PostmanImportModal';
 
 const METHODS: { value: HttpMethod; color: string }[] = [
   { value: 'GET',     color: 'text-emerald-600' },
@@ -25,6 +27,8 @@ interface RequestTabProps {
 
 export function RequestTab({ integration, onChange }: RequestTabProps) {
   const [showCurlModal, setShowCurlModal] = useState(false);
+  const [showOpenApiModal, setShowOpenApiModal] = useState(false);
+  const [showPostmanModal, setShowPostmanModal] = useState(false);
 
   const update = (field: keyof ApiIntegration, value: any) =>
     onChange({ ...integration, [field]: value });
@@ -87,17 +91,15 @@ export function RequestTab({ integration, onChange }: RequestTabProps) {
             cURL Command
           </button>
           <button
-            disabled
-            className="flex items-center gap-2 px-3 py-2 text-xs border border-dashed border-gray-200 rounded-lg text-gray-300 cursor-not-allowed"
-            title="Coming soon"
+            onClick={() => setShowOpenApiModal(true)}
+            className="flex items-center gap-2 px-3 py-2 text-xs border border-gray-200 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 hover:text-indigo-700 transition-colors text-gray-600"
           >
             <FileJson size={13} />
             OpenAPI / Swagger
           </button>
           <button
-            disabled
-            className="flex items-center gap-2 px-3 py-2 text-xs border border-dashed border-gray-200 rounded-lg text-gray-300 cursor-not-allowed"
-            title="Coming soon"
+            onClick={() => setShowPostmanModal(true)}
+            className="flex items-center gap-2 px-3 py-2 text-xs border border-gray-200 rounded-lg hover:border-orange-400 hover:bg-orange-50 hover:text-orange-700 transition-colors text-gray-600"
           >
             <Package size={13} />
             Postman Collection
@@ -161,6 +163,22 @@ export function RequestTab({ integration, onChange }: RequestTabProps) {
         <CurlImportModal
           onImport={handleCurlImport}
           onClose={() => setShowCurlModal(false)}
+        />
+      )}
+
+      {/* OpenAPI import modal */}
+      {showOpenApiModal && (
+        <OpenApiImportModal
+          onImport={handleCurlImport}
+          onClose={() => setShowOpenApiModal(false)}
+        />
+      )}
+
+      {/* Postman import modal */}
+      {showPostmanModal && (
+        <PostmanImportModal
+          onImport={handleCurlImport}
+          onClose={() => setShowPostmanModal(false)}
         />
       )}
     </div>
