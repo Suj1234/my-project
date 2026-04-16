@@ -1,6 +1,6 @@
 import { Handle, Position } from '@xyflow/react';
 import { Button } from '../ui/button';
-import { Plus, Play, Shield, Zap, Globe, Smartphone, Building2, Code2 } from 'lucide-react';
+import { Plus, Play } from 'lucide-react';
 import { FlowNodeData } from '../../types/journey';
 import type React from 'react';
 
@@ -9,32 +9,10 @@ interface StartNodeProps {
   selected: boolean;
 }
 
-const ENTRY_ICONS: Record<string, React.ReactNode> = {
-  web: <Globe className="h-3 w-3" />,
-  mobile_sdk: <Smartphone className="h-3 w-3" />,
-  branch: <Building2 className="h-3 w-3" />,
-  api: <Code2 className="h-3 w-3" />,
-};
-
-const ENTRY_LABELS: Record<string, string> = {
-  web: 'Web',
-  mobile_sdk: 'Mobile SDK',
-  branch: 'Branch',
-  api: 'API',
-};
-
-const AUTH_LABELS: Record<string, string> = {
-  otp: 'OTP',
-  password: 'Password',
-  biometric: 'Biometric',
-  none: 'No Auth',
-};
-
 export function StartNode({ data, selected }: StartNodeProps) {
-  const entrySource = data.entrySource ?? 'web';
-  const authMethod = data.authMethod ?? 'otp';
-  const hasConsent = data.collectConsent ?? false;
-  const hasWebhook = data.startWebhookEnabled ?? false;
+  const configuredPages = (data.pages ?? []).filter((p) => p.isConfigured).length;
+  const totalPages = (data.pages ?? []).length;
+  const hookCount = (data.dataHooks ?? []).reduce((sum, slot) => sum + slot.apis.length, 0);
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -45,7 +23,7 @@ export function StartNode({ data, selected }: StartNodeProps) {
     <div className={`relative transition-all duration-150 ${selected ? 'drop-shadow-xl' : ''}`}>
       {/* Card */}
       <div
-        className={`w-[260px] rounded-xl overflow-hidden bg-white cursor-pointer transition-all duration-150 border-2 ${
+        className={`w-[240px] rounded-xl overflow-hidden bg-white cursor-pointer transition-all duration-150 border-2 ${
           selected
             ? 'border-emerald-500 shadow-2xl shadow-emerald-100/60'
             : 'border-emerald-200 shadow-lg hover:border-emerald-400 hover:shadow-xl'
@@ -69,43 +47,26 @@ export function StartNode({ data, selected }: StartNodeProps) {
         </div>
 
         {/* Body */}
-        <div className="px-3.5 py-2.5 space-y-2 bg-gradient-to-b from-white to-emerald-50/30">
-          {/* Entry channel */}
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] text-gray-500 font-medium">Entry via</span>
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
-              {ENTRY_ICONS[entrySource]}
-              {ENTRY_LABELS[entrySource]}
-            </span>
-          </div>
-
-          {/* Auth method */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1 text-[11px] text-gray-500 font-medium">
-              <Shield className="h-3 w-3" />
-              Auth
-            </div>
-            <span className="text-[11px] font-semibold text-gray-700 bg-gray-100 px-2 py-0.5 rounded-md border border-gray-200">
-              {AUTH_LABELS[authMethod]}
-            </span>
-          </div>
-
-          {/* Consent / Webhook badges */}
-          {(hasConsent || hasWebhook) && (
-            <div className="flex gap-1.5 pt-0.5 flex-wrap border-t border-gray-100">
-              {hasConsent && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-medium bg-violet-50 text-violet-600 px-2 py-0.5 rounded-full border border-violet-100">
-                  <Shield className="h-2.5 w-2.5" />
-                  Consent
+        <div className="px-3.5 py-2.5 bg-gradient-to-b from-white to-emerald-50/30">
+          {totalPages > 0 || hookCount > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {totalPages > 0 && (
+                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${
+                  configuredPages === totalPages
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : 'bg-amber-50 text-amber-700 border-amber-200'
+                }`}>
+                  {configuredPages}/{totalPages} pages
                 </span>
               )}
-              {hasWebhook && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-medium bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full border border-orange-100">
-                  <Zap className="h-2.5 w-2.5" />
-                  Webhook
+              {hookCount > 0 && (
+                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-purple-50 text-purple-700 border-purple-200">
+                  {hookCount} {hookCount === 1 ? 'hook' : 'hooks'}
                 </span>
               )}
             </div>
+          ) : (
+            <p className="text-[11px] text-gray-400 italic">Click to configure</p>
           )}
         </div>
       </div>

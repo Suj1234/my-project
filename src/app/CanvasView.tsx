@@ -150,8 +150,6 @@ export default function CanvasView() {
         name: 'Journey End',
         description: 'Journey terminus',
         configured: false,
-        endType: 'success',
-        completionMessage: 'Your journey has been completed successfully.',
         pages: [{ id: 'outcome-page', name: 'Outcome Screen', action: 'Journey completed', userInputs: [] }],
       };
     } else {

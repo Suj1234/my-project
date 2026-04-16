@@ -3,12 +3,9 @@ export type BlockType = 'start' | 'smart' | 'form' | 'end' | 'router' | 'merge' 
 
 export type BlockCategory = 'identity' | 'financial' | 'documents' | 'profile' | 'fulfilment' | 'decision' | 'data_collection';
 
-export type EndBlockType = 'success' | 'rejection' | 'manual_review';
-
 export type EntrySource = 'web' | 'mobile_sdk' | 'branch' | 'api';
 export type AuthMethod = 'otp' | 'password' | 'biometric' | 'none';
 export type PrefillSource = 'none' | 'crm_api' | 'custom_api';
-export type CTAAction = 'url' | 'deep_link' | 'none';
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
@@ -16,18 +13,6 @@ export interface PassthroughParam {
   id: string;
   key: string;
   value: string;
-}
-
-export interface CommTrigger {
-  enabled: boolean;
-  templateId?: string;
-  templateName?: string;
-}
-
-export interface WebhookTrigger {
-  enabled: boolean;
-  url?: string;
-  eventType?: string;
 }
 
 // ─── Journey-level Settings ───────────────────────────────────────────────────
@@ -186,21 +171,6 @@ export interface BlockData {
   generalConfig?: GeneralConfigField[];
   retryConfig?: RetryConfig | RetryConfigItem[];
   pages?: PageConfig[];
-
-  // ─── End Block fields ───────────────────────────────────────────────────────
-  endType?: EndBlockType;
-  completionMessage?: string;
-  messageTitle?: string;
-  messageBody?: string;
-  ctaLabel?: string;
-  ctaAction?: CTAAction;
-  ctaUrl?: string;
-  emailTrigger?: CommTrigger;
-  smsTrigger?: CommTrigger;
-  webhookTrigger?: WebhookTrigger;
-  autoRedirectEnabled?: boolean;
-  autoRedirectSeconds?: number;
-  redirectUrl?: string;
 
   // ─── Start Block fields ──────────────────────────────────────────────────────
   entrySource?: EntrySource;

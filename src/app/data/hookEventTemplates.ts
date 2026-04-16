@@ -45,6 +45,13 @@ export function getDefaultHookEventSlots(block: BlockData): HookEventSlot[] {
     ];
   }
 
+  if (block.type === 'start') {
+    return [
+      buildSlot('before_journey_start', 'Before Journey Start'),
+      buildSlot('after_journey_start', 'After Journey Start'),
+    ];
+  }
+
   return [];
 }
 
