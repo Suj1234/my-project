@@ -5,6 +5,78 @@ export type BlockCategory = 'identity' | 'financial' | 'documents' | 'profile' |
 
 export type EndBlockType = 'success' | 'rejection' | 'manual_review';
 
+export type EntrySource = 'web' | 'mobile_sdk' | 'branch' | 'api';
+export type AuthMethod = 'otp' | 'password' | 'biometric' | 'none';
+export type PrefillSource = 'none' | 'crm_api' | 'custom_api';
+export type CTAAction = 'url' | 'deep_link' | 'none';
+
+// ─── Shared helpers ───────────────────────────────────────────────────────────
+
+export interface PassthroughParam {
+  id: string;
+  key: string;
+  value: string;
+}
+
+export interface CommTrigger {
+  enabled: boolean;
+  templateId?: string;
+  templateName?: string;
+}
+
+export interface WebhookTrigger {
+  enabled: boolean;
+  url?: string;
+  eventType?: string;
+}
+
+// ─── Journey-level Settings ───────────────────────────────────────────────────
+
+export interface PageSlot {
+  pageId: string | null;
+  pageName: string | null;
+  configurationMethod?: 'assigned' | 'ai_generated';
+  isConfigured?: boolean;
+}
+
+export interface JourneySettings {
+  loginPage: PageSlot;
+  resumePage: PageSlot;
+  errorPage: PageSlot;
+  maintenancePage: PageSlot;
+  mockedPage: PageSlot;
+  appConfigId: string | null;
+}
+
+export const DEFAULT_JOURNEY_SETTINGS: JourneySettings = {
+  loginPage: { pageId: null, pageName: null, isConfigured: false },
+  resumePage: { pageId: null, pageName: null, isConfigured: false },
+  errorPage: { pageId: null, pageName: null, isConfigured: false },
+  maintenancePage: { pageId: null, pageName: null, isConfigured: false },
+  mockedPage: { pageId: null, pageName: null, isConfigured: false },
+  appConfigId: null,
+};
+
+// Mock data (in production, fetched from backend)
+export const MOCK_AVAILABLE_PAGES = [
+  { id: 'page-login-01', name: 'loginPage' },
+  { id: 'page-resume-01', name: 'resumePage' },
+  { id: 'page-error-01', name: 'errorPage' },
+  { id: 'page-maintenance-01', name: 'maintenancePage' },
+  { id: 'page-mock-01', name: 'digiLockerMockPage' },
+  { id: 'page-welcome-01', name: 'welcomePage' },
+  { id: 'page-consent-01', name: 'kycConsentPage' },
+  { id: 'page-success-01', name: 'congratsPage' },
+  { id: 'page-rejection-01', name: 'rejectionPage' },
+  { id: 'page-review-01', name: 'manualReviewPage' },
+];
+
+export const MOCK_APP_CONFIGS = [
+  { id: 'cfg-01', name: 'appConfig' },
+  { id: 'cfg-02', name: 'appConfig_v2' },
+  { id: 'cfg-03', name: 'prodConfig' },
+];
+
 // Smart Block Definitions
 export interface SmartBlockDefinition {
   id: string;
@@ -27,35 +99,30 @@ export type ValidationType =
   | 'min_length'
   | 'max_length'
   | 'min_date'
-  | 'max_date'
-  | 'boolean_match'
-  | 'api'
-  | 'is_in_list'
-  | 'not_allowed';
+  | 'max_date';
 
 export interface ValidationRule {
   id: string;
   type: ValidationType;
   value: string;
-  errorMessage: string;
 }
 
 // Form Input Field
 export interface FormInputField {
   id: string;
-  name: string;                                              // Display label shown to applicant
+  name: string;
   type: 'text' | 'number' | 'email' | 'tel' | 'date' | 'select';
   dataType?: 'STRING' | 'NUMBER' | 'BOOLEAN' | 'DATE';
   required: boolean;
-  fieldSource?: 'native' | 'custom';                        // Source of the backend field
-  key?: string;                                             // Non-editable backend key, e.g. "pan_number"
+  fieldSource?: 'native' | 'custom';
+  key?: string;
   description?: string;
   category?: string;
   alias?: string;
   min?: number;
   max?: number;
   regex?: string;
-  validations?: ValidationRule[];                           // Rich validation rules
+  validations?: ValidationRule[];
 }
 
 // Page Configuration
@@ -66,7 +133,7 @@ export interface PageConfig {
   userInputs: FormInputField[];
   isConfigured?: boolean;
   configurationMethod?: 'assigned' | 'ai_generated';
-  assignedPageId?: string; // Used in Option 1 (Assign Existing Page)
+  assignedPageId?: string;
 }
 
 // Check Configuration
@@ -74,16 +141,25 @@ export interface CheckConfig {
   id: string;
   name: string;
   enabled: boolean;
-  outputResponse?: 'pass' | 'reject'; // What to do when check fails
+  outputResponse?: 'pass' | 'reject';
   fields: CheckField[];
+}
+
+export interface MasterColumnOption {
+  label: string;
+  value: string;
+  isPrimaryKey: boolean;
+  dataType: string;
 }
 
 export interface CheckField {
   id: string;
   name: string;
-  type: 'select' | 'number' | 'text' | 'toggle';
+  type: 'select' | 'number' | 'text' | 'toggle' | 'dependent-select';
   value: any;
   options?: { label: string; value: string }[];
+  dependsOn?: string;
+  masterColumns?: Record<string, MasterColumnOption[]>;
 }
 
 export interface GeneralConfigField {
@@ -98,7 +174,7 @@ export interface GeneralConfigField {
 export interface BlockData {
   id: string;
   type: BlockType;
-  blockTypeId?: string; // For smart blocks, references SmartBlockDefinition.id
+  blockTypeId?: string;
   hasRetry?: boolean;
   category?: BlockCategory;
   name: string;
@@ -110,13 +186,44 @@ export interface BlockData {
   generalConfig?: GeneralConfigField[];
   retryConfig?: RetryConfig | RetryConfigItem[];
   pages?: PageConfig[];
+
+  // ─── End Block fields ───────────────────────────────────────────────────────
   endType?: EndBlockType;
   completionMessage?: string;
+  messageTitle?: string;
+  messageBody?: string;
+  ctaLabel?: string;
+  ctaAction?: CTAAction;
+  ctaUrl?: string;
+  emailTrigger?: CommTrigger;
+  smsTrigger?: CommTrigger;
+  webhookTrigger?: WebhookTrigger;
+  autoRedirectEnabled?: boolean;
+  autoRedirectSeconds?: number;
+  redirectUrl?: string;
+
+  // ─── Start Block fields ──────────────────────────────────────────────────────
+  entrySource?: EntrySource;
+  authRequired?: boolean;
+  authMethod?: AuthMethod;
+  collectConsent?: boolean;
+  consentScope?: string;
+  prefillSource?: PrefillSource;
+  passthroughParams?: PassthroughParam[];
+  startWebhookEnabled?: boolean;
+  startWebhookUrl?: string;
+
+  // ─── Form Block fields ──────────────────────────────────────────────────────
+  journeyState?: string;
+
+  // ─── Router/Logic fields ────────────────────────────────────────────────────
   routings?: RoutingConfig[];
   defaultRoute?: string;
+
+  // ─── Data hooks ─────────────────────────────────────────────────────────────
   dataHooks?: HookEventSlot[];
   decisionConfig?: DecisionBlockConfig;
-  abPages?: PageConfig[]; // A/B Testing UI Configuration — mirrors pages[] with independent configs
+  abPages?: PageConfig[];
 }
 
 export interface RetryConfig {
@@ -137,7 +244,7 @@ export interface RetryConfigItem {
 export interface RoutingConfig {
   id: string;
   conditions: Condition[];
-  operator: 'AND' | 'OR'; // Operator between all conditions
+  operator: 'AND' | 'OR';
   targetBlockId: string;
   saved?: boolean;
 }
@@ -194,16 +301,16 @@ export type ExtractionType =
 
 export interface ExtractionConfig {
   type: ExtractionType;
-  path?: string;              // json_path: dot notation e.g. ".customer.segment"
-  index?: number;             // array_index: 0-based
-  fieldPath?: string;         // array_first/last/aggregate/filter_aggregate: field within item
-  aggregate?: AggregationType;// array_aggregate / array_filter_aggregate
-  filterField?: string;       // array_filter_aggregate
-  filterValue?: string;       // array_filter_aggregate
-  pattern?: string;           // regex_extract
-  groupIndex?: number;        // regex_extract: 0=full match, 1=first group
-  delimiter?: string;         // string_split
-  splitIndex?: number;        // string_split: 0-based
+  path?: string;
+  index?: number;
+  fieldPath?: string;
+  aggregate?: AggregationType;
+  filterField?: string;
+  filterValue?: string;
+  pattern?: string;
+  groupIndex?: number;
+  delimiter?: string;
+  splitIndex?: number;
   dateComponent?: 'year' | 'month' | 'day' | 'hour' | 'minute' | 'second';
 }
 
@@ -231,15 +338,14 @@ export type AggregationType =
 
 export interface OutputCapture {
   id: string;
-  path: string;          // e.g. "scoreDetails.score"
-  label: string;         // e.g. "Credit Score"
-  storeType: 'custom' | 'native' | 'none'; // none = reference-only (pass-through)
-  storeName: string;     // e.g. "cibil_score"
-  // Array extraction extras
+  path: string;
+  label: string;
+  storeType: 'custom' | 'native' | 'none';
+  storeName: string;
   isArrayExtract?: boolean;
-  arrayPath?: string;    // e.g. "accountDetails"
-  arrayField?: string;   // e.g. "dpdSummary"
-  arraySubField?: string;// e.g. "maxDPD"
+  arrayPath?: string;
+  arrayField?: string;
+  arraySubField?: string;
   aggregation?: AggregationType;
   filterField?: string;
   filterValue?: string;
@@ -275,7 +381,7 @@ export interface DecisionCondition {
   field: string;
   operator: '=' | '!=' | '>' | '<' | '>=' | '<=' | 'between' | 'contains' | 'is empty' | 'is not empty';
   value: string;
-  valueTo?: string; // used for "between"
+  valueTo?: string;
 }
 
 export interface DecisionRule {
@@ -293,7 +399,6 @@ export interface DecisionBlockConfig {
 
 // ─── React Flow Node Data ─────────────────────────────────────────────────────
 
-// React Flow Node Data
 export interface FlowNodeData extends BlockData {
   onAddBlock?: (nodeId: string) => void;
   onConfigure?: (nodeId: string) => void;

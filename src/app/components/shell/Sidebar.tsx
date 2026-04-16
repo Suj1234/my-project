@@ -58,6 +58,7 @@ const NAV_CONFIG: SidebarSection[] = [
         children: [
           { id: 'canvas', label: 'Canvas', icon: <Network size={15} />, path: '/manage-actions/canvas' },
           { id: 'api-integrations', label: 'API Integrations', icon: <Globe size={15} />, path: '/manage-actions/api-integrations' },
+          { id: 'api-integrations-v1', label: 'API Integrations_V1', icon: <Globe size={15} />, path: '/manage-actions/api-integrations-v1' },
         ],
       },
       {

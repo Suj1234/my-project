@@ -69,14 +69,14 @@ export function AddBlockDialog({ open, onClose, onSelect }: AddBlockDialogProps)
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Add Block</DialogTitle>
+          <DialogTitle>Add Component</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="relative">
             <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
               type="text"
-              placeholder="Search blocks..."
+              placeholder="Search components..."
               className="pl-8"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -88,7 +88,7 @@ export function AddBlockDialog({ open, onClose, onSelect }: AddBlockDialogProps)
             <div className="space-y-6">
               {/* Smart Blocks */}
               <div>
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">Smart Blocks</h3>
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">Smart Components</h3>
                 <div className="space-y-2">
                   {filteredSmartBlocks.map((block) => {
                     const Icon = iconMap[block.icon] ?? FileText;
@@ -118,7 +118,7 @@ export function AddBlockDialog({ open, onClose, onSelect }: AddBlockDialogProps)
 
               {/* Form Block */}
               <div>
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">Form Block</h3>
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">Form Component</h3>
                 <button
                   className="w-full border-l-4 border-green-500 bg-gray-50 p-3 rounded hover:bg-gray-100 transition-colors text-left"
                   onClick={() => handleSelect('form')}
@@ -127,7 +127,7 @@ export function AddBlockDialog({ open, onClose, onSelect }: AddBlockDialogProps)
                     <FileInput className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
                     <div className="flex-1">
                       <div className="flex items-center justify-between gap-1 mb-1">
-                        <span className="text-sm font-medium">Custom Form Block</span>
+                        <span className="text-sm font-medium">Custom Form Component</span>
                         <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
                           FORM
                         </Badge>
@@ -167,7 +167,7 @@ export function AddBlockDialog({ open, onClose, onSelect }: AddBlockDialogProps)
                       <GitMerge className="h-4 w-4 text-indigo-500 mt-0.5 flex-shrink-0" />
                       <div className="flex-1">
                         <div className="flex items-center justify-between gap-1 mb-1">
-                          <span className="text-sm font-medium">Merge Block</span>
+                          <span className="text-sm font-medium">Merge Component</span>
                           <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 text-xs">
                             LOGIC
                           </Badge>
@@ -181,7 +181,7 @@ export function AddBlockDialog({ open, onClose, onSelect }: AddBlockDialogProps)
 
               {/* End Block */}
               <div>
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">End Blocks</h3>
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">End Components</h3>
                 <button
                   className="w-full border-l-4 border-red-500 bg-gray-50 p-3 rounded hover:bg-gray-100 transition-colors text-left"
                   onClick={() => handleSelect('end')}
@@ -190,7 +190,7 @@ export function AddBlockDialog({ open, onClose, onSelect }: AddBlockDialogProps)
                     <CircleStop className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
                     <div className="flex-1">
                       <div className="flex items-center justify-between gap-1 mb-1">
-                        <span className="text-sm font-medium">End Block</span>
+                        <span className="text-sm font-medium">End Component</span>
                         <Badge variant="secondary" className="bg-red-100 text-red-700 text-xs">
                           END
                         </Badge>

@@ -13,7 +13,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from './ui/dialog';
-import { Search, X, Plus, Trash2, Lock, ChevronDown } from 'lucide-react';
+import { Search, X, Trash2, Lock, ChevronDown } from 'lucide-react';
 
 // ─── Backend field registry ─────────────────────────────────────────────────
 
@@ -24,35 +24,35 @@ interface BackendField {
   key: string;            // e.g. "pan_number"
   fullKey: string;        // e.g. "pan.pan_number"
   label: string;          // default display label
+  description: string;    // purpose-oriented description shown in UI
   dataType: DataType;
   source: 'native' | 'custom';
-  category?: string;      // e.g. "PAN", "Aadhaar"
 }
 
 const BACKEND_FIELDS: BackendField[] = [
   // Native — PAN
-  { id: 'n_pan_number',    key: 'pan_number',      fullKey: 'pan.pan_number',      label: 'PAN Number',          dataType: 'STRING',  source: 'native', category: 'PAN' },
-  { id: 'n_pan_name',      key: 'name_on_pan',     fullKey: 'pan.name_on_pan',     label: 'Name on PAN',         dataType: 'STRING',  source: 'native', category: 'PAN' },
-  { id: 'n_pan_dob',       key: 'pan_dob',         fullKey: 'pan.dob',             label: 'Date of Birth (PAN)', dataType: 'DATE',    source: 'native', category: 'PAN' },
+  { id: 'n_pan_number',     key: 'pan_number',      fullKey: 'pan.pan_number',          label: 'PAN Number',              description: 'Use to capture the applicant\'s Permanent Account Number',              dataType: 'STRING',  source: 'native' },
+  { id: 'n_pan_name',       key: 'name_on_pan',     fullKey: 'pan.name_on_pan',         label: 'Name on PAN',             description: 'Use to capture the applicant\'s name as printed on PAN card',           dataType: 'STRING',  source: 'native' },
+  { id: 'n_pan_dob',        key: 'pan_dob',         fullKey: 'pan.dob',                 label: 'Date of Birth (PAN)',     description: 'Use to capture the date of birth from the applicant\'s PAN card',       dataType: 'DATE',    source: 'native' },
   // Native — Aadhaar
-  { id: 'n_aadhaar_uid',   key: 'aadhaar_uid',     fullKey: 'aadhaar.uid',         label: 'Aadhaar Number',      dataType: 'STRING',  source: 'native', category: 'Aadhaar' },
-  { id: 'n_aadhaar_name',  key: 'aadhaar_name',    fullKey: 'aadhaar.name',        label: 'Name on Aadhaar',     dataType: 'STRING',  source: 'native', category: 'Aadhaar' },
-  { id: 'n_aadhaar_dob',   key: 'aadhaar_dob',     fullKey: 'aadhaar.dob',         label: 'Date of Birth (Aadhaar)', dataType: 'DATE', source: 'native', category: 'Aadhaar' },
-  { id: 'n_aadhaar_gender',key: 'aadhaar_gender',  fullKey: 'aadhaar.gender',      label: 'Gender',              dataType: 'STRING',  source: 'native', category: 'Aadhaar' },
+  { id: 'n_aadhaar_uid',    key: 'aadhaar_uid',     fullKey: 'aadhaar.uid',             label: 'Aadhaar Number',          description: 'Use to capture the applicant\'s 12-digit Aadhaar UID',                 dataType: 'STRING',  source: 'native' },
+  { id: 'n_aadhaar_name',   key: 'aadhaar_name',    fullKey: 'aadhaar.name',            label: 'Name on Aadhaar',         description: 'Use to capture the applicant\'s name as printed on Aadhaar card',      dataType: 'STRING',  source: 'native' },
+  { id: 'n_aadhaar_dob',    key: 'aadhaar_dob',     fullKey: 'aadhaar.dob',             label: 'Date of Birth (Aadhaar)', description: 'Use to capture the date of birth from the applicant\'s Aadhaar card',  dataType: 'DATE',    source: 'native' },
+  { id: 'n_aadhaar_gender', key: 'aadhaar_gender',  fullKey: 'aadhaar.gender',          label: 'Gender',                  description: 'Use to capture the applicant\'s gender from Aadhaar',                  dataType: 'STRING',  source: 'native' },
   // Native — Contact
-  { id: 'n_mobile',        key: 'mobile_number',   fullKey: 'contact.mobile',      label: 'Mobile Number',       dataType: 'STRING',  source: 'native', category: 'Contact' },
-  { id: 'n_email',         key: 'email_address',   fullKey: 'contact.email',       label: 'Email Address',       dataType: 'STRING',  source: 'native', category: 'Contact' },
+  { id: 'n_mobile',         key: 'mobile_number',   fullKey: 'contact.mobile',          label: 'Mobile Number',           description: 'Use to capture the applicant\'s primary mobile number',                dataType: 'STRING',  source: 'native' },
+  { id: 'n_email',          key: 'email_address',   fullKey: 'contact.email',           label: 'Email Address',           description: 'Use to capture the applicant\'s email address',                        dataType: 'STRING',  source: 'native' },
   // Native — Financial
-  { id: 'n_annual_income', key: 'annual_income',   fullKey: 'financial.annual_income', label: 'Annual Income',  dataType: 'NUMBER',  source: 'native', category: 'Financial' },
-  { id: 'n_loan_amount',   key: 'loan_amount',     fullKey: 'financial.loan_amount',   label: 'Requested Loan Amount', dataType: 'NUMBER', source: 'native', category: 'Financial' },
+  { id: 'n_annual_income',  key: 'annual_income',   fullKey: 'financial.annual_income', label: 'Annual Income',           description: 'Use to capture the applicant\'s declared annual income',               dataType: 'NUMBER',  source: 'native' },
+  { id: 'n_loan_amount',    key: 'loan_amount',     fullKey: 'financial.loan_amount',   label: 'Requested Loan Amount',   description: 'Use to capture the loan amount the applicant is applying for',          dataType: 'NUMBER',  source: 'native' },
   // Native — eSign
-  { id: 'n_esign_accepted', key: 'esign_accepted', fullKey: 'esign.accepted',      label: 'eSign Accepted',      dataType: 'BOOLEAN', source: 'native', category: 'eSign' },
-  // Custom fields
-  { id: 'c_applicant_type', key: 'applicant_type', fullKey: 'custom.applicant_type', label: 'Applicant Type',   dataType: 'STRING',  source: 'custom', category: 'Custom' },
-  { id: 'c_employer_name',  key: 'employer_name',  fullKey: 'custom.employer_name',  label: 'Employer Name',    dataType: 'STRING',  source: 'custom', category: 'Custom' },
-  { id: 'c_poi_number',     key: 'poi_number',     fullKey: 'custom.poi_number',     label: 'POI Number',       dataType: 'STRING',  source: 'custom', category: 'Custom' },
-  { id: 'c_loan_purpose',   key: 'loan_purpose',   fullKey: 'custom.loan_purpose',   label: 'Loan Purpose',     dataType: 'STRING',  source: 'custom', category: 'Custom' },
-  { id: 'c_consent',        key: 'user_consent',   fullKey: 'custom.user_consent',   label: 'User Consent',     dataType: 'BOOLEAN', source: 'custom', category: 'Custom' },
+  { id: 'n_esign_accepted', key: 'esign_accepted',  fullKey: 'esign.accepted',          label: 'eSign Accepted',          description: 'Use to capture the applicant\'s eSign consent status',                 dataType: 'BOOLEAN', source: 'native' },
+  // Program fields
+  { id: 'c_applicant_type', key: 'applicant_type',  fullKey: 'custom.applicant_type',   label: 'Applicant Type',          description: 'Use to capture the applicant\'s classification type',                  dataType: 'STRING',  source: 'custom' },
+  { id: 'c_employer_name',  key: 'employer_name',   fullKey: 'custom.employer_name',    label: 'Employer Name',           description: 'Use to capture the applicant\'s current employer name',                dataType: 'STRING',  source: 'custom' },
+  { id: 'c_poi_number',     key: 'poi_number',      fullKey: 'custom.poi_number',       label: 'POI Number',              description: 'Use to capture the applicant\'s proof of identity document number',    dataType: 'STRING',  source: 'custom' },
+  { id: 'c_loan_purpose',   key: 'loan_purpose',    fullKey: 'custom.loan_purpose',     label: 'Loan Purpose',            description: 'Use to capture the stated purpose or reason for the loan',             dataType: 'STRING',  source: 'custom' },
+  { id: 'c_consent',        key: 'user_consent',    fullKey: 'custom.user_consent',     label: 'User Consent',            description: 'Use to capture the applicant\'s consent to terms and data processing', dataType: 'BOOLEAN', source: 'custom' },
 ];
 
 const VALIDATION_TYPES: { value: ValidationType; label: string; placeholder: string }[] = [
@@ -61,10 +61,6 @@ const VALIDATION_TYPES: { value: ValidationType; label: string; placeholder: str
   { value: 'max_length',    label: 'Max Length',    placeholder: 'e.g. 100' },
   { value: 'min_date',      label: 'Min Date',      placeholder: 'e.g. 1900-01-01' },
   { value: 'max_date',      label: 'Max Date',      placeholder: 'e.g. 2099-12-31' },
-  { value: 'boolean_match', label: 'Boolean Match', placeholder: 'true or false' },
-  { value: 'api',           label: 'API',           placeholder: 'https://api.example.com/validate' },
-  { value: 'is_in_list',    label: 'Is In List',    placeholder: 'value1, value2, value3' },
-  { value: 'not_allowed',   label: 'Not Allowed',   placeholder: 'Pattern or value to block' },
 ];
 
 const dataTypeToInputType = (dt: DataType): FormInputField['type'] => {
@@ -178,9 +174,8 @@ function FieldSearch({ value, onChange }: FieldSearchProps) {
                           <span className="text-sm font-medium text-gray-800">{f.label}</span>
                           <Badge variant="outline" className="text-[10px] bg-gray-50 text-gray-500">{f.dataType}</Badge>
                         </div>
-                        <code className="text-[10px] text-blue-500">{f.fullKey}</code>
+                        <p className="text-[10px] text-gray-400 truncate">{f.description}</p>
                       </div>
-                      {f.category && <span className="text-[10px] text-gray-400 shrink-0">{f.category}</span>}
                     </button>
                   ))}
                 </div>
@@ -191,8 +186,8 @@ function FieldSearch({ value, onChange }: FieldSearchProps) {
                 <div>
                   <div className="sticky top-0 bg-gray-50 px-3 py-1.5 flex items-center gap-2 border-b">
                     <span className="h-2 w-2 rounded-full bg-purple-500" />
-                    <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Custom Fields</span>
-                    <span className="text-[10px] text-gray-400 ml-auto">Your org's fields</span>
+                    <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Program Fields</span>
+                    <span className="text-[10px] text-gray-400 ml-auto">Program specific fields</span>
                   </div>
                   {customFields.map((f) => (
                     <button
@@ -206,7 +201,7 @@ function FieldSearch({ value, onChange }: FieldSearchProps) {
                           <span className="text-sm font-medium text-gray-800">{f.label}</span>
                           <Badge variant="outline" className="text-[10px] bg-gray-50 text-gray-500">{f.dataType}</Badge>
                         </div>
-                        <code className="text-[10px] text-purple-500">{f.fullKey}</code>
+                        <p className="text-[10px] text-gray-400 truncate">{f.description}</p>
                       </div>
                     </button>
                   ))}
@@ -231,7 +226,7 @@ function ValidationEditor({ rules, onChange }: ValidationEditorProps) {
   const addRule = () => {
     onChange([
       ...rules,
-      { id: `vr-${Date.now()}`, type: 'regex', value: '', errorMessage: '' },
+      { id: `vr-${Date.now()}`, type: 'regex', value: '' },
     ]);
   };
 
@@ -251,7 +246,6 @@ function ValidationEditor({ rules, onChange }: ValidationEditorProps) {
       <div className="flex items-center justify-between">
         <Label className="text-xs font-semibold text-gray-700">Validations</Label>
         <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={addRule}>
-          <Plus className="h-3 w-3 mr-1" />
           + Add
         </Button>
       </div>
@@ -261,7 +255,7 @@ function ValidationEditor({ rules, onChange }: ValidationEditorProps) {
       )}
 
       {rules.map((rule) => (
-        <div key={rule.id} className="grid grid-cols-[140px_1fr_1fr_28px] gap-2 items-start">
+        <div key={rule.id} className="grid grid-cols-[140px_1fr_28px] gap-2 items-start">
           {/* Type */}
           <Select
             value={rule.type}
@@ -285,14 +279,6 @@ function ValidationEditor({ rules, onChange }: ValidationEditorProps) {
             placeholder={getPlaceholder(rule.type)}
             value={rule.value}
             onChange={(e) => updateRule(rule.id, { value: e.target.value })}
-          />
-
-          {/* Error message */}
-          <input
-            className="h-8 text-xs border rounded px-2 outline-none focus:ring-1 focus:ring-blue-300 w-full"
-            placeholder="Error message…"
-            value={rule.errorMessage}
-            onChange={(e) => updateRule(rule.id, { errorMessage: e.target.value })}
           />
 
           {/* Delete */}
@@ -387,7 +373,6 @@ export function AddInputDialog({ open, onClose, onSave, existingField }: AddInpu
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">
               Field Label
-              <span className="text-gray-400 font-normal ml-1.5">— shown to the applicant</span>
             </Label>
             <input
               className="w-full h-9 border rounded-lg px-3 text-sm outline-none focus:ring-2 focus:ring-blue-300 transition-shadow"
@@ -424,7 +409,7 @@ export function AddInputDialog({ open, onClose, onSave, existingField }: AddInpu
                         Read-only
                       </Badge>
                     </div>
-                    <p className="text-[10px] text-gray-400 mt-1">Used by frontend to render the field</p>
+                    <p className="text-[10px] text-gray-400 mt-1">Used by frontend to pass the value to backend</p>
                   </div>
 
                   {/* Data Type */}
@@ -445,18 +430,12 @@ export function AddInputDialog({ open, onClose, onSave, existingField }: AddInpu
                   </div>
                 </div>
 
-                {/* Full key path */}
-                <div className="flex items-center gap-2 pt-1 border-t border-gray-200">
+                {/* Description */}
+                <div className="flex items-start gap-2 pt-1 border-t border-gray-200">
                   <span
-                    className={`h-2 w-2 rounded-full shrink-0 ${selectedBackendField.source === 'native' ? 'bg-blue-500' : 'bg-purple-500'}`}
+                    className={`h-2 w-2 rounded-full shrink-0 mt-1 ${selectedBackendField.source === 'native' ? 'bg-blue-500' : 'bg-purple-500'}`}
                   />
-                  <code className="text-[11px] text-gray-500">{selectedBackendField.fullKey}</code>
-                  <Badge
-                    variant="outline"
-                    className={`text-[9px] ml-auto ${selectedBackendField.source === 'native' ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-purple-50 text-purple-600 border-purple-200'}`}
-                  >
-                    {selectedBackendField.source === 'native' ? 'NATIVE' : 'CUSTOM'}
-                  </Badge>
+                  <p className="text-[11px] text-gray-500">{selectedBackendField.description}</p>
                 </div>
               </div>
             )}

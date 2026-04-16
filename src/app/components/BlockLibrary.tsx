@@ -54,14 +54,14 @@ export function BlockLibrary({ onBlockSelect }: BlockLibraryProps) {
   };
 
   return (
-    <div className="w-[280px] bg-white border-r border-gray-200 flex flex-col h-screen">
+    <div className="w-[280px] bg-white border-r border-gray-200 flex flex-col h-full overflow-hidden">
       <div className="p-4 border-b border-gray-200">
-        <h2 className="font-semibold mb-3">Block Library</h2>
+        <h2 className="font-semibold mb-3">Component Library</h2>
         <div className="relative">
           <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             type="text"
-            placeholder="Search blocks..."
+            placeholder="Search components..."
             className="pl-8 h-9 text-sm"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -73,7 +73,7 @@ export function BlockLibrary({ onBlockSelect }: BlockLibraryProps) {
         <div className="p-4 space-y-4">
           {/* Smart Blocks */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">● SMART BLOCKS</h3>
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">● SMART COMPONENTS</h3>
             <div className="space-y-2">
               {Object.entries(blocksByCategory).map(([category, blocks]) => (
                 <div key={category}>
@@ -125,7 +125,7 @@ export function BlockLibrary({ onBlockSelect }: BlockLibraryProps) {
 
           {/* Form Block */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">● FORM BLOCK</h3>
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">● FORM COMPONENT</h3>
             <div
               className="border-l-4 border-green-500 bg-gray-50 p-3 rounded cursor-pointer hover:bg-gray-100 transition-colors"
               onClick={() => onBlockSelect('form')}
@@ -134,7 +134,7 @@ export function BlockLibrary({ onBlockSelect }: BlockLibraryProps) {
                 <FileInput className="h-4 w-4 text-green-500 mt-0.5" />
                 <div className="flex-1">
                   <div className="flex items-center justify-between gap-1">
-                    <span className="text-sm font-medium">Custom Form Block</span>
+                    <span className="text-sm font-medium">Custom Form Component</span>
                     <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
                       FORM
                     </Badge>
@@ -178,7 +178,7 @@ export function BlockLibrary({ onBlockSelect }: BlockLibraryProps) {
                   <GitMerge className="h-4 w-4 text-indigo-500 mt-0.5" />
                   <div className="flex-1">
                     <div className="flex items-center justify-between gap-1">
-                      <span className="text-sm font-medium">Merge Block</span>
+                      <span className="text-sm font-medium">Merge Component</span>
                       <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 text-xs">
                         LOGIC
                       </Badge>
@@ -197,7 +197,7 @@ export function BlockLibrary({ onBlockSelect }: BlockLibraryProps) {
                   <SplitSquareHorizontal className="h-4 w-4 text-purple-500 mt-0.5" />
                   <div className="flex-1">
                     <div className="flex items-center justify-between gap-1">
-                      <span className="text-sm font-medium">Decision Block</span>
+                      <span className="text-sm font-medium">Decision Component</span>
                       <Badge variant="secondary" className="bg-purple-100 text-purple-700 text-xs">
                         DECISION
                       </Badge>
@@ -213,7 +213,7 @@ export function BlockLibrary({ onBlockSelect }: BlockLibraryProps) {
 
           {/* End Blocks */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">● END BLOCKS</h3>
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">● END COMPONENTS</h3>
             <div
               className="border-l-4 border-red-500 bg-gray-50 p-3 rounded cursor-pointer hover:bg-gray-100 transition-colors"
               onClick={() => onBlockSelect('end')}
@@ -222,7 +222,7 @@ export function BlockLibrary({ onBlockSelect }: BlockLibraryProps) {
                 <CircleStop className="h-4 w-4 text-red-500 mt-0.5" />
                 <div className="flex-1">
                   <div className="flex items-center justify-between gap-1">
-                    <span className="text-sm font-medium">End Block</span>
+                    <span className="text-sm font-medium">End Component</span>
                     <Badge variant="secondary" className="bg-red-100 text-red-700 text-xs">
                       END
                     </Badge>
