@@ -21,7 +21,8 @@
       "Bash(grep -v \"blockType\\\\|blockId\\\\|blockDef\\\\|blockData\\\\|blockDefinition\\\\|BlockType\\\\|BlockData\\\\|BlockDef\\\\|BlockCategory\\\\|blockTypeId\\\\|blockTypeId\\\\|handleBlock\\\\|onBlock\\\\|setBlock\\\\|getBlock\\\\|block\\\\.\\\\|block,\\\\|block\\)\\\\|block!\\\\|{block\\\\|block |\\\\[block\\\\|block =\\\\|block:\\\\|block?\\\\|isBlock\\\\|hasBlock\\\\|canBlock\\\\|newBlock\\\\|prevBlock\\\\|updatedBlock\\\\|selectedBlock\\\\|addBlock\\\\|removeBlock\\\\|updateBlock\\\\|deleteBlock\\\\|moveBlock\\\\|dragBlock\\\\|dropBlock\")",
       "Bash(grep -v \"blockType\\\\|blockId\\\\|BlockType\\\\|BlockData\\\\|block\\\\.\\\\|block,\\\\|block\\)\\\\|block!\\\\|{block\\\\|handleBlock\\\\|setBlock\\\\|getBlock\\\\|addBlock\\\\|removeBlock\\\\|updateBlock\\\\|deleteBlock\\\\|selectedBlock\\\\|newBlock\")",
       "Bash(grep -v \"blockType\\\\|blockId\\\\|BlockType\\\\|BlockData\\\\|blockDef\\\\|block\\\\.\\\\|block,\\\\|block\\)\\\\|block!\\\\|{block\\\\|handleBlock\\\\|setBlock\\\\|getBlock\\\\|addBlock\\\\|removeBlock\\\\|updateBlock\\\\|deleteBlock\\\\|selectedBlock\\\\|newBlock\\\\|isBlock\\\\|hasBlock\\\\|canBlock\\\\|prevBlock\\\\|updatedBlock\\\\|dragBlock\\\\|dropBlock\\\\|onBlock\\\\|moveBlock\\\\|className.*block\\\\|inline-block\\\\|//\\\\|import\")",
-      "Bash(node_modules/.bin/tsc --noEmit)"
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx|json\\)$\")"
     ]
   }
 }

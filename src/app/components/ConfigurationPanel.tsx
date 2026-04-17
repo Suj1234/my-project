@@ -775,7 +775,16 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
                         {block.generalConfig!.map((field) => (
                           <div key={field.id}>
                             <Label className="text-sm">{field.name}</Label>
-                            {field.type === 'select' ? (
+                            {field.type === 'toggle' ? (
+                              <div className="flex items-center gap-2 mt-1">
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={(checked) =>
+                                    handleGeneralConfigChange(field.id, checked)
+                                  }
+                                />
+                              </div>
+                            ) : field.type === 'select' ? (
                               <Select
                                 value={field.value}
                                 onValueChange={(value) => handleGeneralConfigChange(field.id, value)}

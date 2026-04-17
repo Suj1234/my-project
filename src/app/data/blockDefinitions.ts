@@ -16,6 +16,7 @@ export function getShortDescription(blockTypeId: string): string {
     sanction_letter: 'Sanction acceptance',
     esign: 'Digital signing',
     profile_address: 'Profile & address',
+    udyam_verification: 'Udyam fetch (OTPless)',
   };
   return shortDescriptions[blockTypeId] || 'Block configuration';
 }
@@ -773,6 +774,46 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
     ],
   },
   // Identity Category (continued)
+  {
+    id: 'udyam_verification',
+    name: 'Udyam Verification',
+    description: 'Verify MSME registration status by fetching Udyam Registration details directly using the applicant\'s Udyam Number. Supports OTPless verification to validate business registration, enterprise classification, and registration certificate authenticity without manual document submission.',
+    category: 'identity',
+    icon: 'Award',
+    provider: 'Udyam Registration Check (OTPless)',
+    hasChecks: false,
+    hasRetry: false,
+    pages: [
+      {
+        id: 'udyam_input',
+        name: 'Udyam Input Page',
+        action: 'Udyam fetch initiated',
+        userInputs: [
+          {
+            id: 'udyam_number',
+            name: 'Udyam Number',
+            type: 'text',
+            dataType: 'STRING',
+            required: true,
+          },
+        ],
+      },
+      {
+        id: 'udyam_verified',
+        name: 'Udyam Verified Page',
+        action: 'Udyam verification complete',
+        userInputs: [],
+      },
+    ],
+    generalConfig: [
+      {
+        id: 'certificate_required',
+        name: 'Udyam Registration certificate required',
+        type: 'toggle',
+        value: false,
+      },
+    ],
+  },
   {
     id: 'profile_address',
     name: 'Profile & Address Details',

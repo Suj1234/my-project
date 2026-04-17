@@ -150,7 +150,7 @@ export interface CheckField {
 export interface GeneralConfigField {
   id: string;
   name: string;
-  type: 'select' | 'number' | 'text' | 'date';
+  type: 'select' | 'number' | 'text' | 'date' | 'toggle';
   value: any;
   options?: { label: string; value: string }[];
 }
