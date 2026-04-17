@@ -2,7 +2,7 @@ import { Handle, Position } from '@xyflow/react';
 import { FlowNodeData } from '../../types/journey';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { Plus, X, CreditCard, Fingerprint, Camera, Building, TrendingUp, Landmark, FileText, FileCheck, PenTool, User } from 'lucide-react';
+import { Plus, X, CreditCard, Fingerprint, Camera, Building, TrendingUp, Landmark, FileText, FileCheck, PenTool, User, Award } from 'lucide-react';
 import { useState } from 'react';
 import type React from 'react';
 import { getShortDescription } from '../../data/blockDefinitions';
@@ -23,6 +23,7 @@ const iconMap: Record<string, any> = {
   FileCheck,
   PenTool,
   User,
+  Award,
 };
 
 export function SmartBlockNode({ data, selected }: SmartBlockNodeProps) {
@@ -141,6 +142,7 @@ function getIconForBlockType(blockTypeId: string): string {
     sanction_letter: 'FileCheck',
     esign: 'PenTool',
     profile_address: 'User',
+    udyam_verification: 'Award',
   };
   return iconMapping[blockTypeId] || 'CreditCard';
 }

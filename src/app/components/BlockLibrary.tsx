@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Input } from './ui/input';
-import { Search, ChevronDown, ChevronRight, CreditCard, Fingerprint, Camera, Building, TrendingUp, Landmark, FileText, FileCheck, PenTool, User, FileInput, GitBranch, GitMerge, CircleStop, SplitSquareHorizontal, FileBarChart, ReceiptText } from 'lucide-react';
+import { Search, ChevronDown, ChevronRight, CreditCard, Fingerprint, Camera, Building, TrendingUp, Landmark, FileText, FileCheck, PenTool, User, FileInput, GitBranch, GitMerge, CircleStop, SplitSquareHorizontal, FileBarChart, ReceiptText, Award } from 'lucide-react';
 import { SMART_BLOCKS } from '../data/blockDefinitions';
 import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
@@ -22,6 +22,7 @@ const iconMap: Record<string, any> = {
   User,
   FileBarChart,
   ReceiptText,
+  Award,
 };
 
 export function BlockLibrary({ onBlockSelect }: BlockLibraryProps) {
