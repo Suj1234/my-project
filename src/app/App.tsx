@@ -10,6 +10,9 @@ import { ManageWorkflowDetail } from './pages/manage-workflow/ManageWorkflowDeta
 
 // Manage Actions
 import CanvasView                from './CanvasView';
+import CanvasViewA               from './CanvasViewA';
+import CanvasViewB               from './CanvasViewB';
+import CanvasViewC               from './CanvasViewC';
 import { ApiIntegrationsPage }   from './pages/manage-actions/ApiIntegrationsPage';
 import { ApiIntegrationsPageV1 } from './pages/manage-actions/ApiIntegrationsPageV1';
 
@@ -46,6 +49,9 @@ export default function App() {
 
           {/* Manage Actions */}
           <Route path="manage-actions/canvas" element={<CanvasView />} />
+          <Route path="manage-actions/canvas-a" element={<CanvasViewA />} />
+          <Route path="manage-actions/canvas-b" element={<CanvasViewB />} />
+          <Route path="manage-actions/canvas-c" element={<CanvasViewC />} />
           <Route path="manage-actions/api-integrations" element={<ApiIntegrationsPage />} />
           <Route path="manage-actions/api-integrations-v1" element={<ApiIntegrationsPageV1 />} />
 

@@ -22,7 +22,15 @@
       "Bash(grep -v \"blockType\\\\|blockId\\\\|BlockType\\\\|BlockData\\\\|block\\\\.\\\\|block,\\\\|block\\)\\\\|block!\\\\|{block\\\\|handleBlock\\\\|setBlock\\\\|getBlock\\\\|addBlock\\\\|removeBlock\\\\|updateBlock\\\\|deleteBlock\\\\|selectedBlock\\\\|newBlock\")",
       "Bash(grep -v \"blockType\\\\|blockId\\\\|BlockType\\\\|BlockData\\\\|blockDef\\\\|block\\\\.\\\\|block,\\\\|block\\)\\\\|block!\\\\|{block\\\\|handleBlock\\\\|setBlock\\\\|getBlock\\\\|addBlock\\\\|removeBlock\\\\|updateBlock\\\\|deleteBlock\\\\|selectedBlock\\\\|newBlock\\\\|isBlock\\\\|hasBlock\\\\|canBlock\\\\|prevBlock\\\\|updatedBlock\\\\|dragBlock\\\\|dropBlock\\\\|onBlock\\\\|moveBlock\\\\|className.*block\\\\|inline-block\\\\|//\\\\|import\")",
       "Bash(node_modules/.bin/tsc --noEmit)",
-      "Bash(grep -E \"\\\\.\\(ts|tsx|json\\)$\")"
+      "Bash(grep -E \"\\\\.\\(ts|tsx|json\\)$\")",
+      "Bash(grep -E \"\\(id:\\\\s*'[a-z_]+',?\\\\s*$|id:\\\\s*'[a-z_]+',\\)\")",
+      "Bash(grep -E \"^\\\\s*\\\\{\\\\s*$\" \"c:/Users/sujeet.kumar/OneDrive - Perfios SW Solns P L/Desktop/Antigravity/my-project/src/app/data/blockDefinitions.ts\" -A 5)",
+      "Bash(grep -n \"id: '[a-z_]*',$\" \"c:/Users/sujeet.kumar/OneDrive - Perfios SW Solns P L/Desktop/Antigravity/my-project/src/app/data/blockDefinitions.ts\")",
+      "Bash(find \"c:/Users/sujeet.kumar/OneDrive - Perfios SW Solns P L/Desktop/Antigravity/my-project\" -type f \\\\\\( -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.json\" \\\\\\) -exec grep -l \"Generate Offer\\\\|Show Offer\\\\|Loader\" {} \\\\;)",
+      "Bash(cat)",
+      "Read(//tmp/**)",
+      "Bash(xargs grep *)",
+      "Bash(awk -F: '{print NR\": Line \"$1\": \"$3}')"
     ]
   }
 }

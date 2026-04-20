@@ -188,7 +188,7 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
     pages: [
       {
         id: 'aadhaar_info',
-        name: 'Aadhaar Info Page',
+        name: 'Aadhaar DigiLocker Consent Page',
         action: 'Confirm DigiLocker Details',
         userInputs: [],
       },
@@ -281,19 +281,13 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
     pages: [
       {
         id: 'landing',
-        name: 'Liveness Landing Page',
+        name: 'Liveness SDK Loader',
         action: 'Liveness check initiated',
         userInputs: [],
       },
       {
-        id: 'photo_capture',
-        name: 'Photo Capture Page',
-        action: 'Photo captured',
-        userInputs: [],
-      },
-      {
         id: 'photo_preview',
-        name: 'Photo Preview Page',
+        name: 'Liveness Photo Preview Page',
         action: 'Photo confirmed',
         userInputs: [],
       },
@@ -368,7 +362,7 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
     pages: [
       {
         id: 'bank_statement',
-        name: 'Bank Statement Page',
+        name: 'Bank Statement Mode Selection Page',
         action: 'Bank statement submitted',
         userInputs: [],
       },
@@ -577,13 +571,13 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
     pages: [
       {
         id: 'generate_offer',
-        name: 'Generate Offer - Loader',
+        name: 'Generate Soft Offer - Loader',
         action: 'Offer generation initiated',
         userInputs: [],
       },
       {
         id: 'show_offer',
-        name: 'Show Offer Page',
+        name: 'Show Soft Offer Page',
         action: 'Offer displayed',
         userInputs: [],
       },
@@ -616,12 +610,6 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
         id: 'bank_account_list',
         name: 'Bank Account List Page',
         action: 'Account selection initiated',
-        userInputs: [],
-      },
-      {
-        id: 'bank_account_selected',
-        name: 'Bank Account Selected Page',
-        action: 'Account selected',
         userInputs: [],
       },
     ],
@@ -747,14 +735,8 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
     pages: [
       {
         id: 'esign_initiation',
-        name: 'eSign Initiation Page',
+        name: 'eSign Landing Page',
         action: 'eSign initiated',
-        userInputs: [],
-      },
-      {
-        id: 'esign_completion',
-        name: 'eSign Completion Page',
-        action: 'Document signed',
         userInputs: [],
       },
     ],
@@ -815,6 +797,42 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
     ],
   },
   {
+    id: 'final_offer_generation',
+    name: 'Final Offer Generation',
+    description: 'Generate final loan offers using Business Rule Engine (BRE). Computes definitive offer terms based on complete applicant profile, verified documents, and final underwriting rules.',
+    category: 'decision',
+    icon: 'TrendingUp',
+    hasChecks: false,
+    hasRetry: false,
+    pages: [
+      {
+        id: 'generate_final_offer',
+        name: 'Generate Final Offer - Loader',
+        action: 'Final offer generation initiated',
+        userInputs: [],
+      },
+      {
+        id: 'show_final_offer',
+        name: 'Show Final Offer Page',
+        action: 'Final offer displayed',
+        userInputs: [],
+      },
+    ],
+    generalConfig: [
+      {
+        id: 'bre',
+        name: 'Which BRE to Call',
+        type: 'select',
+        value: 'bre_v1',
+        options: [
+          { label: 'BRE v1 - Standard', value: 'bre_v1' },
+          { label: 'BRE v2 - Advanced', value: 'bre_v2' },
+          { label: 'BRE v3 - Premium', value: 'bre_v3' },
+        ],
+      },
+    ],
+  },
+  {
     id: 'profile_address',
     name: 'Profile & Address Details',
     description: 'Pre-populate customer profile details fetched from Aadhaar and PAN verification. Collect and validate communication address with editable fields for accuracy.',
@@ -827,12 +845,6 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
         id: 'profile_details',
         name: 'Profile Details Page',
         action: 'Profile viewed',
-        userInputs: [],
-      },
-      {
-        id: 'address_update',
-        name: 'Communication Address Update Page',
-        action: 'Address updated',
         userInputs: [],
       },
     ],
