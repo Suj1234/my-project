@@ -30,7 +30,16 @@
       "Bash(cat)",
       "Read(//tmp/**)",
       "Bash(xargs grep *)",
-      "Bash(awk -F: '{print NR\": Line \"$1\": \"$3}')"
+      "Bash(awk -F: '{print NR\": Line \"$1\": \"$3}')",
+      "Read(//c/Users/sujeet.kumar/OneDrive - Perfios SW Solns P L/Desktop/Antigravity/**)",
+      "Bash(npm create *)",
+      "Bash(pandoc --version)",
+      "Bash(node -e \"require\\('docx'\\)\")",
+      "Bash(npm list *)",
+      "Bash(winget install *)",
+      "Bash(pandoc \"c:/Users/sujeet.kumar/OneDrive - Perfios SW Solns P L/Desktop/Antigravity/my-project/docs/PRD-FSD-Routing-Parameter-System.md\" -o \"c:/Users/sujeet.kumar/OneDrive - Perfios SW Solns P L/Desktop/Antigravity/my-project/docs/PRD-FSD-Routing-Parameter-System.docx\")",
+      "PowerShell(pandoc \"c:/Users/sujeet.kumar/OneDrive - Perfios SW Solns P L/Desktop/Antigravity/my-project/docs/PRD-FSD-Routing-Parameter-System.md\" -o \"c:/Users/sujeet.kumar/OneDrive - Perfios SW Solns P L/Desktop/Antigravity/my-project/docs/PRD-FSD-Routing-Parameter-System.docx\")",
+      "PowerShell(if \\($?\\) { \"SUCCESS\" } else { \"FAILED\" })"
     ]
   }
 }

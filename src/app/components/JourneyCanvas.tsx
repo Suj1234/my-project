@@ -76,25 +76,57 @@ function CanvasInner({
           edges.push({
             id: `${block.id}-${routing.id}`,
             source: block.id,
+            sourceHandle: `route-${routing.id}`,
             target: routing.targetBlockId,
             type: 'smoothstep',
-            markerEnd: { type: MarkerType.ArrowClosed, color: '#64748b' },
-            style: { stroke: '#64748b', strokeWidth: 2 },
+            label: routing.label || undefined,
+            markerEnd: { type: MarkerType.ArrowClosed, color: '#f97316' },
+            style: { stroke: '#f97316', strokeWidth: 2 },
+            labelStyle: { fill: '#9a3412', fontSize: 10, fontWeight: 600 },
+            labelBgStyle: { fill: '#fff7ed', fillOpacity: 0.9 },
           });
         });
         if (block.defaultRoute) {
           edges.push({
             id: `${block.id}-default-route`,
             source: block.id,
+            sourceHandle: 'default-route',
             target: block.defaultRoute,
             type: 'smoothstep',
             label: 'Default',
             markerEnd: { type: MarkerType.ArrowClosed, color: '#94a3b8' },
             style: { stroke: '#94a3b8', strokeWidth: 1.5, strokeDasharray: '4 2' },
             labelStyle: { fill: '#64748b', fontSize: 10 },
+            labelBgStyle: { fill: '#f8fafc', fillOpacity: 0.9 },
           });
         }
         return;
+      }
+      if (block.type === 'decision') {
+        const verdictRoutes = block.decisionConfig?.verdictRoutes ?? {};
+        const hasAnyRoute = Object.values(verdictRoutes).some(Boolean);
+        if (hasAnyRoute) {
+          const VERDICT_COLORS: Record<string, string> = {
+            PASS: '#16a34a', REJECT: '#dc2626', FLAG: '#ea580c', MANUAL_REVIEW: '#6b7280',
+          };
+          Object.entries(verdictRoutes).forEach(([verdict, targetBlockId]) => {
+            if (!targetBlockId) return;
+            edges.push({
+              id: `${block.id}-verdict-${verdict}`,
+              source: block.id,
+              sourceHandle: `verdict-${verdict}`,
+              target: targetBlockId,
+              type: 'smoothstep',
+              label: verdict.replace('_', ' '),
+              markerEnd: { type: MarkerType.ArrowClosed, color: VERDICT_COLORS[verdict] ?? '#64748b' },
+              style: { stroke: VERDICT_COLORS[verdict] ?? '#64748b', strokeWidth: 2 },
+              labelStyle: { fill: VERDICT_COLORS[verdict] ?? '#64748b', fontSize: 10, fontWeight: 600 },
+              labelBgStyle: { fill: '#ffffff', fillOpacity: 0.9 },
+            });
+          });
+          return;
+        }
+        // fall through to default sequential edge if no verdict routes configured
       }
       if (index < blocks.length - 1) {
         edges.push({

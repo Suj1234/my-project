@@ -13,6 +13,7 @@ import { RequestFieldTree } from './RequestFieldTree';
 import { InputFieldMapper, AvailableField } from './InputFieldMapper';
 import {
   DataHookApiBinding,
+  FormInputField,
   InputMapping,
   OutputCapture,
   TransformationStep,
@@ -139,11 +140,12 @@ interface AddHookDialogProps {
   onClose: () => void;
   onSave: (hook: DataHookApiBinding) => void;
   availableFields?: AvailableField[];
+  eventUserInputs?: FormInputField[];
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
-export function AddHookDialog({ open, onClose, onSave, availableFields = [] }: AddHookDialogProps) {
+export function AddHookDialog({ open, onClose, onSave, availableFields = [], eventUserInputs = [] }: AddHookDialogProps) {
   const [step, setStep] = useState(1);
   const [search, setSearch] = useState('');
   const [selectedApi, setSelectedApi] = useState<ApiDefinition | null>(null);
@@ -337,6 +339,7 @@ export function AddHookDialog({ open, onClose, onSave, availableFields = [] }: A
                   field={selectedField}
                   mapping={selectedField ? (mappings.find(m => m.requestPath === selectedField.path) ?? null) : null}
                   availableFields={availableFields}
+                  eventUserInputs={eventUserInputs}
                   onSave={handleUpdateMapping}
                 />
               </div>

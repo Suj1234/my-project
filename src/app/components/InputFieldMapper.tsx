@@ -11,6 +11,7 @@ import type {
   InputMapping, InputSourceType,
   ExtractionType, ExtractionConfig, AggregationType,
   TransformationType, TransformationStep,
+  FormInputField,
 } from '../types/journey';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -325,10 +326,11 @@ interface Props {
   field: ApiRequestField | null;
   mapping: InputMapping | null;
   availableFields: AvailableField[];
+  eventUserInputs?: FormInputField[];
   onSave: (m: InputMapping) => void;
 }
 
-export function InputFieldMapper({ field, mapping, availableFields, onSave }: Props) {
+export function InputFieldMapper({ field, mapping, availableFields, eventUserInputs = [], onSave }: Props) {
   const [sourceType, setSourceType] = useState<InputSourceType>(mapping?.sourceType ?? 'native');
   const [sourceValue, setSourceValue] = useState(mapping?.sourceValue ?? '');
   const [extraction, setExtraction] = useState<ExtractionConfig>(mapping?.extraction ?? { type: 'none' });
@@ -349,6 +351,7 @@ export function InputFieldMapper({ field, mapping, availableFields, onSave }: Pr
     { value: 'custom',     label: 'Custom' },
     { value: 'static',     label: 'Static' },
     { value: 'api_output', label: 'API Output' },
+    { value: 'user_input', label: 'User Input' },
   ];
 
   function addTransform() {
@@ -445,6 +448,24 @@ export function InputFieldMapper({ field, mapping, availableFields, onSave }: Pr
             ) : (
               <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2.5">
                 No captured fields available in this block. Configure API output captures in other event slots first.
+              </p>
+            )
+          )}
+          {sourceType === 'user_input' && (
+            eventUserInputs.length > 0 ? (
+              <Select value={sourceValue} onValueChange={setSourceValue}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select user input field…" /></SelectTrigger>
+                <SelectContent>
+                  {eventUserInputs.map(f => (
+                    <SelectItem key={f.key ?? f.id} value={f.key ?? f.id} className="text-xs">
+                      {f.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2.5">
+                No user input fields configured for this event. Add fields in the UI Configuration section first.
               </p>
             )
           )}

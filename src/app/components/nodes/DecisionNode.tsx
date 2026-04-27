@@ -1,8 +1,8 @@
 import { Handle, Position } from '@xyflow/react';
-import { FlowNodeData } from '../../types/journey';
+import { FlowNodeData, DecisionVerdict } from '../../types/journey';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { Plus, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useState } from 'react';
 import type React from 'react';
 
@@ -11,20 +11,24 @@ interface DecisionNodeProps {
   selected: boolean;
 }
 
-const VERDICT_COLORS: Record<string, string> = {
-  PASS: 'bg-green-100 text-green-700',
-  REJECT: 'bg-red-100 text-red-700',
-  FLAG: 'bg-orange-100 text-orange-700',
+const VERDICT_COLORS: Record<DecisionVerdict, string> = {
+  PASS:          'bg-green-100 text-green-700',
+  REJECT:        'bg-red-100 text-red-700',
+  FLAG:          'bg-orange-100 text-orange-700',
   MANUAL_REVIEW: 'bg-gray-100 text-gray-700',
 };
 
+const VERDICT_HANDLE_COLORS: Record<DecisionVerdict, string> = {
+  PASS:          '!bg-green-400',
+  REJECT:        '!bg-red-400',
+  FLAG:          '!bg-orange-400',
+  MANUAL_REVIEW: '!bg-gray-400',
+};
+
+const ALL_VERDICTS: DecisionVerdict[] = ['PASS', 'REJECT', 'FLAG', 'MANUAL_REVIEW'];
+
 export function DecisionNode({ data, selected }: DecisionNodeProps) {
   const [showDelete, setShowDelete] = useState(false);
-
-  const handleAddClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    data.onAddBlock?.(data.id);
-  };
 
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -33,17 +37,29 @@ export function DecisionNode({ data, selected }: DecisionNodeProps) {
 
   const rules = data.decisionConfig?.rules ?? [];
   const defaultVerdict = data.decisionConfig?.defaultVerdict ?? 'PASS';
+  const verdictRoutes = data.decisionConfig?.verdictRoutes ?? {};
+  const verdictField = data.decisionConfig?.verdictStorageKey ?? data.decisionConfig?.verdictField;
 
-  // Collect unique verdicts used
-  const usedVerdicts = Array.from(
-    new Set([...rules.map((r) => r.verdict), defaultVerdict])
+  // Collect which verdicts have routing configured
+  const routedVerdicts = ALL_VERDICTS.filter(
+    (v) => verdictRoutes[v] || v === defaultVerdict
   );
+
+  // Unique verdicts that appear in rules
+  const usedVerdicts = Array.from(new Set([...rules.map((r) => r.verdict), defaultVerdict]));
+
+  const getHandleLeft = (index: number, total: number) => {
+    if (total <= 1) return '50%';
+    const step = 80 / (total - 1);
+    return `${10 + index * step}%`;
+  };
 
   return (
     <div
       className={`relative bg-white rounded-lg shadow-md min-w-[280px] transition-all ${
         selected ? 'ring-2 ring-purple-500 scale-105' : ''
       }`}
+      style={{ paddingBottom: routedVerdicts.length > 0 ? 12 : 0 }}
       onMouseEnter={() => setShowDelete(true)}
       onMouseLeave={() => setShowDelete(false)}
     >
@@ -80,7 +96,11 @@ export function DecisionNode({ data, selected }: DecisionNodeProps) {
 
         <p className="text-xs text-gray-500 mb-2">
           {rules.length} rule{rules.length !== 1 ? 's' : ''}
-          {rules.length > 0 ? ` · evaluates ${Array.from(new Set(rules.flatMap(r => r.conditions.map(c => c.field)))).slice(0, 2).join(', ')}${Array.from(new Set(rules.flatMap(r => r.conditions.map(c => c.field)))).length > 2 ? '...' : ''}` : ' configured'}
+          {rules.length > 0
+            ? ` · evaluates ${Array.from(new Set(rules.flatMap((r) => r.conditions.map((c) => c.field)))).slice(0, 2).join(', ')}${
+                Array.from(new Set(rules.flatMap((r) => r.conditions.map((c) => c.field)))).length > 2 ? '...' : ''
+              }`
+            : ' configured'}
         </p>
 
         {/* Verdict badges */}
@@ -97,6 +117,10 @@ export function DecisionNode({ data, selected }: DecisionNodeProps) {
           </div>
         )}
 
+        {verdictField && (
+          <p className="text-xs text-purple-600 font-mono mb-2">→ {verdictField}</p>
+        )}
+
         <div className="flex justify-center">
           <Badge
             variant={data.configured ? 'default' : 'secondary'}
@@ -107,23 +131,27 @@ export function DecisionNode({ data, selected }: DecisionNodeProps) {
         </div>
       </div>
 
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        className="!bg-gray-400 !w-3 !h-3 !border-2 !border-white"
-      />
-
-      <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 px-2 text-xs bg-white shadow-sm border"
-          onClick={handleAddClick}
-        >
-          <Plus className="h-3 w-3 mr-1" />
-          Add
-        </Button>
-      </div>
+      {/* Per-verdict source handles */}
+      {routedVerdicts.length > 0 ? (
+        routedVerdicts.map((v, i) => (
+          <Handle
+            key={v}
+            id={`verdict-${v}`}
+            type="source"
+            position={Position.Bottom}
+            style={{ left: getHandleLeft(i, routedVerdicts.length) }}
+            className={`!w-3 !h-3 !border-2 !border-white ${VERDICT_HANDLE_COLORS[v]}`}
+            title={v.replace('_', ' ')}
+          />
+        ))
+      ) : (
+        <Handle
+          id="fallback"
+          type="source"
+          position={Position.Bottom}
+          className="!bg-gray-400 !w-3 !h-3 !border-2 !border-white"
+        />
+      )}
     </div>
   );
 }

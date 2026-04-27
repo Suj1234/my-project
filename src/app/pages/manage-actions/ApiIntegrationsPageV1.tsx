@@ -10,6 +10,7 @@ import { ApiIntegrationEditorV1 } from './ApiIntegrationEditorV1';
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
 const MOCK_INTEGRATIONS: ApiIntegrationV1[] = [
+  // ── v1-1: POST, no path params, JSON body ─────────────────────────────────
   {
     ...createDefaultIntegrationV1(),
     id: 'v1-1',
@@ -22,25 +23,19 @@ const MOCK_INTEGRATIONS: ApiIntegrationV1[] = [
       { id: '1', key: 'Content-Type', value: 'application/json', enabled: true },
       { id: '2', key: 'X-Request-Source', value: 'journey-engine', enabled: true },
     ],
-    bodyRaw: JSON.stringify({
-      pan: '{{applicant_pan}}',
-      dob: '{{applicant_dob}}',
-      mobile: '{{applicant_mobile}}',
-      consent: true,
-    }, null, 2),
-    responseJson: JSON.stringify({
-      status: 'success',
-      score: 748,
-      bureau: 'CIBIL',
-      reportId: 'RPT-2024-00123',
-      creditAge: '4 years 3 months',
-      activeAccounts: 3,
-      enquiries: 2,
-    }, null, 2),
+    bodyRaw: JSON.stringify({ pan: '{{applicant_pan}}', dob: '{{applicant_dob}}', mobile: '{{applicant_mobile}}', consent: true }, null, 2),
+    bodySchema: [
+      { id: '1', path: 'pan',    required: true,  fieldType: 'regex',  pattern: '^[A-Z]{5}[0-9]{4}[A-Z]$', description: 'PAN number (e.g. ABCDE1234F)' },
+      { id: '2', path: 'dob',    required: true,  fieldType: 'date',   description: 'Date of birth (YYYY-MM-DD)' },
+      { id: '3', path: 'mobile', required: true,  fieldType: 'phone',  description: '10-digit mobile number' },
+      { id: '4', path: 'consent',required: false, fieldType: 'boolean',description: 'Applicant consent flag' },
+    ],
+    responseJson: JSON.stringify({ status: 'success', score: 748, bureau: 'CIBIL', reportId: 'RPT-2024-00123', creditAge: '4 years 3 months', activeAccounts: 3, enquiries: 2 }, null, 2),
     status: 'active',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
+  // ── v1-2: POST, no path params, JSON body ─────────────────────────────────
   {
     ...createDefaultIntegrationV1(),
     id: 'v1-2',
@@ -52,23 +47,18 @@ const MOCK_INTEGRATIONS: ApiIntegrationV1[] = [
     headers: [
       { id: '1', key: 'Content-Type', value: 'application/json', enabled: true },
     ],
-    bodyRaw: JSON.stringify({
-      pan_number: '{{pan_number}}',
-      full_name: '{{applicant_name}}',
-      date_of_birth: '{{applicant_dob}}',
-    }, null, 2),
-    responseJson: JSON.stringify({
-      status: 'valid',
-      panNumber: 'ABCDE1234F',
-      name: 'Rahul Kumar',
-      type: 'Individual',
-      aadhaarLinked: true,
-      lastVerified: '2024-03-15',
-    }, null, 2),
+    bodyRaw: JSON.stringify({ pan_number: '{{pan_number}}', full_name: '{{applicant_name}}', date_of_birth: '{{applicant_dob}}' }, null, 2),
+    bodySchema: [
+      { id: '1', path: 'pan_number',    required: true,  fieldType: 'regex', pattern: '^[A-Z]{5}[0-9]{4}[A-Z]$', description: 'PAN number' },
+      { id: '2', path: 'full_name',     required: true,  fieldType: 'string', description: 'Full name as on PAN' },
+      { id: '3', path: 'date_of_birth', required: true,  fieldType: 'date',   description: 'Date of birth (YYYY-MM-DD)' },
+    ],
+    responseJson: JSON.stringify({ status: 'valid', panNumber: 'ABCDE1234F', name: 'Rahul Kumar', type: 'Individual', aadhaarLinked: true, lastVerified: '2024-03-15' }, null, 2),
     status: 'active',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
+  // ── v1-3: GET, no path params, query params only ──────────────────────────
   {
     ...createDefaultIntegrationV1(),
     id: 'v1-3',
@@ -76,24 +66,18 @@ const MOCK_INTEGRATIONS: ApiIntegrationV1[] = [
     description: 'Verify bank account details using penny drop method',
     method: 'GET',
     url: 'https://api.fintech.com/v1/bank/verify',
-    auth: { type: 'basic', basicUsername: '{{api_username}}', basicPassword: '{{api_password}}' },
+    auth: { type: 'basic', basicUsername: 'api_user', basicPassword: 'api_pass_123' },
     params: [
-      { id: '1', key: 'account_number', value: '{{account_number}}', enabled: true },
-      { id: '2', key: 'ifsc',           value: '{{ifsc_code}}',      enabled: true },
-      { id: '3', key: 'name',           value: '{{account_holder}}', enabled: true },
+      { id: '1', key: 'account_number', value: '{{account_number}}', enabled: true, required: true,  fieldType: 'number', description: 'Bank account number' },
+      { id: '2', key: 'ifsc',           value: '{{ifsc_code}}',      enabled: true, required: true,  fieldType: 'regex',  description: 'IFSC code (e.g. HDFC0001234)' },
+      { id: '3', key: 'name',           value: '{{account_holder}}', enabled: true, required: false, fieldType: 'string', description: 'Account holder name for name-match' },
     ],
-    responseJson: JSON.stringify({
-      status: 'success',
-      verified: true,
-      nameMatch: 'full',
-      bank: 'HDFC Bank',
-      branch: 'Koramangala, Bengaluru',
-      accountType: 'Savings',
-    }, null, 2),
+    responseJson: JSON.stringify({ status: 'success', verified: true, nameMatch: 'full', bank: 'HDFC Bank', branch: 'Koramangala, Bengaluru', accountType: 'Savings' }, null, 2),
     status: 'active',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
+  // ── v1-4: GET, path param + query param ──────────────────────────────────
   {
     ...createDefaultIntegrationV1(),
     id: 'v1-4',
@@ -102,25 +86,18 @@ const MOCK_INTEGRATIONS: ApiIntegrationV1[] = [
     method: 'GET',
     url: 'https://api.postalpincode.in/pincode/{{pincode}}',
     auth: { type: 'none' },
-    params: [
-      { id: '1', key: 'format', value: 'json', enabled: true },
+    pathParams: [
+      { id: '1', key: 'pincode', value: '', enabled: true, required: true, fieldType: 'regex', description: '6-digit Indian postal pincode' },
     ],
-    responseJson: JSON.stringify({
-      status: 'Success',
-      postOffices: [
-        {
-          name: 'Indiranagar',
-          district: 'Bengaluru',
-          state: 'Karnataka',
-          pincode: '560038',
-          deliveryStatus: 'Delivery',
-        },
-      ],
-    }, null, 2),
+    params: [
+      { id: '1', key: 'format', value: 'json', enabled: true, required: false, fieldType: 'string', description: 'Response format' },
+    ],
+    responseJson: JSON.stringify({ status: 'Success', postOffices: [{ name: 'Indiranagar', district: 'Bengaluru', state: 'Karnataka', pincode: '560038', deliveryStatus: 'Delivery' }] }, null, 2),
     status: 'inactive',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
+  // ── v1-5: POST, no path params, JSON body ─────────────────────────────────
   {
     ...createDefaultIntegrationV1(),
     id: 'v1-5',
@@ -128,24 +105,61 @@ const MOCK_INTEGRATIONS: ApiIntegrationV1[] = [
     description: 'Verify GST number and fetch business details',
     method: 'POST',
     url: 'https://api.gst.gov.in/verify',
-    auth: { type: 'bearer', bearerToken: '{{gst_api_token}}' },
+    auth: { type: 'bearer', bearerToken: 'gst-api-bearer-token' },
     headers: [
       { id: '1', key: 'Content-Type', value: 'application/json', enabled: true },
     ],
-    bodyRaw: JSON.stringify({
-      gstin: '{{gstin}}',
-      business_name: '{{business_name}}',
-    }, null, 2),
-    responseJson: JSON.stringify({
-      status: 'success',
-      gstin: '29ABCDE1234F1Z5',
-      legalName: 'Acme Pvt Ltd',
-      tradeName: 'Acme',
-      state: 'Karnataka',
-      registrationDate: '2018-07-01',
-      taxpayerType: 'Regular',
-      filingStatus: 'Active',
-    }, null, 2),
+    bodyRaw: JSON.stringify({ gstin: '{{gstin}}', business_name: '{{business_name}}' }, null, 2),
+    bodySchema: [
+      { id: '1', path: 'gstin',         required: true,  fieldType: 'regex',  pattern: '^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][0-9A-Z]Z[0-9A-Z]$', description: 'GST Identification Number' },
+      { id: '2', path: 'business_name', required: false, fieldType: 'string', description: 'Business name for cross-verification' },
+    ],
+    responseJson: JSON.stringify({ status: 'success', gstin: '29ABCDE1234F1Z5', legalName: 'Acme Pvt Ltd', tradeName: 'Acme', state: 'Karnataka', registrationDate: '2018-07-01', taxpayerType: 'Regular', filingStatus: 'Active' }, null, 2),
+    status: 'active',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  // ── v1-6: GET, path param ONLY (no query params) ──────────────────────────
+  {
+    ...createDefaultIntegrationV1(),
+    id: 'v1-6',
+    name: 'Loan Application Status',
+    description: 'Fetch status and details of a loan application by its ID',
+    method: 'GET',
+    url: 'https://api.lending.com/v1/applications/{{application_id}}',
+    auth: { type: 'bearer', bearerToken: 'lending-api-bearer-token' },
+    pathParams: [
+      { id: '1', key: 'application_id', value: '', enabled: true, required: true, fieldType: 'string', description: 'Unique loan application identifier' },
+    ],
+    params: [],
+    responseJson: JSON.stringify({ id: 'APP-2024-00456', status: 'under_review', applicantName: 'Priya Sharma', loanAmount: 500000, product: 'Personal Loan', appliedAt: '2024-03-10T09:30:00Z', lastUpdated: '2024-03-12T14:20:00Z' }, null, 2),
+    status: 'active',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  // ── v1-7: POST, path params + JSON body ───────────────────────────────────
+  {
+    ...createDefaultIntegrationV1(),
+    id: 'v1-7',
+    name: 'Upload Loan Document',
+    description: 'Upload or replace a document for an existing loan application',
+    method: 'POST',
+    url: 'https://api.lending.com/v1/loans/{{loan_id}}/documents/{{doc_type}}',
+    auth: { type: 'bearer', bearerToken: 'lending-api-bearer-token' },
+    headers: [
+      { id: '1', key: 'Content-Type', value: 'application/json', enabled: true },
+    ],
+    pathParams: [
+      { id: '1', key: 'loan_id',  value: '', enabled: true, required: true,  fieldType: 'string', description: 'Loan identifier' },
+      { id: '2', key: 'doc_type', value: '', enabled: true, required: true,  fieldType: 'string', description: 'Document type (aadhaar / pan / income_proof / bank_statement)' },
+    ],
+    bodyRaw: JSON.stringify({ document_url: '{{doc_url}}', uploaded_by: '{{agent_id}}', remarks: '' }, null, 2),
+    bodySchema: [
+      { id: '1', path: 'document_url', required: true,  fieldType: 'string', description: 'Accessible URL of the uploaded document' },
+      { id: '2', path: 'uploaded_by',  required: true,  fieldType: 'string', description: 'Agent or user ID performing the upload' },
+      { id: '3', path: 'remarks',      required: false, fieldType: 'string', description: 'Optional remarks or notes' },
+    ],
+    responseJson: JSON.stringify({ success: true, documentId: 'DOC-789', loanId: 'LN-2024-00456', docType: 'aadhaar', uploadedAt: '2024-03-15T11:00:00Z' }, null, 2),
     status: 'active',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),

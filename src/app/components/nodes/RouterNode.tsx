@@ -2,7 +2,7 @@ import { Handle, Position } from '@xyflow/react';
 import { FlowNodeData } from '../../types/journey';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { Plus, X, GitBranch } from 'lucide-react';
+import { X, GitBranch } from 'lucide-react';
 import { useState } from 'react';
 import type React from 'react';
 
@@ -14,22 +14,32 @@ interface RouterNodeProps {
 export function RouterNode({ data, selected }: RouterNodeProps) {
   const [showDelete, setShowDelete] = useState(false);
 
-  const handleAddClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    data.onAddBlock?.(data.id);
-  };
-
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     data.onDelete?.(data.id);
   };
 
+  const savedRoutings = (data.routings ?? []).filter((r) => r.saved && r.targetBlockId);
+  const hasDefault = Boolean(data.defaultRoute);
+  const branchType = data.routerBranchType ?? 'exclusive';
+
+  // Distribute source handles across the bottom edge of the outer div.
+  // The outer div is 176px wide. Handles are positioned as a percentage of that.
+  const totalHandles = savedRoutings.length + (hasDefault ? 1 : 0);
+  const getHandleLeft = (index: number) => {
+    if (totalHandles <= 1) return '50%';
+    const step = 80 / (totalHandles - 1);
+    return `${10 + index * step}%`;
+  };
+
   return (
     <div
       className={`relative transition-all ${selected ? 'scale-105' : ''}`}
+      style={{ width: 176, paddingBottom: 32 }}
       onMouseEnter={() => setShowDelete(true)}
       onMouseLeave={() => setShowDelete(false)}
     >
+      {/* Incoming handle at the top */}
       <Handle
         type="target"
         position={Position.Top}
@@ -47,43 +57,84 @@ export function RouterNode({ data, selected }: RouterNodeProps) {
         </Button>
       )}
 
+      {/* Diamond body */}
       <div
-        className={`w-40 h-40 bg-white border-4 border-orange-500 transform rotate-45 flex items-center justify-center shadow-lg cursor-pointer ${
+        className={`w-40 h-40 mx-auto bg-white border-4 border-orange-500 transform rotate-45 flex items-center justify-center shadow-lg cursor-pointer ${
           selected ? 'ring-2 ring-blue-500' : ''
         }`}
         onClick={() => data.onConfigure?.(data.id)}
       >
-        <div className="transform -rotate-45 text-center">
-          <GitBranch className="h-6 w-6 text-orange-500 mx-auto mb-2" />
-          <div className="font-semibold text-sm mb-1">{data.name}</div>
-          <Badge variant="secondary" className="bg-orange-100 text-orange-700 text-xs">
-            LOGIC
+        <div className="transform -rotate-45 text-center px-2">
+          <GitBranch className="h-5 w-5 text-orange-500 mx-auto mb-1" />
+          <div className="font-semibold text-xs mb-1 leading-tight">{data.name}</div>
+          <Badge
+            variant="secondary"
+            className={`text-xs ${branchType === 'inclusive' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}
+          >
+            {branchType === 'inclusive' ? 'INCLUSIVE' : 'EXCLUSIVE'}
           </Badge>
-          {data.routings && data.routings.length > 0 && (
+          {totalHandles > 0 && (
             <div className="mt-1 text-xs text-orange-600">
-              {data.routings.length} route{data.routings.length !== 1 ? 's' : ''}
+              {savedRoutings.length} route{savedRoutings.length !== 1 ? 's' : ''}
+              {hasDefault ? ' + default' : ''}
             </div>
           )}
         </div>
       </div>
 
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        className="!bg-gray-400 !w-3 !h-3 !border-2 !border-white"
-      />
+      {/* Route label chips below diamond */}
+      {(savedRoutings.length > 0 || hasDefault) && (
+        <div className="flex flex-wrap justify-center gap-1 mt-1 px-1">
+          {savedRoutings.map((r) => (
+            <span
+              key={r.id}
+              className="text-xs bg-orange-50 border border-orange-200 text-orange-700 rounded px-1.5 py-0.5 max-w-[80px] truncate"
+              title={r.label || `Route`}
+            >
+              {r.label || 'Route'}
+            </span>
+          ))}
+          {hasDefault && (
+            <span className="text-xs bg-gray-50 border border-dashed border-gray-300 text-gray-500 rounded px-1.5 py-0.5">
+              default
+            </span>
+          )}
+        </div>
+      )}
 
-      <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 px-2 text-xs bg-white shadow-sm border"
-          onClick={handleAddClick}
-        >
-          <Plus className="h-3 w-3 mr-1" />
-          Add
-        </Button>
-      </div>
+      {/* One source handle per saved routing */}
+      {savedRoutings.map((routing, i) => (
+        <Handle
+          key={routing.id}
+          id={`route-${routing.id}`}
+          type="source"
+          position={Position.Bottom}
+          style={{ left: getHandleLeft(i), bottom: 32 }}
+          className="!bg-orange-400 !w-3 !h-3 !border-2 !border-white"
+        />
+      ))}
+
+      {/* Default route handle */}
+      {hasDefault && (
+        <Handle
+          id="default-route"
+          type="source"
+          position={Position.Bottom}
+          style={{ left: getHandleLeft(savedRoutings.length), bottom: 32 }}
+          className="!bg-gray-400 !w-3 !h-3 !border-2 !border-white !border-dashed"
+        />
+      )}
+
+      {/* Fallback single handle when nothing is saved yet */}
+      {totalHandles === 0 && (
+        <Handle
+          id="fallback"
+          type="source"
+          position={Position.Bottom}
+          style={{ bottom: 32 }}
+          className="!bg-gray-400 !w-3 !h-3 !border-2 !border-white"
+        />
+      )}
     </div>
   );
 }

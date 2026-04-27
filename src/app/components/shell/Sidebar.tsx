@@ -5,7 +5,7 @@ import {
   FileCheck, Bell, Link2, FileType, FileText,
   BarChart3, Building, LayoutDashboard,
   ChevronDown, ChevronRight, Menu, X,
-  Network, Globe,
+  Network, Globe, BookOpen,
 } from 'lucide-react';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -83,7 +83,15 @@ const NAV_CONFIG: SidebarSection[] = [
   {
     heading: 'Master Management',
     items: [
-      { id: 'required-documents', label: 'Required Document', icon: <FileCheck size={18} />, path: '/required-documents' },
+      {
+        id: 'master-management',
+        label: 'Master Management',
+        icon: <BookOpen size={18} />,
+        children: [
+          { id: 'master-management-list', label: 'Master Management', icon: <BookOpen size={15} />, path: '/master-management' },
+          { id: 'required-documents', label: 'Required Document', icon: <FileCheck size={15} />, path: '/required-documents' },
+        ],
+      },
       { id: 'field-management', label: 'Field Management', icon: <Database size={18} />, path: '/field-management' },
       { id: 'manage-notification', label: 'Manage Notification', icon: <Bell size={18} />, path: '/manage-notification', disabled: true },
       { id: 'connector', label: 'Connector', icon: <Link2 size={18} />, path: '/connector', disabled: true },
@@ -107,7 +115,7 @@ export function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(true);
-  const [expanded, setExpanded] = useState<Set<string>>(new Set(['manage-program', 'manage-actions']));
+  const [expanded, setExpanded] = useState<Set<string>>(new Set(['manage-program', 'manage-actions', 'master-management']));
 
   const toggle = (id: string) =>
     setExpanded((prev) => {

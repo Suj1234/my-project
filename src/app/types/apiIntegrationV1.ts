@@ -21,6 +21,20 @@ export interface AuthConfigV1 {
   basicPassword?: string;
 }
 
+// ─── Field validation type ────────────────────────────────────────────────────
+
+export type FieldTypeV1 = 'string' | 'number' | 'boolean' | 'email' | 'phone' | 'date' | 'regex';
+
+export const FIELD_TYPE_LABELS: Record<FieldTypeV1, string> = {
+  string:  'String',
+  number:  'Number',
+  boolean: 'Boolean',
+  email:   'Email',
+  phone:   'Phone',
+  date:    'Date',
+  regex:   'Regex',
+};
+
 // ─── Key-Value Pair ───────────────────────────────────────────────────────────
 
 export interface KeyValuePairV1 {
@@ -28,6 +42,20 @@ export interface KeyValuePairV1 {
   key: string;
   value: string;
   enabled: boolean;
+  required?: boolean;
+  fieldType?: FieldTypeV1;
+  description?: string;
+}
+
+// ─── Body field schema rule ───────────────────────────────────────────────────
+
+export interface BodyFieldV1 {
+  id: string;
+  path: string;          // JSON dot-path, e.g. "applicant.pan" or "amount"
+  required: boolean;
+  fieldType: FieldTypeV1;
+  pattern?: string;      // only used when fieldType === 'regex'
+  description?: string;
 }
 
 // ─── Status ───────────────────────────────────────────────────────────────────
@@ -44,9 +72,11 @@ export interface ApiIntegrationV1 {
   method: HttpMethodV1;
   auth: AuthConfigV1;
   headers: KeyValuePairV1[];
-  params: KeyValuePairV1[];   // used when method === 'GET'
-  bodyRaw: string;            // used when method === 'POST' (raw JSON)
-  responseJson: string;       // expected response JSON pasted by user
+  params: KeyValuePairV1[];       // query params (GET)
+  pathParams: KeyValuePairV1[];   // path segment {{vars}} with metadata
+  bodyRaw: string;                // POST body template (may contain {{vars}})
+  bodySchema: BodyFieldV1[];      // field-level validation rules for POST body
+  responseJson: string;           // expected response JSON (documentation)
   status: IntegrationStatusV1;
   createdAt: string;
   updatedAt: string;
@@ -64,7 +94,9 @@ export function createDefaultIntegrationV1(): ApiIntegrationV1 {
     auth: { type: 'none' },
     headers: [],
     params: [],
+    pathParams: [],
     bodyRaw: '',
+    bodySchema: [],
     responseJson: '',
     status: 'active',
     createdAt: new Date().toISOString(),

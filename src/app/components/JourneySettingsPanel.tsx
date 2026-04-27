@@ -3,7 +3,6 @@ import {
   JourneySettings,
   PageSlot,
   MOCK_AVAILABLE_PAGES,
-  MOCK_APP_CONFIGS,
 } from '../types/journey';
 import { ScrollArea } from './ui/scroll-area';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
@@ -20,11 +19,11 @@ import {
   Sparkles,
   CheckCircle2,
   AlertCircle,
-  LogIn,
   RotateCcw,
   AlertTriangle,
   Wrench,
   FlaskConical,
+  FileUp,
 } from 'lucide-react';
 import { Label } from './ui/label';
 
@@ -37,17 +36,11 @@ interface JourneySettingsPanelProps {
 }
 
 const PAGE_SLOT_META: {
-  key: keyof Omit<JourneySettings, 'appConfigId'>;
+  key: keyof Omit<JourneySettings, 'appConfigFile'>;
   label: string;
   description: string;
   icon: React.ReactNode;
 }[] = [
-  {
-    key: 'loginPage',
-    label: 'Login Page',
-    description: 'Authentication screen before the journey starts',
-    icon: <LogIn className="h-3.5 w-3.5 text-blue-500" />,
-  },
   {
     key: 'resumePage',
     label: 'Resume Page',
@@ -215,10 +208,10 @@ function PageSlotCard({
 
 export function JourneySettingsPanel({ settings, onClose, onChange, onExport, onImport }: JourneySettingsPanelProps) {
   const configuredCount = Object.entries(settings)
-    .filter(([k, v]) => k !== 'appConfigId' && (v as PageSlot)?.isConfigured)
+    .filter(([k, v]) => k !== 'appConfigFile' && (v as PageSlot)?.isConfigured)
     .length;
 
-  const updateSlot = (key: keyof Omit<JourneySettings, 'appConfigId'>, slot: PageSlot) => {
+  const updateSlot = (key: keyof Omit<JourneySettings, 'appConfigFile'>, slot: PageSlot) => {
     onChange({ ...settings, [key]: slot });
   };
 
@@ -285,46 +278,48 @@ export function JourneySettingsPanel({ settings, onClose, onChange, onExport, on
                 <div className="flex items-center gap-2">
                   <AppWindow className="h-4 w-4 text-gray-500" />
                   <span>App Config</span>
-                  {settings.appConfigId && (
+                  {settings.appConfigFile && (
                     <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-[10px] ml-2">
-                      {MOCK_APP_CONFIGS.find((c) => c.id === settings.appConfigId)?.name ?? 'Set'}
+                      Uploaded
                     </Badge>
                   )}
                 </div>
               </AccordionTrigger>
               <AccordionContent>
-                <div className="space-y-3 pt-1">
+                <div className="space-y-2 pt-1">
                   <p className="text-[11px] text-gray-400">
-                    Select the app configuration object that governs theming, feature flags, and runtime behaviour for this journey.
+                    Upload an app config file to define theming, feature flags, and runtime behaviour for this journey.
                   </p>
-                  <div>
-                    <Label className="text-xs text-gray-600 mb-1 block">Select Configuration</Label>
-                    <Select
-                      value={settings.appConfigId ?? ''}
-                      onValueChange={(v) => onChange({ ...settings, appConfigId: v || null })}
-                    >
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue placeholder="Choose app config..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {MOCK_APP_CONFIGS.map((cfg) => (
-                          <SelectItem key={cfg.id} value={cfg.id} className="text-sm">
-                            {cfg.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {settings.appConfigId && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-xs text-gray-400 h-6 px-2"
-                      onClick={() => onChange({ ...settings, appConfigId: null })}
-                    >
-                      <X className="h-3 w-3 mr-1" />
-                      Clear
-                    </Button>
+                  {settings.appConfigFile ? (
+                    <div className="flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 px-3 py-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <FileUp className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                        <span className="text-xs font-medium text-blue-800 truncate">{settings.appConfigFile}</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 text-gray-400 hover:text-red-500 flex-shrink-0"
+                        onClick={() => onChange({ ...settings, appConfigFile: null })}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 hover:border-blue-300 hover:bg-blue-50/40 transition-colors cursor-pointer py-5">
+                      <FileUp className="h-6 w-6 text-gray-400" />
+                      <span className="text-xs text-gray-500">Click to upload config file</span>
+                      <span className="text-[10px] text-gray-400">JSON, YAML</span>
+                      <input
+                        type="file"
+                        accept=".json,.yaml,.yml"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) onChange({ ...settings, appConfigFile: file.name });
+                        }}
+                      />
+                    </label>
                   )}
                 </div>
               </AccordionContent>

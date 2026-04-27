@@ -1,6 +1,14 @@
 export type ProgramStatus = 'Active' | 'Draft' | 'Inactive';
 export type ProgramVertical = 'RETAIL' | 'GOLD' | 'MSME' | string;
 
+export type IdentifierType = 'mobile' | 'pan' | 'account' | 'aadhaar';
+
+export interface ProgramIdentifier {
+  type: IdentifierType;
+  label: string;
+  placeholder: string;
+}
+
 export interface Program {
   id: string;
   program_name: string;
@@ -9,6 +17,7 @@ export interface Program {
   program_code: string;
   description?: string;
   status: ProgramStatus;
+  supported_identifiers: ProgramIdentifier[];
   created_at: string;
   updated_at: string;
 }

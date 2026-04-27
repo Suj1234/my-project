@@ -31,6 +31,10 @@ import { ApplicationViewPage } from './pages/ops-dashboard/ApplicationViewPage';
 // Application Management
 import { ApplicationManagementPage } from './pages/application-management/ApplicationManagementPage';
 
+// Master Management
+import { MasterManagementList } from './pages/master-management/MasterManagementList';
+import { MasterManagementView } from './pages/master-management/MasterManagementView';
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -67,6 +71,10 @@ export default function App() {
           {/* Ops Dashboard */}
           <Route path="ops-dashboard" element={<OpsDashboardPage />} />
           <Route path="ops-dashboard/:appId/view" element={<ApplicationViewPage />} />
+
+          {/* Master Management */}
+          <Route path="master-management" element={<MasterManagementList />} />
+          <Route path="master-management/:id/view" element={<MasterManagementView />} />
 
           {/* Application Management */}
           <Route path="application-management" element={<ApplicationManagementPage />} />

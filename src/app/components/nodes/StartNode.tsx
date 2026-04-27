@@ -10,9 +10,7 @@ interface StartNodeProps {
 }
 
 export function StartNode({ data, selected }: StartNodeProps) {
-  const configuredPages = (data.pages ?? []).filter((p) => p.isConfigured).length;
-  const totalPages = (data.pages ?? []).length;
-  const hookCount = (data.dataHooks ?? []).reduce((sum, slot) => sum + slot.apis.length, 0);
+  const landingPageCount = (data.pages ?? []).length;
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -20,56 +18,31 @@ export function StartNode({ data, selected }: StartNodeProps) {
   };
 
   return (
-    <div className={`relative transition-all duration-150 ${selected ? 'drop-shadow-xl' : ''}`}>
-      {/* Card */}
+    <div className="relative flex flex-col items-center transition-all duration-150">
+      {/* Circle */}
       <div
-        className={`w-[240px] rounded-xl overflow-hidden bg-white cursor-pointer transition-all duration-150 border-2 ${
+        className={`w-[110px] h-[110px] rounded-full cursor-pointer transition-all duration-200 flex flex-col items-center justify-center gap-1 border-4 ${
           selected
-            ? 'border-emerald-500 shadow-2xl shadow-emerald-100/60'
-            : 'border-emerald-200 shadow-lg hover:border-emerald-400 hover:shadow-xl'
+            ? 'border-emerald-400 shadow-2xl shadow-emerald-300/50 bg-gradient-to-br from-emerald-400 to-teal-500 scale-105'
+            : 'border-emerald-300 shadow-lg hover:border-emerald-500 hover:shadow-xl hover:scale-105 bg-gradient-to-br from-emerald-500 to-teal-600'
         }`}
         onClick={handleClick}
       >
-        {/* Header */}
-        <div className="bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 px-3.5 py-2.5 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-white/25 flex items-center justify-center shadow-inner">
-              <Play className="h-3 w-3 text-white fill-white" />
-            </div>
-            <div>
-              <p className="text-white font-semibold text-xs leading-tight tracking-wide">JOURNEY START</p>
-              <p className="text-emerald-100/80 text-[10px] leading-tight">Entry point</p>
-            </div>
-          </div>
-          <span className="text-[9px] font-bold tracking-widest text-emerald-100 bg-white/15 px-1.5 py-0.5 rounded-full border border-white/20">
-            START
-          </span>
-        </div>
-
-        {/* Body */}
-        <div className="px-3.5 py-2.5 bg-gradient-to-b from-white to-emerald-50/30">
-          {totalPages > 0 || hookCount > 0 ? (
-            <div className="flex flex-wrap gap-1.5">
-              {totalPages > 0 && (
-                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${
-                  configuredPages === totalPages
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                    : 'bg-amber-50 text-amber-700 border-amber-200'
-                }`}>
-                  {configuredPages}/{totalPages} pages
-                </span>
-              )}
-              {hookCount > 0 && (
-                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-purple-50 text-purple-700 border-purple-200">
-                  {hookCount} {hookCount === 1 ? 'hook' : 'hooks'}
-                </span>
-              )}
-            </div>
-          ) : (
-            <p className="text-[11px] text-gray-400 italic">Click to configure</p>
-          )}
+        <Play className="h-8 w-8 text-white fill-white drop-shadow" />
+        <div className="text-center leading-tight">
+          <p className="text-[8px] font-bold tracking-[0.15em] text-white/90 uppercase">Journey</p>
+          <p className="text-[9px] font-bold tracking-[0.2em] text-white uppercase">Start</p>
         </div>
       </div>
+
+      {/* Landing page count badge */}
+      {landingPageCount > 0 && (
+        <div className="mt-1.5">
+          <span className="text-[9px] font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+            {landingPageCount} landing {landingPageCount === 1 ? 'page' : 'pages'}
+          </span>
+        </div>
+      )}
 
       {/* Source handle */}
       <Handle
@@ -83,7 +56,7 @@ export function StartNode({ data, selected }: StartNodeProps) {
         <Button
           variant="ghost"
           size="sm"
-          className="h-7 px-3 text-xs bg-white shadow border border-gray-200 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700 transition-colors"
+          className="h-7 px-3 text-xs bg-white shadow border border-gray-200 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700 transition-colors whitespace-nowrap"
           onClick={(e) => { e.stopPropagation(); data.onAddBlock?.(data.id); }}
         >
           <Plus className="h-3 w-3 mr-1" />

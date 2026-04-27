@@ -25,21 +25,19 @@ export interface PageSlot {
 }
 
 export interface JourneySettings {
-  loginPage: PageSlot;
   resumePage: PageSlot;
   errorPage: PageSlot;
   maintenancePage: PageSlot;
   mockedPage: PageSlot;
-  appConfigId: string | null;
+  appConfigFile: string | null;
 }
 
 export const DEFAULT_JOURNEY_SETTINGS: JourneySettings = {
-  loginPage: { pageId: null, pageName: null, isConfigured: false },
   resumePage: { pageId: null, pageName: null, isConfigured: false },
   errorPage: { pageId: null, pageName: null, isConfigured: false },
   maintenancePage: { pageId: null, pageName: null, isConfigured: false },
   mockedPage: { pageId: null, pageName: null, isConfigured: false },
-  appConfigId: null,
+  appConfigFile: null,
 };
 
 // Mock data (in production, fetched from backend)
@@ -189,6 +187,7 @@ export interface BlockData {
   // ─── Router/Logic fields ────────────────────────────────────────────────────
   routings?: RoutingConfig[];
   defaultRoute?: string;
+  routerBranchType?: 'exclusive' | 'inclusive';
 
   // ─── Data hooks ─────────────────────────────────────────────────────────────
   dataHooks?: HookEventSlot[];
@@ -211,19 +210,39 @@ export interface RetryConfigItem {
 }
 
 // Routing Configuration for Conditional Router
-export interface RoutingConfig {
-  id: string;
-  conditions: Condition[];
-  operator: 'AND' | 'OR';
-  targetBlockId: string;
-  saved?: boolean;
-}
+
+export type FieldType = 'text' | 'number' | 'date' | 'boolean';
+
+export type ConditionOperator =
+  | '=' | '!=' | '>' | '<' | '>=' | '<='
+  | 'between' | 'in' | 'not in'
+  | 'contains' | 'not contains'
+  | 'is empty' | 'is not empty'
+  | 'is before today' | 'is after today' | 'is in last N days'
+  | 'matches regex';
 
 export interface Condition {
   id: string;
   parameter: string;
-  operator: '=' | '!=' | '>' | '<' | '>=' | '<=' | 'contains' | 'not contains' | 'is empty' | 'is not empty';
+  operator: ConditionOperator;
   value: string;
+  valueTo?: string;    // for 'between'
+  fieldType?: FieldType;
+}
+
+export interface ConditionGroup {
+  id: string;
+  operator: 'AND' | 'OR';
+  conditions: Condition[];
+}
+
+export interface RoutingConfig {
+  id: string;
+  label?: string;
+  conditionGroups: ConditionGroup[];
+  groupOperator: 'AND' | 'OR';
+  targetBlockId: string;
+  saved?: boolean;
 }
 
 // ─── Data Hooks ──────────────────────────────────────────────────────────────
@@ -235,7 +254,7 @@ export type HookTrigger =
   | 'after_user_submit'
   | 'after_block_complete';
 
-export type InputSourceType = 'native' | 'custom' | 'static' | 'system' | 'api_output';
+export type InputSourceType = 'native' | 'custom' | 'static' | 'system' | 'api_output' | 'user_input';
 
 export type TransformationType =
   | 'trim'
@@ -346,10 +365,18 @@ export interface HookEventSlot {
 
 export type DecisionVerdict = 'PASS' | 'REJECT' | 'FLAG' | 'MANUAL_REVIEW';
 
+export type DecisionConditionOperator =
+  | '=' | '!=' | '>' | '<' | '>=' | '<='
+  | 'between' | 'in' | 'not in'
+  | 'contains' | 'not contains'
+  | 'is empty' | 'is not empty'
+  | 'is before today' | 'is after today' | 'is in last N days'
+  | 'matches regex';
+
 export interface DecisionCondition {
   id: string;
   field: string;
-  operator: '=' | '!=' | '>' | '<' | '>=' | '<=' | 'between' | 'contains' | 'is empty' | 'is not empty';
+  operator: DecisionConditionOperator;
   value: string;
   valueTo?: string;
 }
@@ -360,11 +387,16 @@ export interface DecisionRule {
   conditionOperator: 'AND' | 'OR';
   verdict: DecisionVerdict;
   targetBlockId?: string;
+  verdictField?: string;
 }
 
 export interface DecisionBlockConfig {
   rules: DecisionRule[];
   defaultVerdict: DecisionVerdict;
+  verdictRoutes?: Partial<Record<DecisionVerdict, string>>;
+  verdictField?: string;
+  // Unified storage key: "custom.credit_decision" or "native.decision_result"
+  verdictStorageKey?: string;
 }
 
 // ─── React Flow Node Data ─────────────────────────────────────────────────────

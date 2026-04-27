@@ -8,6 +8,7 @@
  */
 
 import type { Program, NativeField, CustomField, ProgramDocument, Scheme, ClosureAction, Role, VariableMaster, OpsDashboardConfig } from '../types/program';
+import type { Master, SubMaster, MasterField, CreateMasterPayload, CreateSubMasterPayload, UpdateMasterPayload, MasterListFilters } from '../types/masterManagement';
 import type { RequiredDocument, RequiredDocumentCreate } from '../types/requiredDocument';
 import type { FieldManagementEntry } from '../types/fieldManagement';
 import type { Workflow, WorkflowVersion } from '../types/workflow';
@@ -26,18 +27,18 @@ const now = () => new Date().toISOString();
 // ---------------------------------------------------------------------------
 
 const PROGRAMS_STORE: Program[] = [
-  { id: '1', program_name: 'Demo PL', product_category: 'PERSONAL_LOAN', vertical: ['RETAIL'], program_code: 'DPL01', description: 'Demo personal loan program', status: 'Active', created_at: '2026-01-15T10:00:00Z', updated_at: '2026-03-20T14:30:00Z' },
-  { id: '2', program_name: 'Sample Test Cases', product_category: 'PERSONAL_LOAN', vertical: ['GOLD'], program_code: 'STC02', description: '', status: 'Active', created_at: '2026-01-20T09:00:00Z', updated_at: '2026-02-10T11:00:00Z' },
-  { id: '3', program_name: 'TestSMB', product_category: 'PERSONAL_LOAN', vertical: ['GOLD'], program_code: 'TSMB03', description: 'Test SMB program', status: 'Active', created_at: '2026-02-01T08:00:00Z', updated_at: '2026-03-01T10:00:00Z' },
-  { id: '4', program_name: 'Smart Block Personal Loan', product_category: 'PERSONAL_LOAN', vertical: ['GOLD'], program_code: 'SBPL04', description: '', status: 'Active', created_at: '2026-02-10T10:00:00Z', updated_at: '2026-03-15T09:00:00Z' },
-  { id: '5', program_name: 'CI MSME LOAN', product_category: 'BUSINESS_LOAN', vertical: ['MSME'], program_code: 'CIML05', description: 'CI MSME business loan', status: 'Active', created_at: '2026-02-15T11:00:00Z', updated_at: '2026-04-01T08:00:00Z' },
-  { id: '6', program_name: 'Test Condition', product_category: 'PERSONAL_LOAN', vertical: ['MSME'], program_code: 'TC06', description: '', status: 'Active', created_at: '2026-02-20T12:00:00Z', updated_at: '2026-03-20T13:00:00Z' },
-  { id: '7', program_name: 'CIMSME', product_category: 'BUSINESS_LOAN', vertical: ['MSME'], program_code: 'CIMS07', description: 'CI MSME program', status: 'Active', created_at: '2026-03-01T09:00:00Z', updated_at: '2026-04-05T10:00:00Z' },
-  { id: '8', program_name: 'genPLDemo', product_category: 'PERSONAL_LOAN', vertical: ['GOLD'], program_code: 'GPL08', description: '', status: 'Active', created_at: '2026-03-05T10:00:00Z', updated_at: '2026-04-08T11:00:00Z' },
-  { id: '9', program_name: 'DemoPL', product_category: 'PERSONAL_LOAN', vertical: ['GOLD'], program_code: 'DPL09', description: 'Demo PL variant', status: 'Active', created_at: '2026-03-10T08:00:00Z', updated_at: '2026-04-10T09:00:00Z' },
-  { id: '10', program_name: 'CIMSME01', product_category: 'BUSINESS_LOAN', vertical: ['MSME'], program_code: 'CIM10', description: '', status: 'Active', created_at: '2026-03-12T10:00:00Z', updated_at: '2026-04-12T10:00:00Z' },
-  { id: '11', program_name: 'MSME Pilot Program', product_category: 'BUSINESS_LOAN', vertical: ['MSME'], program_code: 'MPP11', description: 'Pilot MSME program', status: 'Draft', created_at: '2026-03-15T11:00:00Z', updated_at: '2026-04-01T12:00:00Z' },
-  { id: '12', program_name: 'Gold Loan Express', product_category: 'PERSONAL_LOAN', vertical: ['GOLD'], program_code: 'GLE12', description: '', status: 'Inactive', created_at: '2026-03-18T09:00:00Z', updated_at: '2026-04-02T09:00:00Z' },
+  { id: '1',  program_name: 'Demo PL',                  product_category: 'PERSONAL_LOAN', vertical: ['RETAIL'], program_code: 'DPL01',  description: 'Demo personal loan program', status: 'Active',   supported_identifiers: [{ type: 'mobile', label: 'Mobile Number', placeholder: 'e.g. +91 9876543210' }, { type: 'pan', label: 'PAN Number', placeholder: 'e.g. ABCDE1234F' }],                                                                                                                    created_at: '2026-01-15T10:00:00Z', updated_at: '2026-03-20T14:30:00Z' },
+  { id: '2',  program_name: 'Sample Test Cases',         product_category: 'PERSONAL_LOAN', vertical: ['GOLD'],   program_code: 'STC02',  description: '',                           status: 'Active',   supported_identifiers: [{ type: 'mobile', label: 'Mobile Number', placeholder: 'e.g. +91 9876543210' }, { type: 'pan', label: 'PAN Number', placeholder: 'e.g. ABCDE1234F' }, { type: 'aadhaar', label: 'Aadhaar Number', placeholder: 'e.g. 1234 5678 9012' }],                        created_at: '2026-01-20T09:00:00Z', updated_at: '2026-02-10T11:00:00Z' },
+  { id: '3',  program_name: 'TestSMB',                   product_category: 'PERSONAL_LOAN', vertical: ['GOLD'],   program_code: 'TSMB03', description: 'Test SMB program',           status: 'Active',   supported_identifiers: [{ type: 'mobile', label: 'Mobile Number', placeholder: 'e.g. +91 9876543210' }, { type: 'account', label: 'Account Number', placeholder: 'e.g. 001234567890' }],                                                                                               created_at: '2026-02-01T08:00:00Z', updated_at: '2026-03-01T10:00:00Z' },
+  { id: '4',  program_name: 'Smart Block Personal Loan', product_category: 'PERSONAL_LOAN', vertical: ['GOLD'],   program_code: 'SBPL04', description: '',                           status: 'Active',   supported_identifiers: [{ type: 'pan', label: 'PAN Number', placeholder: 'e.g. ABCDE1234F' }, { type: 'mobile', label: 'Mobile Number', placeholder: 'e.g. +91 9876543210' }],                                                                                                        created_at: '2026-02-10T10:00:00Z', updated_at: '2026-03-15T09:00:00Z' },
+  { id: '5',  program_name: 'CI MSME LOAN',              product_category: 'BUSINESS_LOAN', vertical: ['MSME'],   program_code: 'CIML05', description: 'CI MSME business loan',      status: 'Active',   supported_identifiers: [{ type: 'account', label: 'Account Number', placeholder: 'e.g. 001234567890' }, { type: 'pan', label: 'PAN Number', placeholder: 'e.g. ABCDE1234F' }, { type: 'mobile', label: 'Mobile Number', placeholder: 'e.g. +91 9876543210' }],                    created_at: '2026-02-15T11:00:00Z', updated_at: '2026-04-01T08:00:00Z' },
+  { id: '6',  program_name: 'Test Condition',            product_category: 'PERSONAL_LOAN', vertical: ['MSME'],   program_code: 'TC06',   description: '',                           status: 'Active',   supported_identifiers: [{ type: 'mobile', label: 'Mobile Number', placeholder: 'e.g. +91 9876543210' }],                                                                                                                                                                            created_at: '2026-02-20T12:00:00Z', updated_at: '2026-03-20T13:00:00Z' },
+  { id: '7',  program_name: 'CIMSME',                    product_category: 'BUSINESS_LOAN', vertical: ['MSME'],   program_code: 'CIMS07', description: 'CI MSME program',            status: 'Active',   supported_identifiers: [{ type: 'account', label: 'Account Number', placeholder: 'e.g. 001234567890' }, { type: 'pan', label: 'PAN Number', placeholder: 'e.g. ABCDE1234F' }],                                                                                                    created_at: '2026-03-01T09:00:00Z', updated_at: '2026-04-05T10:00:00Z' },
+  { id: '8',  program_name: 'genPLDemo',                 product_category: 'PERSONAL_LOAN', vertical: ['GOLD'],   program_code: 'GPL08',  description: '',                           status: 'Active',   supported_identifiers: [{ type: 'pan', label: 'PAN Number', placeholder: 'e.g. ABCDE1234F' }, { type: 'aadhaar', label: 'Aadhaar Number', placeholder: 'e.g. 1234 5678 9012' }],                                                                                                   created_at: '2026-03-05T10:00:00Z', updated_at: '2026-04-08T11:00:00Z' },
+  { id: '9',  program_name: 'DemoPL',                    product_category: 'PERSONAL_LOAN', vertical: ['GOLD'],   program_code: 'DPL09',  description: 'Demo PL variant',            status: 'Active',   supported_identifiers: [{ type: 'mobile', label: 'Mobile Number', placeholder: 'e.g. +91 9876543210' }, { type: 'pan', label: 'PAN Number', placeholder: 'e.g. ABCDE1234F' }],                                                                                                    created_at: '2026-03-10T08:00:00Z', updated_at: '2026-04-10T09:00:00Z' },
+  { id: '10', program_name: 'CIMSME01',                  product_category: 'BUSINESS_LOAN', vertical: ['MSME'],   program_code: 'CIM10',  description: '',                           status: 'Active',   supported_identifiers: [{ type: 'account', label: 'Account Number', placeholder: 'e.g. 001234567890' }, { type: 'mobile', label: 'Mobile Number', placeholder: 'e.g. +91 9876543210' }, { type: 'pan', label: 'PAN Number', placeholder: 'e.g. ABCDE1234F' }],                  created_at: '2026-03-12T10:00:00Z', updated_at: '2026-04-12T10:00:00Z' },
+  { id: '11', program_name: 'MSME Pilot Program',        product_category: 'BUSINESS_LOAN', vertical: ['MSME'],   program_code: 'MPP11',  description: 'Pilot MSME program',         status: 'Draft',    supported_identifiers: [{ type: 'mobile', label: 'Mobile Number', placeholder: 'e.g. +91 9876543210' }],                                                                                                                                                                            created_at: '2026-03-15T11:00:00Z', updated_at: '2026-04-01T12:00:00Z' },
+  { id: '12', program_name: 'Gold Loan Express',         product_category: 'PERSONAL_LOAN', vertical: ['GOLD'],   program_code: 'GLE12',  description: '',                           status: 'Inactive', supported_identifiers: [{ type: 'mobile', label: 'Mobile Number', placeholder: 'e.g. +91 9876543210' }],                                                                                                                                                                            created_at: '2026-03-18T09:00:00Z', updated_at: '2026-04-02T09:00:00Z' },
 ];
 
 const DOCS_STORE: RequiredDocument[] = [
@@ -485,5 +486,176 @@ export const workflowsApi = {
     const published = w.versions.find((v) => v.id === versionId);
     if (published) w.default_version = published.version;
     w.updated_at = now();
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Master Management
+// ---------------------------------------------------------------------------
+
+const makeFid = () => Math.random().toString(36).slice(2);
+
+const MASTERS_STORE: Master[] = [
+  {
+    id: 'm1', name: 'CFR', masterCode: 'PLG_CFR', description: 'Central fraud registry for Pan',
+    status: 'ACTIVE', defaultVersion: 2,
+    fields: [{ id: 'mf1', fieldName: 'pan', dataType: 'TEXT', isPrimary: true, validations: [] }],
+    subMasters: [],
+    records: [
+      { id: 'r1', pan: 'ABCPM1234Q' }, { id: 'r2', pan: 'RKCPM3344Z' }, { id: 'r3', pan: 'WECPJ1122A' },
+      { id: 'r4', pan: 'JDCPN4567P' }, { id: 'r5', pan: 'BHCPI6789U' }, { id: 'r6', pan: 'TRCPG2345Y' },
+      { id: 'r7', pan: 'MNCPK7890E' }, { id: 'r8', pan: 'QWCPS3456T' }, { id: 'r9', pan: 'LKCPV9012R' },
+      { id: 'r10', pan: 'XYCPR5678L' },
+    ],
+    createdAt: '2026-04-14T11:34:21Z', updatedAt: '2026-04-14T11:34:21Z',
+  },
+  {
+    id: 'm2', name: 'InputFields', masterCode: 'PLG_INF', description: 'InputFields',
+    status: 'DRAFT', defaultVersion: 5,
+    fields: [{ id: 'mf2', fieldName: 'field_name', dataType: 'TEXT', isPrimary: true, validations: [] }],
+    subMasters: [], records: [],
+    createdAt: '2026-04-23T10:35:06Z', updatedAt: '2026-04-23T10:35:06Z',
+  },
+  {
+    id: 'm3', name: 'PersonalDetails', masterCode: 'PLG_PD', description: 'PersonalDetails',
+    status: 'IN_PROGRESS', defaultVersion: 5,
+    fields: [{ id: 'mf3', fieldName: 'name', dataType: 'TEXT', isPrimary: true, validations: [] }],
+    subMasters: [], records: [],
+    createdAt: '2026-04-23T10:36:07Z', updatedAt: '2026-04-23T10:36:07Z',
+  },
+  {
+    id: 'm4', name: 'EmployementDetails1', masterCode: 'PLG_ED', description: 'EmploymentDetails',
+    status: 'IN_PROGRESS', defaultVersion: 5,
+    fields: [{ id: 'mf4', fieldName: 'employer_name', dataType: 'TEXT', isPrimary: true, validations: [] }],
+    subMasters: [], records: [],
+    createdAt: '2026-04-23T10:37:02Z', updatedAt: '2026-04-23T10:37:02Z',
+  },
+  {
+    id: 'm5', name: 'PINCODE MASTER', masterCode: 'PLG_PIN', description: 'Pincode',
+    status: 'ACTIVE', defaultVersion: 2,
+    fields: [{ id: 'mf5', fieldName: 'pincode', dataType: 'TEXT', isPrimary: true, validations: [] }],
+    subMasters: [], records: [],
+    createdAt: '2026-04-23T15:17:18Z', updatedAt: '2026-04-23T15:17:18Z',
+  },
+  {
+    id: 'm6', name: 'StateDetails', masterCode: 'PLG_SD', description: 'Details of a state to be captured',
+    status: 'ACTIVE', defaultVersion: 5,
+    fields: [{ id: 'mf6', fieldName: 'state_code', dataType: 'TEXT', isPrimary: true, validations: [] }],
+    subMasters: [], records: [],
+    createdAt: '2026-04-23T10:39:26Z', updatedAt: '2026-04-23T10:39:26Z',
+  },
+  {
+    id: 'm7', name: 'City', masterCode: 'PLG_CTY', description: 'City',
+    status: 'ACTIVE', defaultVersion: 1,
+    fields: [{ id: 'mf7', fieldName: 'city_name', dataType: 'TEXT', isPrimary: true, validations: [] }],
+    subMasters: [], records: [],
+    createdAt: '2025-12-12T10:25:59Z', updatedAt: '2025-12-12T10:25:59Z',
+  },
+  {
+    id: 'm8', name: 'District', masterCode: 'PLG_DST', description: 'all district records',
+    status: 'ACTIVE', defaultVersion: 1,
+    fields: [{ id: 'mf8', fieldName: 'district_name', dataType: 'TEXT', isPrimary: true, validations: [] }],
+    subMasters: [], records: [],
+    createdAt: '2025-12-12T10:18:24Z', updatedAt: '2025-12-12T10:18:24Z',
+  },
+  {
+    id: 'm9', name: 'Country', masterCode: 'PLG_CNT', description: 'country records',
+    status: 'ACTIVE', defaultVersion: 1,
+    fields: [{ id: 'mf9', fieldName: 'country_name', dataType: 'TEXT', isPrimary: true, validations: [] }],
+    subMasters: [], records: [],
+    createdAt: '2025-12-12T10:14:29Z', updatedAt: '2025-12-12T10:14:29Z',
+  },
+  {
+    id: 'm10', name: 'BranchCircle', masterCode: 'PLG_BC', description: 'Branch circle records',
+    status: 'ACTIVE', defaultVersion: 5,
+    fields: [{ id: 'mf10', fieldName: 'branch_code', dataType: 'TEXT', isPrimary: true, validations: [] }],
+    subMasters: [], records: [],
+    createdAt: '2026-04-23T10:40:11Z', updatedAt: '2026-04-23T10:40:11Z',
+  },
+];
+
+export const masterManagementApi = {
+  list: async (filters?: Partial<MasterListFilters>): Promise<Master[]> => {
+    await delay();
+    let result = [...MASTERS_STORE];
+    if (filters?.name) result = result.filter((m) => m.name.toLowerCase().includes(filters.name!.toLowerCase()));
+    if (filters?.status) result = result.filter((m) => m.status === filters.status);
+    if (filters?.dateFrom) result = result.filter((m) => new Date(m.updatedAt) >= new Date(filters.dateFrom!));
+    if (filters?.dateTo) result = result.filter((m) => new Date(m.updatedAt) <= new Date(filters.dateTo! + 'T23:59:59Z'));
+    return result.map((m) => ({ ...m, fields: [...m.fields], subMasters: [...m.subMasters], records: [...m.records] }));
+  },
+
+  get: async (id: string): Promise<Master> => {
+    await delay();
+    const m = MASTERS_STORE.find((x) => x.id === id);
+    if (!m) throw new Error('Master not found');
+    return { ...m, fields: [...m.fields], subMasters: m.subMasters.map((s) => ({ ...s })), records: [...m.records] };
+  },
+
+  create: async (data: CreateMasterPayload): Promise<Master> => {
+    await delay();
+    const m: Master = {
+      id: uuid(),
+      name: data.name,
+      masterCode: data.masterCode,
+      description: data.description,
+      status: 'DRAFT',
+      defaultVersion: 1,
+      fields: data.fields.map((f) => ({ ...f, id: makeFid(), validations: f.validations.map((v) => ({ ...v, id: makeFid() })) })),
+      subMasters: [],
+      records: [],
+      createdAt: now(),
+      updatedAt: now(),
+    };
+    MASTERS_STORE.push(m);
+    return { ...m };
+  },
+
+  update: async (id: string, data: UpdateMasterPayload): Promise<Master> => {
+    await delay();
+    const idx = MASTERS_STORE.findIndex((x) => x.id === id);
+    if (idx === -1) throw new Error('Master not found');
+    MASTERS_STORE[idx] = { ...MASTERS_STORE[idx], name: data.name, description: data.description, status: data.status, updatedAt: now() };
+    return { ...MASTERS_STORE[idx] };
+  },
+
+  createSubMaster: async (masterId: string, data: CreateSubMasterPayload): Promise<SubMaster> => {
+    await delay();
+    const master = MASTERS_STORE.find((x) => x.id === masterId);
+    if (!master) throw new Error('Master not found');
+    const sub: SubMaster = {
+      id: uuid(),
+      name: data.name,
+      subMasterCode: data.subMasterCode,
+      description: data.description,
+      parentMasterId: masterId,
+      parentMasterName: master.name,
+      status: 'DRAFT',
+      entries: 0,
+      fields: data.fields.map((f) => ({ ...f, id: makeFid(), validations: f.validations.map((v) => ({ ...v, id: makeFid() })) })),
+      records: [],
+      createdAt: now(),
+      updatedAt: now(),
+    };
+    master.subMasters.push(sub);
+    master.updatedAt = now();
+    return { ...sub };
+  },
+
+  uploadRecords: async (masterId: string, action: 'CREATE' | 'UPDATE', newRecords: Record<string, string>[]): Promise<void> => {
+    await delay(500);
+    const master = MASTERS_STORE.find((x) => x.id === masterId);
+    if (!master) throw new Error('Master not found');
+    if (action === 'CREATE') {
+      const toAdd = newRecords.map((r) => ({ ...r, id: uuid() }));
+      master.records.push(...toAdd);
+    } else {
+      newRecords.forEach((r) => {
+        const idx = master.records.findIndex((x) => x.id === r.id);
+        if (idx !== -1) master.records[idx] = { ...master.records[idx], ...r };
+      });
+    }
+    master.defaultVersion += 1;
+    master.updatedAt = now();
   },
 };

@@ -12,6 +12,7 @@ import {
   DecisionCondition,
   DecisionRule,
   DecisionVerdict,
+  FormInputField,
   HookEventSlot,
 } from '../types/journey';
 import { AddHookDialog } from './AddHookDialog';
@@ -195,6 +196,19 @@ function EventDecisionEditor({ slot, onChange }: EventDecisionEditorProps) {
   );
 }
 
+function titleToKey(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+}
+
+function getUserInputsForSlot(block: BlockData, slotId: string): FormInputField[] {
+  const pages = block.pages ?? [];
+  const page = pages.find(p => {
+    const key = titleToKey(p.name || p.id);
+    return slotId === `before_${key}` || slotId === `after_${key}`;
+  });
+  return page?.userInputs ?? [];
+}
+
 interface DataHooksSectionProps {
   block: BlockData;
   slots: HookEventSlot[];
@@ -342,6 +356,7 @@ export function DataHooksSection({ block, slots, onChange }: DataHooksSectionPro
               }))
           )
         )}
+        eventUserInputs={activeSlotId ? getUserInputsForSlot(block, activeSlotId) : []}
       />
     </div>
   );

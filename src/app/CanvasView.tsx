@@ -125,6 +125,7 @@ export default function CanvasView() {
         configured: false,
         routings: [],
         defaultRoute: '',
+        routerBranchType: 'exclusive',
       };
     } else if (blockType === 'merge') {
       newBlock = {
