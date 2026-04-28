@@ -1,28 +1,48 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams, useLocation } from 'react-router';
 import { ArrowLeft, Pencil } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { programsApi } from '../../services/mockApi';
 import type { Program } from '../../types/program';
-import ManageNativeFieldsTab from './tabs/ManageNativeFieldsTab';
+import ManagePagesTab from './tabs/ManagePagesTab';
+import SchemeTab from './tabs/SchemeTab';
 import CustomFieldsTab from './tabs/CustomFieldsTab';
+import DocumentTemplatesTab from './tabs/DocumentTemplatesTab';
 import DocumentChecklistTab from './tabs/DocumentChecklistTab';
-import OpsDashboardTab from './tabs/OpsDashboardTab';
 import ManageWorkflowTab from '../manage-workflow/ManageWorkflowTab';
 
 const STATUS_CLASS: Record<string, string> = {
-  Active: 'bg-green-100 text-green-700 border-green-200',
-  Draft: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+  Active:   'bg-green-100 text-green-700 border-green-200',
+  Draft:    'bg-yellow-50 text-yellow-700 border-yellow-200',
   Inactive: 'bg-gray-100 text-gray-500 border-gray-200',
 };
+
+const TABS = [
+  { value: 'details',            label: 'Program Details'      },
+  { value: 'manage-pages',       label: 'Manage Pages'         },
+  { value: 'scheme',             label: 'Scheme'               },
+  { value: 'custom-fields',      label: 'Manage Custom Fields' },
+  { value: 'document-templates', label: 'Document Templates'   },
+  { value: 'checklist',          label: 'Login Checklist'      },
+  { value: 'workflow',           label: 'Manage Workflow'      },
+];
 
 export function ManageProgramView() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const [program, setProgram] = useState<Program | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const tabFromQuery = new URLSearchParams(location.search).get('tab') || 'details';
+  const [activeTab, setActiveTab] = useState(tabFromQuery);
+
+  useEffect(() => {
+    const t = new URLSearchParams(location.search).get('tab') || 'details';
+    setActiveTab(t);
+  }, [location.search]);
 
   useEffect(() => {
     if (!id) return;
@@ -41,17 +61,10 @@ export function ManageProgramView() {
         </Button>
       </div>
 
-      <Tabs defaultValue="details" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="border-b border-gray-200 px-6">
           <TabsList className="bg-transparent h-auto p-0 space-x-1">
-            {[
-              { value: 'details', label: 'Program Details' },
-              { value: 'native-fields', label: 'Manage Native Fields' },
-              { value: 'custom-fields', label: 'Manage Custom Fields' },
-              { value: 'checklist', label: 'Login Checklist' },
-              { value: 'workflow', label: 'Manage Workflow' },
-              { value: 'ops-dashboard', label: 'Ops Dashboard' },
-            ].map((tab) => (
+            {TABS.map((tab) => (
               <TabsTrigger
                 key={tab.value}
                 value={tab.value}
@@ -97,12 +110,20 @@ export function ManageProgramView() {
           </div>
         </TabsContent>
 
-        <TabsContent value="native-fields" className="p-6">
-          <ManageNativeFieldsTab programId={program.id} />
+        <TabsContent value="manage-pages" className="p-6">
+          <ManagePagesTab programId={program.id} />
+        </TabsContent>
+
+        <TabsContent value="scheme" className="p-6">
+          <SchemeTab programId={program.id} />
         </TabsContent>
 
         <TabsContent value="custom-fields" className="p-6">
           <CustomFieldsTab programId={program.id} />
+        </TabsContent>
+
+        <TabsContent value="document-templates" className="p-6">
+          <DocumentTemplatesTab programId={program.id} />
         </TabsContent>
 
         <TabsContent value="checklist" className="p-6">
@@ -111,10 +132,6 @@ export function ManageProgramView() {
 
         <TabsContent value="workflow" className="p-6">
           <ManageWorkflowTab programId={program.id} />
-        </TabsContent>
-
-        <TabsContent value="ops-dashboard" className="p-6">
-          <OpsDashboardTab programId={program.id} />
         </TabsContent>
       </Tabs>
     </div>

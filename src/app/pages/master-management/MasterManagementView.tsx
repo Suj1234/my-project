@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router';
-import { Pencil, Plus, Upload, ChevronLeft, ChevronRight, Save, X, Eye } from 'lucide-react';
+import { Pencil, Plus, Upload, ChevronLeft, ChevronRight, Save, X, Eye, Trash2 } from 'lucide-react';
 import { masterManagementApi } from '../../services/mockApi';
 import type { Master, MasterStatus } from '../../types/masterManagement';
 import { STATUS_LABELS } from '../../types/masterManagement';
 import { CreateMasterDialog } from './components/CreateMasterDialog';
 import { UploadFileDialog } from './components/UploadFileDialog';
+import { DeleteRecordsDialog } from './components/DeleteRecordsDialog';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -110,6 +111,9 @@ export function MasterManagementView() {
 
   // Upload dialog
   const [uploadOpen, setUploadOpen] = useState(false);
+
+  // Delete dialog
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   // Records pagination
   const [recordPage, setRecordPage] = useState(1);
@@ -428,13 +432,22 @@ export function MasterManagementView() {
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base font-semibold text-gray-900">Master Records</h2>
-              <button
-                onClick={() => setUploadOpen(true)}
-                className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
-              >
-                <Upload size={14} />
-                Upload File
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setDeleteOpen(true)}
+                  className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-red-600 border border-red-300 hover:bg-red-50 rounded-lg"
+                >
+                  <Trash2 size={14} />
+                  Delete Records
+                </button>
+                <button
+                  onClick={() => setUploadOpen(true)}
+                  className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
+                >
+                  <Upload size={14} />
+                  Import Records
+                </button>
+              </div>
             </div>
 
             {master.records.length === 0 ? (
@@ -519,6 +532,14 @@ export function MasterManagementView() {
         open={uploadOpen}
         onClose={() => setUploadOpen(false)}
         onSuccess={() => { setUploadOpen(false); fetchMaster(); }}
+        master={master}
+      />
+
+      {/* Delete dialog */}
+      <DeleteRecordsDialog
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        onSuccess={() => { setDeleteOpen(false); fetchMaster(); }}
         master={master}
       />
     </div>

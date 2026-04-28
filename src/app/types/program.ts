@@ -124,6 +124,28 @@ export interface OpsDashboardViewCategory {
   fields: OpsDashboardViewField[];
 }
 
+export type PageType = 'APP_STATE_PAGE';
+export type PageStatus = 'ACTIVE' | 'INACTIVE' | 'DRAFT';
+
+export interface ProgramPage {
+  id: string;
+  program_id: string;
+  page_name: string;
+  page_type: PageType;
+  status: PageStatus;
+  page_config: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProgramPageCreate {
+  program_id: string;
+  page_name: string;
+  page_type: PageType;
+  status: PageStatus;
+  page_config: string;
+}
+
 export interface OpsDashboardConfig {
   id?: string;
   program_id: string;

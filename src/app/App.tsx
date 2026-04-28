@@ -4,6 +4,7 @@ import { Layout } from './components/shell/Layout';
 // Manage Program
 import { ManageProgramList }   from './pages/manage-program/ManageProgramList';
 import { ManageProgramView }   from './pages/manage-program/ManageProgramView';
+import { PageDetailsView }     from './pages/manage-program/PageDetailsView';
 
 // Manage Workflow (accessed as tab in ManageProgramView; detail + canvas are standalone routes)
 import { ManageWorkflowDetail } from './pages/manage-workflow/ManageWorkflowDetail';
@@ -46,6 +47,7 @@ export default function App() {
           {/* Manage Programs */}
           <Route path="manage-programs" element={<ManageProgramList />} />
           <Route path="manage-programs/:id/view" element={<ManageProgramView />} />
+          <Route path="manage-programs/:programId/pages/:pageId/view" element={<PageDetailsView />} />
 
           {/* Manage Workflow — list is a tab inside ManageProgramView */}
           <Route path="manage-programs/workflows/:id" element={<ManageWorkflowDetail />} />

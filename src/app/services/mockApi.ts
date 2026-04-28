@@ -7,7 +7,7 @@
  * Backend base: process.env.VITE_BACKEND_URL + '/api'
  */
 
-import type { Program, NativeField, CustomField, ProgramDocument, Scheme, ClosureAction, Role, VariableMaster, OpsDashboardConfig } from '../types/program';
+import type { Program, NativeField, CustomField, ProgramDocument, Scheme, ClosureAction, Role, VariableMaster, OpsDashboardConfig, ProgramPage, ProgramPageCreate } from '../types/program';
 import type { Master, SubMaster, MasterField, CreateMasterPayload, CreateSubMasterPayload, UpdateMasterPayload, MasterListFilters } from '../types/masterManagement';
 import type { RequiredDocument, RequiredDocumentCreate } from '../types/requiredDocument';
 import type { FieldManagementEntry } from '../types/fieldManagement';
@@ -657,5 +657,74 @@ export const masterManagementApi = {
     }
     master.defaultVersion += 1;
     master.updatedAt = now();
+  },
+
+  deleteRecords: async (masterId: string, recordIds: string[]): Promise<void> => {
+    await delay(500);
+    const master = MASTERS_STORE.find((x) => x.id === masterId);
+    if (!master) throw new Error('Master not found');
+    const idSet = new Set(recordIds);
+    master.records = master.records.filter((r) => !idSet.has(r.id));
+    master.defaultVersion += 1;
+    master.updatedAt = now();
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Program Pages
+// ---------------------------------------------------------------------------
+
+const SAMPLE_PAGE_CONFIG = JSON.stringify({
+  customComponentConfig: {
+    basicDetailsPage: {
+      uiConfig: [
+        { componentType: 'TEXT_INPUT', fieldId: 'customer_name', label: 'Full Name', required: true },
+        { componentType: 'TEXT_INPUT', fieldId: 'mobile_number', label: 'Mobile Number', required: true },
+        { componentType: 'DATE_PICKER', fieldId: 'date_of_birth', label: 'Date of Birth', required: false },
+      ],
+    },
+  },
+}, null, 2);
+
+const PAGES_STORE: ProgramPage[] = [
+  { id: 'pg1',  program_id: '1', page_name: 'basicdetail2404withAIv1',   page_type: 'APP_STATE_PAGE', status: 'ACTIVE',   page_config: SAMPLE_PAGE_CONFIG, created_at: '2026-08-04T08:24:00Z', updated_at: '2026-04-24T07:18:30Z' },
+  { id: 'pg2',  program_id: '1', page_name: 'basicdetailsv4',            page_type: 'APP_STATE_PAGE', status: 'ACTIVE',   page_config: SAMPLE_PAGE_CONFIG, created_at: '2026-01-15T10:00:00Z', updated_at: '2026-03-10T09:00:00Z' },
+  { id: 'pg3',  program_id: '1', page_name: 'basicdetailsv3',            page_type: 'APP_STATE_PAGE', status: 'ACTIVE',   page_config: SAMPLE_PAGE_CONFIG, created_at: '2026-01-10T10:00:00Z', updated_at: '2026-02-15T09:00:00Z' },
+  { id: 'pg4',  program_id: '1', page_name: 'basicdetailsv2',            page_type: 'APP_STATE_PAGE', status: 'ACTIVE',   page_config: SAMPLE_PAGE_CONFIG, created_at: '2026-01-05T10:00:00Z', updated_at: '2026-02-01T09:00:00Z' },
+  { id: 'pg5',  program_id: '1', page_name: 'basicDetails2304withAIv1',  page_type: 'APP_STATE_PAGE', status: 'ACTIVE',   page_config: SAMPLE_PAGE_CONFIG, created_at: '2026-04-23T10:00:00Z', updated_at: '2026-04-23T10:00:00Z' },
+  { id: 'pg6',  program_id: '1', page_name: 'Test1234',                  page_type: 'APP_STATE_PAGE', status: 'ACTIVE',   page_config: '{}',               created_at: '2026-03-01T10:00:00Z', updated_at: '2026-03-15T09:00:00Z' },
+  { id: 'pg7',  program_id: '1', page_name: 'basicDetailsPage1404v1',    page_type: 'APP_STATE_PAGE', status: 'ACTIVE',   page_config: SAMPLE_PAGE_CONFIG, created_at: '2026-04-14T10:00:00Z', updated_at: '2026-04-14T10:00:00Z' },
+  { id: 'pg8',  program_id: '1', page_name: 'AIbasicDetails01',          page_type: 'APP_STATE_PAGE', status: 'ACTIVE',   page_config: SAMPLE_PAGE_CONFIG, created_at: '2026-03-20T10:00:00Z', updated_at: '2026-04-01T09:00:00Z' },
+  { id: 'pg9',  program_id: '1', page_name: 'AIBasicLoanPage',           page_type: 'APP_STATE_PAGE', status: 'ACTIVE',   page_config: SAMPLE_PAGE_CONFIG, created_at: '2026-03-25T10:00:00Z', updated_at: '2026-04-05T09:00:00Z' },
+  { id: 'pg10', program_id: '1', page_name: 'AIUserDetails',             page_type: 'APP_STATE_PAGE', status: 'ACTIVE',   page_config: SAMPLE_PAGE_CONFIG, created_at: '2026-04-01T10:00:00Z', updated_at: '2026-04-10T09:00:00Z' },
+  { id: 'pg11', program_id: '1', page_name: 'panVerificationPage',       page_type: 'APP_STATE_PAGE', status: 'ACTIVE',   page_config: '{}',               created_at: '2026-02-10T10:00:00Z', updated_at: '2026-03-01T09:00:00Z' },
+  { id: 'pg12', program_id: '1', page_name: 'aadhaarInputPage',          page_type: 'APP_STATE_PAGE', status: 'DRAFT',    page_config: '{}',               created_at: '2026-04-20T10:00:00Z', updated_at: '2026-04-20T10:00:00Z' },
+  { id: 'pg13', program_id: '2', page_name: 'loanDetailsPage',           page_type: 'APP_STATE_PAGE', status: 'ACTIVE',   page_config: SAMPLE_PAGE_CONFIG, created_at: '2026-02-01T10:00:00Z', updated_at: '2026-03-01T09:00:00Z' },
+  { id: 'pg14', program_id: '2', page_name: 'offerDisplayPage',          page_type: 'APP_STATE_PAGE', status: 'INACTIVE', page_config: '{}',               created_at: '2026-01-15T10:00:00Z', updated_at: '2026-02-15T09:00:00Z' },
+];
+
+export const pagesApi = {
+  list: async (programId: string): Promise<ProgramPage[]> => {
+    await delay();
+    return PAGES_STORE.filter((p) => p.program_id === programId).map((p) => ({ ...p }));
+  },
+  get: async (id: string): Promise<ProgramPage> => {
+    await delay();
+    const p = PAGES_STORE.find((x) => x.id === id);
+    if (!p) throw new Error('Page not found');
+    return { ...p };
+  },
+  create: async (data: ProgramPageCreate): Promise<ProgramPage> => {
+    await delay();
+    const p: ProgramPage = { ...data, id: uuid(), created_at: now(), updated_at: now() };
+    PAGES_STORE.push(p);
+    return { ...p };
+  },
+  update: async (id: string, data: Partial<ProgramPageCreate>): Promise<ProgramPage> => {
+    await delay();
+    const idx = PAGES_STORE.findIndex((x) => x.id === id);
+    if (idx === -1) throw new Error('Page not found');
+    PAGES_STORE[idx] = { ...PAGES_STORE[idx], ...data, updated_at: now() };
+    return { ...PAGES_STORE[idx] };
   },
 };
