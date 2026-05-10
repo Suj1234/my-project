@@ -5,7 +5,6 @@ import { Badge } from './ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Label } from './ui/label';
 import { Input } from './ui/input';
-import { Switch } from './ui/switch';
 import { AddInputDialog } from './AddInputDialog';
 import {
   ChevronDown,
@@ -20,6 +19,7 @@ import {
   RefreshCw,
   Lock,
   ShieldCheck,
+  X,
 } from 'lucide-react';
 
 // ─── Mock data ──────────────────────────────────────────────────────────────
@@ -37,20 +37,74 @@ const MOCK_GLOBAL_PAGES = [
   { id: 'gp_sanction', name: 'Sanction Letter Display UI' },
 ];
 
-const PREDEFINED_ACTIONS = [
-  'User confirmed',
-  'User submitted',
-  'Form submitted',
-  'Data collected',
-  'Verification initiated',
-  'Verification completed',
-  'Document viewed',
-  'Document accepted',
-  'Signed successfully',
-  'Account selected',
-  'Offer accepted',
-  'Journey completed',
-];
+// ─── Action tag input ────────────────────────────────────────────────────────
+
+interface ActionTagInputProps {
+  actions: string[];
+  onChange: (actions: string[]) => void;
+}
+
+function ActionTagInput({ actions, onChange }: ActionTagInputProps) {
+  const [input, setInput] = useState('');
+
+  const add = () => {
+    const trimmed = input.trim();
+    if (trimmed && !actions.includes(trimmed)) {
+      onChange([...actions, trimmed]);
+    }
+    setInput('');
+  };
+
+  return (
+    <div className="space-y-1.5">
+      {actions.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {actions.map((a) => (
+            <span
+              key={a}
+              className="flex items-center gap-1 bg-orange-50 border border-orange-200 text-orange-700 rounded-full px-2 py-0.5 text-xs"
+            >
+              {a}
+              <button
+                type="button"
+                onClick={() => onChange(actions.filter((x) => x !== a))}
+                className="text-orange-400 hover:text-orange-700 ml-0.5"
+              >
+                <X className="h-2.5 w-2.5" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      <div className="flex gap-1">
+        <Input
+          className="h-7 text-xs flex-1"
+          placeholder="Type an action and press Enter (e.g. Proceed)"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') { e.preventDefault(); add(); }
+          }}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-7 px-2"
+          disabled={!input.trim() || actions.includes(input.trim())}
+          onClick={add}
+        >
+          <Plus className="h-3 w-3" />
+        </Button>
+      </div>
+      {actions.length === 0 && (
+        <p className="text-[10px] text-amber-600">
+          Add at least one action so this page is available for action-based routing.
+        </p>
+      )}
+    </div>
+  );
+}
 
 // ─── User-inputs list display ────────────────────────────────────────────────
 
@@ -88,7 +142,6 @@ function UserInputsList({ inputs, onAdd, onEdit, onDelete }: UserInputsListProps
               className="flex items-start justify-between gap-2 bg-white border rounded-lg px-3 py-2.5 group hover:border-gray-300 transition-colors"
             >
               <div className="flex-1 min-w-0 space-y-1">
-                {/* Label + source badge */}
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-medium text-gray-800">{inp.name}</span>
                   <Badge
@@ -113,7 +166,6 @@ function UserInputsList({ inputs, onAdd, onEdit, onDelete }: UserInputsListProps
                     </Badge>
                   )}
                 </div>
-                {/* Key */}
                 {inp.key && (
                   <div className="flex items-center gap-1">
                     <Lock className="h-2.5 w-2.5 text-gray-300" />
@@ -123,8 +175,6 @@ function UserInputsList({ inputs, onAdd, onEdit, onDelete }: UserInputsListProps
                   </div>
                 )}
               </div>
-
-              {/* Actions */}
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                 <Button
                   variant="ghost"
@@ -162,12 +212,11 @@ interface PageConfigCardProps {
 type Mode = 'collapsed' | 'choose' | 'assign' | 'ai' | 'view' | 'edit';
 
 export function PageConfigCard({ page, index, onChange }: PageConfigCardProps) {
-  const initialMode: Mode = page.isConfigured ? 'collapsed' : 'collapsed';
-  const [mode, setMode] = useState<Mode>(initialMode);
+  const [mode, setMode] = useState<Mode>('collapsed');
 
   // Draft state
   const [assignedPageId, setAssignedPageId] = useState(page.assignedPageId ?? '');
-  const [action, setAction] = useState(page.action ?? '');
+  const [actions, setActions] = useState<string[]>(page.actions ?? []);
   const [inputs, setInputs] = useState<FormInputField[]>(page.userInputs ?? []);
   const [pageName, setPageName] = useState(page.name ?? '');
   const [generating, setGenerating] = useState(false);
@@ -179,7 +228,7 @@ export function PageConfigCard({ page, index, onChange }: PageConfigCardProps) {
 
   const resetDraftToPage = () => {
     setAssignedPageId(page.assignedPageId ?? '');
-    setAction(page.action ?? '');
+    setActions(page.actions ?? []);
     setInputs(page.userInputs ?? []);
     setPageName(page.name ?? '');
   };
@@ -204,12 +253,12 @@ export function PageConfigCard({ page, index, onChange }: PageConfigCardProps) {
   // ── Save helpers ──────────────────────────────────────────────────────────
 
   const saveAssigned = () => {
-    if (!assignedPageId || !action) return;
+    if (!assignedPageId || actions.length === 0) return;
     const globalPage = MOCK_GLOBAL_PAGES.find((p) => p.id === assignedPageId);
     onChange({
       ...page,
       name: globalPage?.name ?? page.name,
-      action,
+      actions,
       userInputs: inputs,
       isConfigured: true,
       configurationMethod: 'assigned',
@@ -219,14 +268,14 @@ export function PageConfigCard({ page, index, onChange }: PageConfigCardProps) {
   };
 
   const triggerAiGenerate = () => {
-    if (!pageName.trim() || !action) return;
+    if (!pageName.trim() || actions.length === 0) return;
     setGenerating(true);
     setTimeout(() => {
       setGenerating(false);
       onChange({
         ...page,
         name: pageName.trim(),
-        action,
+        actions,
         userInputs: inputs,
         isConfigured: true,
         configurationMethod: 'ai_generated',
@@ -236,14 +285,14 @@ export function PageConfigCard({ page, index, onChange }: PageConfigCardProps) {
   };
 
   const triggerRegenerate = () => {
-    if (!action) return;
+    if (actions.length === 0) return;
     setRegenerating(true);
     setTimeout(() => {
       setRegenerating(false);
       onChange({
         ...page,
         name: page.configurationMethod === 'ai_generated' ? pageName.trim() : page.name,
-        action,
+        actions,
         userInputs: inputs,
         isConfigured: true,
         configurationMethod: page.configurationMethod ?? 'ai_generated',
@@ -360,18 +409,13 @@ export function PageConfigCard({ page, index, onChange }: PageConfigCardProps) {
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs font-medium">Action</Label>
-              <Select value={action} onValueChange={setAction}>
-                <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select what happens on this page…" /></SelectTrigger>
-                <SelectContent>
-                  {PREDEFINED_ACTIONS.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Label className="text-xs font-medium">Actions</Label>
+              <ActionTagInput actions={actions} onChange={setActions} />
             </div>
 
             <UserInputsList inputs={inputs} onAdd={openAddInput} onEdit={openEditInput} onDelete={handleDeleteInput} />
 
-            <Button className="w-full" size="sm" disabled={!assignedPageId || !action} onClick={saveAssigned}>
+            <Button className="w-full" size="sm" disabled={!assignedPageId || actions.length === 0} onClick={saveAssigned}>
               Save Configuration
             </Button>
           </div>
@@ -394,13 +438,8 @@ export function PageConfigCard({ page, index, onChange }: PageConfigCardProps) {
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs font-medium">Action</Label>
-              <Select value={action} onValueChange={setAction}>
-                <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select what happens on this page…" /></SelectTrigger>
-                <SelectContent>
-                  {PREDEFINED_ACTIONS.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Label className="text-xs font-medium">Actions</Label>
+              <ActionTagInput actions={actions} onChange={setActions} />
             </div>
 
             <UserInputsList inputs={inputs} onAdd={openAddInput} onEdit={openEditInput} onDelete={handleDeleteInput} />
@@ -408,7 +447,7 @@ export function PageConfigCard({ page, index, onChange }: PageConfigCardProps) {
             <Button
               className="w-full bg-purple-600 hover:bg-purple-700 text-white"
               size="sm"
-              disabled={!pageName.trim() || !action || generating}
+              disabled={!pageName.trim() || actions.length === 0 || generating}
               onClick={triggerAiGenerate}
             >
               {generating ? (
@@ -438,8 +477,16 @@ export function PageConfigCard({ page, index, onChange }: PageConfigCardProps) {
 
             <div className="space-y-2 text-xs">
               <div className="flex gap-2">
-                <span className="text-gray-500 shrink-0 w-14">Action</span>
-                <span className="font-medium text-gray-800">{page.action}</span>
+                <span className="text-gray-500 shrink-0 w-14">Actions</span>
+                <div className="flex flex-wrap gap-1">
+                  {(page.actions ?? []).length > 0 ? (
+                    page.actions.map((a) => (
+                      <span key={a} className="bg-orange-50 border border-orange-200 text-orange-700 rounded-full px-2 py-0.5 text-[10px]">{a}</span>
+                    ))
+                  ) : (
+                    <span className="text-gray-400 italic">None</span>
+                  )}
+                </div>
               </div>
               {page.userInputs.length > 0 && (
                 <div>
@@ -494,13 +541,8 @@ export function PageConfigCard({ page, index, onChange }: PageConfigCardProps) {
             )}
 
             <div className="space-y-1">
-              <Label className="text-xs font-medium">Action</Label>
-              <Select value={action} onValueChange={setAction}>
-                <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {PREDEFINED_ACTIONS.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Label className="text-xs font-medium">Actions</Label>
+              <ActionTagInput actions={actions} onChange={setActions} />
             </div>
 
             <UserInputsList inputs={inputs} onAdd={openAddInput} onEdit={openEditInput} onDelete={handleDeleteInput} />
@@ -512,7 +554,7 @@ export function PageConfigCard({ page, index, onChange }: PageConfigCardProps) {
             <Button
               className={`w-full ${page.configurationMethod === 'ai_generated' ? 'bg-purple-600 hover:bg-purple-700 text-white' : ''}`}
               size="sm"
-              disabled={regenerating || !action}
+              disabled={regenerating || actions.length === 0}
               onClick={triggerRegenerate}
             >
               {regenerating ? (
@@ -525,7 +567,6 @@ export function PageConfigCard({ page, index, onChange }: PageConfigCardProps) {
         )}
       </div>
 
-      {/* Add/Edit Input Dialog */}
       <AddInputDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}

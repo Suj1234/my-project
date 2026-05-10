@@ -20,9 +20,10 @@ import {
   Lock,
   ShieldCheck,
   Sparkles,
+  X,
 } from 'lucide-react';
 
-// ─── Shared mock data (mirrors PageConfigCard) ──────────────────────────────
+// ─── Shared mock data ────────────────────────────────────────────────────────
 
 const MOCK_GLOBAL_PAGES = [
   { id: 'gp_pan_input_std', name: 'Standard PAN Input UI' },
@@ -37,20 +38,74 @@ const MOCK_GLOBAL_PAGES = [
   { id: 'gp_sanction', name: 'Sanction Letter Display UI' },
 ];
 
-const PREDEFINED_ACTIONS = [
-  'User confirmed',
-  'User submitted',
-  'Form submitted',
-  'Data collected',
-  'Verification initiated',
-  'Verification completed',
-  'Document viewed',
-  'Document accepted',
-  'Signed successfully',
-  'Account selected',
-  'Offer accepted',
-  'Journey completed',
-];
+// ─── Action tag input ────────────────────────────────────────────────────────
+
+interface ActionTagInputProps {
+  actions: string[];
+  onChange: (actions: string[]) => void;
+}
+
+function ActionTagInput({ actions, onChange }: ActionTagInputProps) {
+  const [input, setInput] = useState('');
+
+  const add = () => {
+    const trimmed = input.trim();
+    if (trimmed && !actions.includes(trimmed)) {
+      onChange([...actions, trimmed]);
+    }
+    setInput('');
+  };
+
+  return (
+    <div className="space-y-1.5">
+      {actions.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {actions.map((a) => (
+            <span
+              key={a}
+              className="flex items-center gap-1 bg-orange-50 border border-orange-200 text-orange-700 rounded-full px-2 py-0.5 text-xs"
+            >
+              {a}
+              <button
+                type="button"
+                onClick={() => onChange(actions.filter((x) => x !== a))}
+                className="text-orange-400 hover:text-orange-700 ml-0.5"
+              >
+                <X className="h-2.5 w-2.5" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      <div className="flex gap-1">
+        <Input
+          className="h-7 text-xs flex-1"
+          placeholder="Type an action and press Enter (e.g. Proceed)"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') { e.preventDefault(); add(); }
+          }}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-7 px-2"
+          disabled={!input.trim() || actions.includes(input.trim())}
+          onClick={add}
+        >
+          <Plus className="h-3 w-3" />
+        </Button>
+      </div>
+      {actions.length === 0 && (
+        <p className="text-[10px] text-amber-600">
+          Add at least one action so this page is available for action-based routing.
+        </p>
+      )}
+    </div>
+  );
+}
 
 // ─── User Inputs List ────────────────────────────────────────────────────────
 
@@ -122,20 +177,10 @@ function UserInputsList({ inputs, onAdd, onEdit, onDelete }: UserInputsListProps
                 )}
               </div>
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0 text-gray-500 hover:text-blue-600"
-                  onClick={() => onEdit(inp)}
-                >
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-gray-500 hover:text-blue-600" onClick={() => onEdit(inp)}>
                   <Pencil className="h-3 w-3" />
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0 text-gray-400 hover:text-red-600"
-                  onClick={() => onDelete(inp.id)}
-                >
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-gray-400 hover:text-red-600" onClick={() => onDelete(inp.id)}>
                   <Trash2 className="h-3 w-3" />
                 </Button>
               </div>
@@ -158,20 +203,15 @@ interface ABTestingPageCardProps {
 export function ABTestingPageCard({ page, index, onChange }: ABTestingPageCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Live editable fields — pre-populated from block definition
   const [selectedPageId, setSelectedPageId] = useState(page.assignedPageId ?? MOCK_GLOBAL_PAGES[0]?.id ?? '');
-  const [action, setAction] = useState(page.action ?? '');
+  const [actions, setActions] = useState<string[]>(page.actions ?? []);
   const [inputs, setInputs] = useState<FormInputField[]>(page.userInputs ?? []);
 
-  // Update with AI loader (full card overlay)
   const [updatingWithAI, setUpdatingWithAI] = useState(false);
-
-  // Generate with AI modal
   const [generateModalOpen, setGenerateModalOpen] = useState(false);
   const [generatePageName, setGeneratePageName] = useState('');
   const [generating, setGenerating] = useState(false);
 
-  // Add/Edit input dialog
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingInput, setEditingInput] = useState<FormInputField | null>(null);
 
@@ -181,16 +221,14 @@ export function ABTestingPageCard({ page, index, onChange }: ABTestingPageCardPr
   const openEditInput = (inp: FormInputField) => { setEditingInput(inp); setDialogOpen(true); };
 
   const handleInputSave = (field: FormInputField) => {
-    setInputs((prev) =>
-      editingInput ? prev.map((i) => (i.id === editingInput.id ? field : i)) : [...prev, field]
-    );
+    setInputs((prev) => editingInput ? prev.map((i) => (i.id === editingInput.id ? field : i)) : [...prev, field]);
   };
 
   const handleDeleteInput = (id: string) => {
     setInputs((prev) => prev.filter((i) => i.id !== id));
   };
 
-  // ── Page change — propagate to parent immediately ───────────────────────────
+  // ── Page change ─────────────────────────────────────────────────────────────
 
   const handlePageChange = (pageId: string) => {
     setSelectedPageId(pageId);
@@ -199,26 +237,26 @@ export function ABTestingPageCard({ page, index, onChange }: ABTestingPageCardPr
       ...page,
       assignedPageId: pageId,
       name: globalPage?.name ?? page.name,
-      action,
+      actions,
       userInputs: inputs,
-      isConfigured: !!pageId && !!action,
+      isConfigured: !!pageId && actions.length > 0,
       configurationMethod: 'assigned',
     });
   };
 
-  const handleActionChange = (val: string) => {
-    setAction(val);
+  const handleActionsChange = (newActions: string[]) => {
+    setActions(newActions);
     onChange({
       ...page,
       assignedPageId: selectedPageId || undefined,
-      action: val,
+      actions: newActions,
       userInputs: inputs,
-      isConfigured: !!selectedPageId && !!val,
+      isConfigured: !!selectedPageId && newActions.length > 0,
       configurationMethod: page.configurationMethod ?? 'assigned',
     });
   };
 
-  // ── Update with AI (✏️ icon) — overlay loader on card ─────────────────────
+  // ── Update with AI ──────────────────────────────────────────────────────────
 
   const handleUpdateWithAI = () => {
     if (!selectedPageId) return;
@@ -229,7 +267,7 @@ export function ABTestingPageCard({ page, index, onChange }: ABTestingPageCardPr
       onChange({
         ...page,
         name: globalPage?.name ?? page.name,
-        action,
+        actions,
         userInputs: inputs,
         isConfigured: true,
         configurationMethod: 'ai_generated',
@@ -238,7 +276,7 @@ export function ABTestingPageCard({ page, index, onChange }: ABTestingPageCardPr
     }, 2500);
   };
 
-  // ── Generate with AI — close modal immediately, show button loader ──────────
+  // ── Generate with AI ────────────────────────────────────────────────────────
 
   const [pendingGenerateName, setPendingGenerateName] = useState('');
 
@@ -254,7 +292,7 @@ export function ABTestingPageCard({ page, index, onChange }: ABTestingPageCardPr
       onChange({
         ...page,
         name,
-        action,
+        actions,
         userInputs: inputs,
         isConfigured: true,
         configurationMethod: 'ai_generated',
@@ -263,15 +301,13 @@ export function ABTestingPageCard({ page, index, onChange }: ABTestingPageCardPr
     }, 2500);
   };
 
-  // ── Derived display values ──────────────────────────────────────────────────
+  // ── Derived ─────────────────────────────────────────────────────────────────
 
-  const currentPageName =
-    MOCK_GLOBAL_PAGES.find((p) => p.id === selectedPageId)?.name ?? page.name;
+  const currentPageName = MOCK_GLOBAL_PAGES.find((p) => p.id === selectedPageId)?.name ?? page.name;
 
   const statusBadge = page.isConfigured ? (
     <Badge variant="outline" className="text-[10px] bg-emerald-50 text-emerald-700 border-emerald-200 shrink-0">
-      <CheckCircle2 className="h-2.5 w-2.5 mr-1" />
-      Configured
+      <CheckCircle2 className="h-2.5 w-2.5 mr-1" />Configured
     </Badge>
   ) : (
     <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200 shrink-0">
@@ -279,25 +315,20 @@ export function ABTestingPageCard({ page, index, onChange }: ABTestingPageCardPr
     </Badge>
   );
 
-  const methodBadge =
-    page.configurationMethod === 'ai_generated' ? (
-      <Badge variant="outline" className="text-[10px] bg-purple-50 text-purple-700 border-purple-200 shrink-0">
-        <Wand2 className="h-2.5 w-2.5 mr-1" />
-        AI Generated
-      </Badge>
-    ) : page.configurationMethod === 'assigned' ? (
-      <Badge variant="outline" className="text-[10px] bg-sky-50 text-sky-700 border-sky-200 shrink-0">
-        Assigned
-      </Badge>
-    ) : null;
+  const methodBadge = page.configurationMethod === 'ai_generated' ? (
+    <Badge variant="outline" className="text-[10px] bg-purple-50 text-purple-700 border-purple-200 shrink-0">
+      <Wand2 className="h-2.5 w-2.5 mr-1" />AI Generated
+    </Badge>
+  ) : page.configurationMethod === 'assigned' ? (
+    <Badge variant="outline" className="text-[10px] bg-sky-50 text-sky-700 border-sky-200 shrink-0">Assigned</Badge>
+  ) : null;
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <>
       <div className="border rounded-lg overflow-hidden transition-all">
-
-        {/* ── Card header ── */}
+        {/* Card header */}
         <button
           className="w-full flex items-center justify-between p-3 text-left hover:bg-gray-50 transition-colors"
           onClick={() => setIsExpanded((prev) => !prev)}
@@ -319,12 +350,12 @@ export function ABTestingPageCard({ page, index, onChange }: ABTestingPageCardPr
           </div>
         </button>
 
-        {/* ── Expanded body ── */}
+        {/* Expanded body */}
         {isExpanded && (
           <div className="relative border-t bg-white">
             <div className="p-4 space-y-4">
 
-              {/* Page selector row */}
+              {/* Page selector */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-gray-700">Select Page</Label>
                 <div className="flex items-center gap-1.5">
@@ -340,22 +371,15 @@ export function ABTestingPageCard({ page, index, onChange }: ABTestingPageCardPr
                       </SelectContent>
                     </Select>
                   </div>
-
-                  {/* 🔄 Refresh page library — to see AI-generated pages after generation */}
                   <Button
                     variant="outline"
                     size="sm"
                     className="h-9 w-9 p-0 shrink-0 text-gray-500 hover:text-sky-600 hover:border-sky-300"
                     title="Refresh page list to see newly generated pages"
-                    onClick={() => {
-                      // Refreshes the available pages list so AI-generated pages appear
-                      setSelectedPageId((prev) => prev);
-                    }}
+                    onClick={() => setSelectedPageId((prev) => prev)}
                   >
                     <RefreshCw className="h-4 w-4" />
                   </Button>
-
-                  {/* 🪄 Update page with AI */}
                   <Button
                     variant="outline"
                     size="sm"
@@ -365,10 +389,7 @@ export function ABTestingPageCard({ page, index, onChange }: ABTestingPageCardPr
                     onClick={handleUpdateWithAI}
                   >
                     {updatingWithAI ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin shrink-0" />
-                        <span className="text-xs font-medium">Updating…</span>
-                      </>
+                      <><Loader2 className="h-4 w-4 animate-spin shrink-0" /><span className="text-xs font-medium">Updating…</span></>
                     ) : (
                       <Wand2 className="h-4 w-4" />
                     )}
@@ -379,30 +400,15 @@ export function ABTestingPageCard({ page, index, onChange }: ABTestingPageCardPr
                 </p>
               </div>
 
-              {/* Action selector */}
+              {/* Actions */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-gray-700">Action</Label>
-                <Select value={action} onValueChange={handleActionChange}>
-                  <SelectTrigger className="h-9 text-sm">
-                    <SelectValue placeholder="Select what happens on this page…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PREDEFINED_ACTIONS.map((a) => (
-                      <SelectItem key={a} value={a}>{a}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label className="text-xs font-semibold text-gray-700">Actions</Label>
+                <ActionTagInput actions={actions} onChange={handleActionsChange} />
               </div>
 
               {/* User Inputs */}
-              <UserInputsList
-                inputs={inputs}
-                onAdd={openAddInput}
-                onEdit={openEditInput}
-                onDelete={handleDeleteInput}
-              />
+              <UserInputsList inputs={inputs} onAdd={openAddInput} onEdit={openEditInput} onDelete={handleDeleteInput} />
 
-              {/* Divider */}
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <span className="w-full border-t border-dashed border-gray-200" />
@@ -412,7 +418,7 @@ export function ABTestingPageCard({ page, index, onChange }: ABTestingPageCardPr
                 </div>
               </div>
 
-              {/* Generate new page with AI button */}
+              {/* Generate with AI */}
               <Button
                 variant="outline"
                 className={`w-full transition-colors ${generating ? 'border-purple-300 bg-purple-50 text-purple-700 cursor-not-allowed' : 'border-purple-200 text-purple-700 hover:bg-purple-50 hover:border-purple-400'}`}
@@ -421,24 +427,17 @@ export function ABTestingPageCard({ page, index, onChange }: ABTestingPageCardPr
                 onClick={() => { setGeneratePageName(''); setGenerateModalOpen(true); }}
               >
                 {generating ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Generating new page with AI…
-                  </>
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating new page with AI…</>
                 ) : (
-                  <>
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Generate new page with AI
-                  </>
+                  <><Sparkles className="h-4 w-4 mr-2" />Generate new page with AI</>
                 )}
               </Button>
-
             </div>
           </div>
         )}
       </div>
 
-      {/* ── Generate with AI modal ── */}
+      {/* Generate with AI modal */}
       <Dialog open={generateModalOpen} onOpenChange={(open) => { if (!generating) setGenerateModalOpen(open); }}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
@@ -449,7 +448,6 @@ export function ABTestingPageCard({ page, index, onChange }: ABTestingPageCardPr
               Generate new page with AI
             </DialogTitle>
           </DialogHeader>
-
           <div className="py-2 space-y-3">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-gray-700">Page Name</Label>
@@ -463,20 +461,12 @@ export function ABTestingPageCard({ page, index, onChange }: ABTestingPageCardPr
                 autoFocus
               />
               <p className="text-[10px] text-gray-400">
-                AI will create the page based on this name. Action and inputs will be pre-populated.
+                AI will create the page based on this name. Actions and inputs will be pre-populated.
               </p>
             </div>
           </div>
-
           <DialogFooter>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={generating}
-              onClick={() => setGenerateModalOpen(false)}
-            >
-              Cancel
-            </Button>
+            <Button variant="outline" size="sm" disabled={generating} onClick={() => setGenerateModalOpen(false)}>Cancel</Button>
             <Button
               size="sm"
               className="bg-purple-600 hover:bg-purple-700 text-white"
@@ -492,7 +482,6 @@ export function ABTestingPageCard({ page, index, onChange }: ABTestingPageCardPr
         </DialogContent>
       </Dialog>
 
-      {/* ── Add / Edit Input dialog ── */}
       <AddInputDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}

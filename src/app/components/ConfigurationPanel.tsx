@@ -279,6 +279,7 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
 
 
   const [expandedRoutingIds, setExpandedRoutingIds] = useState<Record<string, boolean>>({});
+  const [expandedConditionGates, setExpandedConditionGates] = useState<Record<string, boolean>>({});
 
 
   const markRoutingAsDraft = (
@@ -404,66 +405,27 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
                 <AccordionTrigger>Routing Conditions</AccordionTrigger>
                 <AccordionContent>
                   <div className="space-y-4">
-
-                    {/* Branch type selector */}
-                    <div className="flex items-center gap-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                      <span className="text-xs font-semibold text-orange-800">Branch Mode:</span>
-                      {(['exclusive', 'inclusive'] as const).map((mode) => (
-                        <button
-                          key={mode}
-                          className={`text-xs px-3 py-1 rounded border font-semibold transition-colors ${
-                            (block.routerBranchType ?? 'exclusive') === mode
-                              ? 'bg-orange-500 text-white border-orange-600'
-                              : 'bg-white text-orange-700 border-orange-300'
-                          }`}
-                          onClick={() => handleFieldChange('routerBranchType', mode)}
-                        >
-                          {mode === 'exclusive' ? 'Exclusive (first match)' : 'Inclusive (all matches)'}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Field availability chips */}
-                    {routerFields.filter((f) => f.group === 'native').length > 0 && (
-                      <div>
-                        <div className="text-xs text-gray-500 mb-1.5">Native fields declared upstream:</div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {routerFields.filter((f) => f.group === 'native').map((f) => (
-                            <span key={f.value} title={f.sourceBlockName} className="bg-blue-50 border border-blue-200 rounded-full px-2 py-0.5 text-xs font-mono text-blue-700">{f.value}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {routerFields.filter((f) => f.group === 'custom').length > 0 && (
-                      <div>
-                        <div className="text-xs text-gray-500 mb-1.5">Custom fields declared upstream:</div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {routerFields.filter((f) => f.group === 'custom').map((f) => (
-                            <span key={f.value} title={f.sourceBlockName} className="bg-purple-50 border border-purple-200 rounded-full px-2 py-0.5 text-xs font-mono text-purple-700">{f.value}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {routerFields.filter((f) => f.group !== 'system').length === 0 && (
-                      <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
-                        No custom or native fields declared upstream. Configure user inputs or output captures with storage in upstream blocks to route on them here.
-                      </div>
-                    )}
-
-                    <p className="text-xs text-gray-500">Rules are evaluated top-to-bottom. First matching rule wins (exclusive mode) or all matching rules fire (inclusive mode).</p>
+                    <p className="text-xs text-gray-500">Rules are evaluated top-to-bottom. First matching rule wins.</p>
 
                     {/* Existing Routings */}
                     {(block.routings ?? []).map((routing, routingIndex) => {
+                      const isActionBased = routing.routingType === 'action';
                       const totalConditions = (routing.conditionGroups ?? []).reduce((sum, g) => sum + g.conditions.length, 0);
+                      const targetName = routing.targetBlockId ? allBlocks.find((b) => b.id === routing.targetBlockId)?.name || 'Target selected' : 'No target';
+                      const subtitleText = isActionBased
+                        ? `Action: ${routing.actionLabel || 'not set'} · ${targetName}`
+                        : `${(routing.conditionGroups ?? []).length} group · ${totalConditions} condition · ${targetName}`;
+                      const gateVisible = expandedConditionGates[routing.id] !== false && (
+                        expandedConditionGates[routing.id] === true || (routing.conditionGate ?? []).length > 0
+                      );
+
                       return (
                         <div key={routing.id} className="border rounded-lg bg-gray-50 overflow-hidden">
                           {/* Route header */}
                           <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border-b">
                             <button
                               className="flex items-center gap-2 text-left flex-1"
-                              onClick={() =>
-                                setExpandedRoutingIds((prev) => ({ ...prev, [routing.id]: !prev[routing.id] }))
-                              }
+                              onClick={() => setExpandedRoutingIds((prev) => ({ ...prev, [routing.id]: !prev[routing.id] }))}
                             >
                               {expandedRoutingIds[routing.id] ? (
                                 <ChevronDown className="h-4 w-4 text-gray-500 shrink-0" />
@@ -472,58 +434,32 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
                               )}
                               <div>
                                 <h4 className="font-medium text-sm">{routing.label || `Route ${routingIndex + 1}`}</h4>
-                                <p className="text-xs text-gray-500">
-                                  {(routing.conditionGroups ?? []).length} group{(routing.conditionGroups ?? []).length !== 1 ? 's' : ''} · {totalConditions} condition{totalConditions !== 1 ? 's' : ''} ·{' '}
-                                  {routing.targetBlockId
-                                    ? allBlocks.find((b) => b.id === routing.targetBlockId)?.name || 'Target selected'
-                                    : 'No target'}
-                                </p>
+                                <p className="text-xs text-gray-500">{subtitleText}</p>
                               </div>
                             </button>
                             <div className="flex items-center gap-1">
-                              {/* Reorder buttons */}
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 text-gray-400 hover:text-gray-700"
+                              <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-gray-700"
                                 disabled={routingIndex === 0}
                                 onClick={() => {
                                   const r = [...block.routings!];
                                   [r[routingIndex - 1], r[routingIndex]] = [r[routingIndex], r[routingIndex - 1]];
                                   handleFieldChange('routings', r);
                                 }}
-                              >
-                                <ArrowUp className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 text-gray-400 hover:text-gray-700"
+                              ><ArrowUp className="h-3 w-3" /></Button>
+                              <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-gray-700"
                                 disabled={routingIndex === block.routings!.length - 1}
                                 onClick={() => {
                                   const r = [...block.routings!];
                                   [r[routingIndex], r[routingIndex + 1]] = [r[routingIndex + 1], r[routingIndex]];
                                   handleFieldChange('routings', r);
                                 }}
-                              >
-                                <ArrowDown className="h-3 w-3" />
-                              </Button>
-                              <Badge
-                                variant="secondary"
+                              ><ArrowDown className="h-3 w-3" /></Button>
+                              <Badge variant="secondary"
                                 className={routing.saved ? 'bg-emerald-100 text-emerald-700 text-xs' : 'bg-amber-100 text-amber-700 text-xs'}
-                              >
-                                {routing.saved ? 'Saved' : 'Draft'}
-                              </Badge>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 text-gray-400 hover:text-red-500"
-                                onClick={() => {
-                                  handleFieldChange('routings', block.routings!.filter((_, i) => i !== routingIndex));
-                                }}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
+                              >{routing.saved ? 'Saved' : 'Draft'}</Badge>
+                              <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-red-500"
+                                onClick={() => handleFieldChange('routings', block.routings!.filter((_, i) => i !== routingIndex))}
+                              ><Trash2 className="h-3 w-3" /></Button>
                             </div>
                           </div>
 
@@ -544,246 +480,468 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
                                 />
                               </div>
 
-                              {/* Between-group operator */}
-                              {(routing.conditionGroups ?? []).length > 1 && (
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs text-gray-500">Groups are connected by:</span>
-                                  {(['AND', 'OR'] as const).map((op) => (
+                              {/* Routing type selector */}
+                              <div>
+                                <Label className="text-xs text-gray-500">Routing type</Label>
+                                <div className="flex gap-1.5 mt-1">
+                                  {(['condition', 'action'] as const).map((rt) => (
                                     <button
-                                      key={op}
-                                      className={`text-xs px-3 py-0.5 rounded border font-semibold transition-colors ${
-                                        (routing.groupOperator ?? 'AND') === op
-                                          ? op === 'AND' ? 'bg-green-100 text-green-700 border-green-300' : 'bg-orange-100 text-orange-700 border-orange-300'
-                                          : 'bg-white text-gray-400 border-gray-200'
+                                      key={rt}
+                                      className={`text-xs px-3 py-1 rounded border font-medium transition-colors ${
+                                        (routing.routingType ?? 'condition') === rt
+                                          ? 'bg-orange-500 text-white border-orange-600'
+                                          : 'bg-white text-gray-600 border-gray-300 hover:border-orange-300'
                                       }`}
                                       onClick={() => {
                                         const r = [...block.routings!];
-                                        r[routingIndex] = { ...r[routingIndex], groupOperator: op };
+                                        r[routingIndex] = { ...r[routingIndex], routingType: rt };
                                         markRoutingAsDraft(r, routingIndex);
                                       }}
                                     >
-                                      {op}
+                                      {rt === 'condition' ? 'Condition-based' : 'Action-based'}
                                     </button>
                                   ))}
                                 </div>
-                              )}
+                              </div>
 
-                              {/* Condition groups */}
-                              {(routing.conditionGroups ?? []).map((group, groupIndex) => (
-                                <div key={group.id} className="border rounded-lg bg-white overflow-hidden">
-                                  {/* Group header */}
-                                  <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50 border-b">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-xs font-semibold text-gray-500">Group {groupIndex + 1}</span>
-                                      <span className="text-xs text-gray-400">—</span>
-                                      {(['AND', 'OR'] as const).map((op) => (
-                                        <button
-                                          key={op}
-                                          className={`text-xs px-2 py-0.5 rounded border font-semibold transition-colors ${
-                                            group.operator === op
-                                              ? op === 'AND' ? 'bg-green-100 text-green-700 border-green-300' : 'bg-orange-100 text-orange-700 border-orange-300'
-                                              : 'bg-white text-gray-300 border-gray-200'
-                                          }`}
-                                          onClick={() => {
-                                            const r = [...block.routings!];
-                                            const groups = [...(r[routingIndex].conditionGroups ?? [])];
-                                            groups[groupIndex] = { ...groups[groupIndex], operator: op };
-                                            r[routingIndex] = { ...r[routingIndex], conditionGroups: groups };
-                                            markRoutingAsDraft(r, routingIndex);
-                                          }}
-                                        >
-                                          {op}
-                                        </button>
-                                      ))}
-                                    </div>
-                                    {(routing.conditionGroups ?? []).length > 1 && (
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-5 w-5 text-gray-300 hover:text-red-400"
-                                        onClick={() => {
-                                          const r = [...block.routings!];
-                                          const groups = (r[routingIndex].conditionGroups ?? []).filter((_, i) => i !== groupIndex);
-                                          r[routingIndex] = { ...r[routingIndex], conditionGroups: groups };
-                                          markRoutingAsDraft(r, routingIndex);
-                                        }}
-                                      >
-                                        <Trash2 className="h-3 w-3" />
-                                      </Button>
-                                    )}
-                                  </div>
-
-                                  {/* Conditions in this group */}
-                                  <div className="p-2 space-y-2">
-                                    {group.conditions.map((condition, conditionIndex) => {
-                                      const ft = getFieldType(routerFields, condition.parameter);
-                                      const ops = OPERATORS_BY_TYPE[ft];
-                                      const noVal = NO_VALUE_OPERATORS.includes(condition.operator);
-                                      const twoVal = TWO_VALUE_OPERATORS.includes(condition.operator);
-                                      const nDays = NDAYS_OPERATORS.includes(condition.operator);
-
-                                      const updateCond = (updates: Partial<Condition>) => {
-                                        const r = [...block.routings!];
-                                        const groups = [...(r[routingIndex].conditionGroups ?? [])];
-                                        const conds = [...groups[groupIndex].conditions];
-                                        conds[conditionIndex] = { ...conds[conditionIndex], ...updates };
-                                        groups[groupIndex] = { ...groups[groupIndex], conditions: conds };
-                                        r[routingIndex] = { ...r[routingIndex], conditionGroups: groups };
-                                        markRoutingAsDraft(r, routingIndex);
-                                      };
-
-                                      return (
-                                        <div key={condition.id} className="flex flex-wrap items-center gap-1.5 p-1.5 bg-gray-50 rounded border text-xs">
-                                          {conditionIndex > 0 && (
-                                            <span className={`px-1.5 py-0.5 rounded font-semibold text-xs ${
-                                              group.operator === 'AND' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
-                                            }`}>{group.operator}</span>
-                                          )}
-
-                                          {/* Field selector */}
-                                          <Select
-                                            value={condition.parameter}
-                                            onValueChange={(v) => {
-                                              const newFt = getFieldType(routerFields, v);
-                                              const defaultOp = OPERATORS_BY_TYPE[newFt][0].value;
-                                              updateCond({ parameter: v, fieldType: newFt, operator: defaultOp, value: '', valueTo: '' });
-                                            }}
-                                          >
-                                            <SelectTrigger className="h-7 text-xs flex-1 min-w-[110px] max-w-[150px] font-mono">
-                                              <SelectValue placeholder="Field…" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              {(['native', 'custom', 'system'] as const).map((groupName) => {
-                                                const groupFields = routerFields.filter((f) => f.group === groupName);
-                                                if (groupFields.length === 0) return null;
-                                                return (
-                                                  <div key={groupName}>
-                                                    <div className="px-2 py-1 text-xs text-gray-400 font-semibold border-t first:border-t-0 uppercase tracking-wide">
-                                                      {groupName}
-                                                    </div>
-                                                    {groupFields.map((f) => (
-                                                      <SelectItem key={f.value} value={f.value} className="font-mono text-xs">
-                                                        <span>{f.label}</span>
-                                                        {f.sourceBlockName && <span className="ml-1.5 text-[10px] text-gray-400 non-mono">({f.sourceBlockName})</span>}
-                                                      </SelectItem>
-                                                    ))}
-                                                  </div>
-                                                );
-                                              })}
-                                            </SelectContent>
-                                          </Select>
-
-                                          {/* Operator selector */}
-                                          <Select
-                                            value={condition.operator}
-                                            onValueChange={(v) => updateCond({ operator: v as ConditionOperator, value: '', valueTo: '' })}
-                                          >
-                                            <SelectTrigger className="h-7 text-xs w-[130px]">
-                                              <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              {ops.map((op) => (
-                                                <SelectItem key={op.value} value={op.value} className="text-xs">{op.label}</SelectItem>
-                                              ))}
-                                            </SelectContent>
-                                          </Select>
-
-                                          {/* Value input(s) */}
-                                          {!noVal && (
-                                            twoVal ? (
-                                              <>
-                                                <Input className="h-7 text-xs w-16" placeholder="from" value={condition.value}
-                                                  onChange={(e) => updateCond({ value: e.target.value })} />
-                                                <span className="text-gray-400">–</span>
-                                                <Input className="h-7 text-xs w-16" placeholder="to" value={condition.valueTo ?? ''}
-                                                  onChange={(e) => updateCond({ valueTo: e.target.value })} />
-                                              </>
-                                            ) : nDays ? (
-                                              <Input className="h-7 text-xs w-16" placeholder="N" type="number" value={condition.value}
-                                                onChange={(e) => updateCond({ value: e.target.value })} />
-                                            ) : (
-                                              <Input
-                                                className="h-7 text-xs flex-1 min-w-[60px]"
-                                                placeholder={condition.operator === 'in' || condition.operator === 'not in' ? 'a, b, c' : 'value'}
-                                                value={condition.value}
-                                                onChange={(e) => updateCond({ value: e.target.value })}
-                                              />
-                                            )
-                                          )}
-
-                                          {group.conditions.length > 1 && (
-                                            <Button
-                                              variant="ghost"
-                                              size="icon"
-                                              className="h-6 w-6 text-gray-300 hover:text-red-500 shrink-0"
+                              {/* ── Condition-based ─────────────────────────────── */}
+                              {(routing.routingType ?? 'condition') === 'condition' && (
+                                <>
+                                  {(routing.conditionGroups ?? []).map((group, groupIndex) => (
+                                    <div key={group.id}>
+                                      <div className="border rounded-lg bg-white overflow-hidden">
+                                        {/* Group header */}
+                                        <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50 border-b">
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-xs font-semibold text-gray-500">Group {groupIndex + 1}</span>
+                                            <span className="text-xs text-gray-400">—</span>
+                                            {(['AND', 'OR'] as const).map((op) => (
+                                              <button
+                                                key={op}
+                                                className={`text-xs px-2 py-0.5 rounded border font-semibold transition-colors ${
+                                                  group.operator === op
+                                                    ? op === 'AND' ? 'bg-green-100 text-green-700 border-green-300' : 'bg-orange-100 text-orange-700 border-orange-300'
+                                                    : 'bg-white text-gray-300 border-gray-200'
+                                                }`}
+                                                onClick={() => {
+                                                  const r = [...block.routings!];
+                                                  const groups = [...(r[routingIndex].conditionGroups ?? [])];
+                                                  groups[groupIndex] = { ...groups[groupIndex], operator: op };
+                                                  r[routingIndex] = { ...r[routingIndex], conditionGroups: groups };
+                                                  markRoutingAsDraft(r, routingIndex);
+                                                }}
+                                              >{op}</button>
+                                            ))}
+                                          </div>
+                                          {(routing.conditionGroups ?? []).length > 1 && (
+                                            <Button variant="ghost" size="icon" className="h-5 w-5 text-gray-300 hover:text-red-400"
                                               onClick={() => {
                                                 const r = [...block.routings!];
-                                                const groups = [...(r[routingIndex].conditionGroups ?? [])];
-                                                groups[groupIndex] = { ...groups[groupIndex], conditions: groups[groupIndex].conditions.filter((_, i) => i !== conditionIndex) };
+                                                const groups = (r[routingIndex].conditionGroups ?? []).filter((_, i) => i !== groupIndex);
                                                 r[routingIndex] = { ...r[routingIndex], conditionGroups: groups };
                                                 markRoutingAsDraft(r, routingIndex);
                                               }}
-                                            >
-                                              <Trash2 className="h-3 w-3" />
-                                            </Button>
+                                            ><Trash2 className="h-3 w-3" /></Button>
                                           )}
                                         </div>
-                                      );
-                                    })}
 
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="text-xs h-7 w-full"
-                                      onClick={() => {
-                                        const r = [...block.routings!];
-                                        const groups = [...(r[routingIndex].conditionGroups ?? [])];
-                                        const firstField = routerFields[0];
-                                        groups[groupIndex] = {
-                                          ...groups[groupIndex],
-                                          conditions: [...groups[groupIndex].conditions, {
-                                            id: `cond-${Date.now()}`,
-                                            parameter: firstField?.value ?? '',
-                                            operator: '=' as ConditionOperator,
-                                            value: '',
-                                            fieldType: firstField?.fieldType ?? 'text',
-                                          }],
-                                        };
-                                        r[routingIndex] = { ...r[routingIndex], conditionGroups: groups };
-                                        markRoutingAsDraft(r, routingIndex);
-                                      }}
-                                    >
-                                      <Plus className="h-3 w-3 mr-1" /> Add Condition
-                                    </Button>
+                                        {/* Conditions */}
+                                        <div className="p-2 space-y-2">
+                                          {group.conditions.map((condition, conditionIndex) => {
+                                            const ft = getFieldType(routerFields, condition.parameter);
+                                            const ops = OPERATORS_BY_TYPE[ft];
+                                            const noVal = NO_VALUE_OPERATORS.includes(condition.operator);
+                                            const twoVal = TWO_VALUE_OPERATORS.includes(condition.operator);
+                                            const nDays = NDAYS_OPERATORS.includes(condition.operator);
+
+                                            const updateCond = (updates: Partial<Condition>) => {
+                                              const r = [...block.routings!];
+                                              const groups = [...(r[routingIndex].conditionGroups ?? [])];
+                                              const conds = [...groups[groupIndex].conditions];
+                                              conds[conditionIndex] = { ...conds[conditionIndex], ...updates };
+                                              groups[groupIndex] = { ...groups[groupIndex], conditions: conds };
+                                              r[routingIndex] = { ...r[routingIndex], conditionGroups: groups };
+                                              markRoutingAsDraft(r, routingIndex);
+                                            };
+
+                                            return (
+                                              <div key={condition.id} className="flex flex-wrap items-center gap-1.5 p-1.5 bg-gray-50 rounded border text-xs">
+                                                {conditionIndex > 0 && (
+                                                  <span className={`px-1.5 py-0.5 rounded font-semibold text-xs ${
+                                                    group.operator === 'AND' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                                                  }`}>{group.operator}</span>
+                                                )}
+                                                <Select value={condition.parameter}
+                                                  onValueChange={(v) => {
+                                                    const newFt = getFieldType(routerFields, v);
+                                                    const defaultOp = OPERATORS_BY_TYPE[newFt][0].value;
+                                                    updateCond({ parameter: v, fieldType: newFt, operator: defaultOp, value: '', valueTo: '' });
+                                                  }}
+                                                >
+                                                  <SelectTrigger className="h-7 text-xs flex-1 min-w-[110px] max-w-[150px] font-mono">
+                                                    <SelectValue placeholder="Field…" />
+                                                  </SelectTrigger>
+                                                  <SelectContent>
+                                                    {(['native', 'custom', 'system'] as const).map((groupName) => {
+                                                      const groupFields = routerFields.filter((f) => f.group === groupName);
+                                                      if (groupFields.length === 0) return null;
+                                                      return (
+                                                        <div key={groupName}>
+                                                          <div className="px-2 py-1 text-xs text-gray-400 font-semibold border-t first:border-t-0 uppercase tracking-wide">{groupName}</div>
+                                                          {groupFields.map((f) => (
+                                                            <SelectItem key={f.value} value={f.value} className="font-mono text-xs">
+                                                              <span>{f.label}</span>
+                                                              {f.sourceBlockName && <span className="ml-1.5 text-[10px] text-gray-400">({f.sourceBlockName})</span>}
+                                                            </SelectItem>
+                                                          ))}
+                                                        </div>
+                                                      );
+                                                    })}
+                                                  </SelectContent>
+                                                </Select>
+                                                <Select value={condition.operator}
+                                                  onValueChange={(v) => updateCond({ operator: v as ConditionOperator, value: '', valueTo: '' })}
+                                                >
+                                                  <SelectTrigger className="h-7 text-xs w-[130px]"><SelectValue /></SelectTrigger>
+                                                  <SelectContent>
+                                                    {ops.map((op) => <SelectItem key={op.value} value={op.value} className="text-xs">{op.label}</SelectItem>)}
+                                                  </SelectContent>
+                                                </Select>
+                                                {!noVal && (
+                                                  twoVal ? (
+                                                    <>
+                                                      <Input className="h-7 text-xs w-16" placeholder="from" value={condition.value} onChange={(e) => updateCond({ value: e.target.value })} />
+                                                      <span className="text-gray-400">–</span>
+                                                      <Input className="h-7 text-xs w-16" placeholder="to" value={condition.valueTo ?? ''} onChange={(e) => updateCond({ valueTo: e.target.value })} />
+                                                    </>
+                                                  ) : nDays ? (
+                                                    <Input className="h-7 text-xs w-16" placeholder="N" type="number" value={condition.value} onChange={(e) => updateCond({ value: e.target.value })} />
+                                                  ) : (
+                                                    <Input className="h-7 text-xs flex-1 min-w-[60px]"
+                                                      placeholder={condition.operator === 'in' || condition.operator === 'not in' ? 'a, b, c' : 'value'}
+                                                      value={condition.value} onChange={(e) => updateCond({ value: e.target.value })} />
+                                                  )
+                                                )}
+                                                {group.conditions.length > 1 && (
+                                                  <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-300 hover:text-red-500 shrink-0"
+                                                    onClick={() => {
+                                                      const r = [...block.routings!];
+                                                      const groups = [...(r[routingIndex].conditionGroups ?? [])];
+                                                      groups[groupIndex] = { ...groups[groupIndex], conditions: groups[groupIndex].conditions.filter((_, i) => i !== conditionIndex) };
+                                                      r[routingIndex] = { ...r[routingIndex], conditionGroups: groups };
+                                                      markRoutingAsDraft(r, routingIndex);
+                                                    }}
+                                                  ><Trash2 className="h-3 w-3" /></Button>
+                                                )}
+                                              </div>
+                                            );
+                                          })}
+                                          <Button variant="outline" size="sm" className="text-xs h-7 w-full"
+                                            onClick={() => {
+                                              const r = [...block.routings!];
+                                              const groups = [...(r[routingIndex].conditionGroups ?? [])];
+                                              const firstField = routerFields[0];
+                                              groups[groupIndex] = {
+                                                ...groups[groupIndex],
+                                                conditions: [...groups[groupIndex].conditions, {
+                                                  id: `cond-${Date.now()}`,
+                                                  parameter: firstField?.value ?? '',
+                                                  operator: '=' as ConditionOperator,
+                                                  value: '',
+                                                  fieldType: firstField?.fieldType ?? 'text',
+                                                }],
+                                              };
+                                              r[routingIndex] = { ...r[routingIndex], conditionGroups: groups };
+                                              markRoutingAsDraft(r, routingIndex);
+                                            }}
+                                          ><Plus className="h-3 w-3 mr-1" /> Add Condition</Button>
+                                        </div>
+                                      </div>
+
+                                      {/* nextGroupOperator connector between groups */}
+                                      {groupIndex < (routing.conditionGroups ?? []).length - 1 && (
+                                        <div className="flex items-center justify-center gap-2 py-2">
+                                          {(['AND', 'OR'] as const).map((op) => (
+                                            <button
+                                              key={op}
+                                              className={`text-xs px-3 py-0.5 rounded border font-semibold transition-colors ${
+                                                (group.nextGroupOperator ?? 'AND') === op
+                                                  ? op === 'AND' ? 'bg-green-100 text-green-700 border-green-300' : 'bg-orange-100 text-orange-700 border-orange-300'
+                                                  : 'bg-white text-gray-300 border-gray-200'
+                                              }`}
+                                              onClick={() => {
+                                                const r = [...block.routings!];
+                                                const groups = [...(r[routingIndex].conditionGroups ?? [])];
+                                                groups[groupIndex] = { ...groups[groupIndex], nextGroupOperator: op };
+                                                r[routingIndex] = { ...r[routingIndex], conditionGroups: groups };
+                                                markRoutingAsDraft(r, routingIndex);
+                                              }}
+                                            >{op}</button>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+
+                                  <Button variant="outline" size="sm" className="text-xs h-7 w-full border-dashed"
+                                    onClick={() => {
+                                      const r = [...block.routings!];
+                                      const firstField = routerFields[0];
+                                      const existingGroups = r[routingIndex].conditionGroups ?? [];
+                                      const updatedGroups = existingGroups.length > 0
+                                        ? existingGroups.map((g, i) => i === existingGroups.length - 1 ? { ...g, nextGroupOperator: g.nextGroupOperator ?? 'AND' as const } : g)
+                                        : existingGroups;
+                                      const newGroup: ConditionGroup = {
+                                        id: `group-${Date.now()}`,
+                                        operator: 'AND',
+                                        conditions: [{
+                                          id: `cond-${Date.now()}`,
+                                          parameter: firstField?.value ?? '',
+                                          operator: '=' as ConditionOperator,
+                                          value: '',
+                                          fieldType: firstField?.fieldType ?? 'text',
+                                        }],
+                                      };
+                                      r[routingIndex] = { ...r[routingIndex], conditionGroups: [...updatedGroups, newGroup] };
+                                      markRoutingAsDraft(r, routingIndex);
+                                    }}
+                                  ><Plus className="h-3 w-3 mr-1" /> Add Group</Button>
+                                </>
+                              )}
+
+                              {/* ── Action-based ─────────────────────────────── */}
+                              {routing.routingType === 'action' && (() => {
+                                const currentIndex = allBlocks.findIndex((b) => b.id === block.id);
+                                const upstreamBlocks = currentIndex >= 0 ? allBlocks.slice(0, currentIndex) : [];
+                                const blocksWithPages = upstreamBlocks.filter((b) => (b.pages ?? []).length > 0);
+                                const srcBlock = allBlocks.find((b) => b.id === routing.sourceBlockId);
+                                const srcPage = srcBlock?.pages?.find((p) => p.id === routing.sourcePageId);
+                                const pageActions = srcPage?.actions ?? [];
+
+                                return (
+                                  <div className="space-y-3">
+                                    <div>
+                                      <Label className="text-xs text-gray-500">Block</Label>
+                                      <Select
+                                        value={routing.sourceBlockId ?? ''}
+                                        onValueChange={(v) => {
+                                          const r = [...block.routings!];
+                                          r[routingIndex] = { ...r[routingIndex], sourceBlockId: v, sourcePageId: '', actionLabel: '' };
+                                          markRoutingAsDraft(r, routingIndex);
+                                        }}
+                                      >
+                                        <SelectTrigger className="h-8 text-xs mt-1"><SelectValue placeholder="Select block…" /></SelectTrigger>
+                                        <SelectContent>
+                                          {blocksWithPages.length === 0
+                                            ? <div className="px-2 py-2 text-xs text-gray-400">No upstream blocks with pages</div>
+                                            : blocksWithPages.map((b) => <SelectItem key={b.id} value={b.id} className="text-xs">{b.name}</SelectItem>)
+                                          }
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+
+                                    {routing.sourceBlockId && (
+                                      <div>
+                                        <Label className="text-xs text-gray-500">Page</Label>
+                                        <Select
+                                          value={routing.sourcePageId ?? ''}
+                                          onValueChange={(v) => {
+                                            const r = [...block.routings!];
+                                            r[routingIndex] = { ...r[routingIndex], sourcePageId: v, actionLabel: '' };
+                                            markRoutingAsDraft(r, routingIndex);
+                                          }}
+                                        >
+                                          <SelectTrigger className="h-8 text-xs mt-1"><SelectValue placeholder="Select page…" /></SelectTrigger>
+                                          <SelectContent>
+                                            {(srcBlock?.pages ?? []).map((p) => <SelectItem key={p.id} value={p.id} className="text-xs">{p.name}</SelectItem>)}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                    )}
+
+                                    {routing.sourcePageId && (
+                                      <div>
+                                        <Label className="text-xs text-gray-500">Action</Label>
+                                        <Select
+                                          value={routing.actionLabel ?? ''}
+                                          onValueChange={(v) => {
+                                            const r = [...block.routings!];
+                                            r[routingIndex] = { ...r[routingIndex], actionLabel: v };
+                                            markRoutingAsDraft(r, routingIndex);
+                                          }}
+                                        >
+                                          <SelectTrigger className="h-8 text-xs mt-1"><SelectValue placeholder="Select action…" /></SelectTrigger>
+                                          <SelectContent>
+                                            {pageActions.length === 0
+                                              ? <div className="px-2 py-2 text-xs text-gray-400">No actions on this page</div>
+                                              : pageActions.map((a) => <SelectItem key={a} value={a} className="text-xs">{a}</SelectItem>)
+                                            }
+                                          </SelectContent>
+                                        </Select>
+                                        {pageActions.length === 0 && (
+                                          <p className="text-[10px] text-amber-600 mt-1">Add actions in the block's UI Configuration.</p>
+                                        )}
+                                      </div>
+                                    )}
+
+                                    {/* Condition gate */}
+                                    <div className="border-t pt-3">
+                                      {!gateVisible ? (
+                                        <button
+                                          className="text-xs text-orange-600 hover:text-orange-700 font-medium"
+                                          onClick={() => {
+                                            const r = [...block.routings!];
+                                            const firstField = routerFields[0];
+                                            r[routingIndex] = {
+                                              ...r[routingIndex],
+                                              conditionGate: [{
+                                                id: `gate-${Date.now()}`,
+                                                operator: 'AND' as const,
+                                                conditions: [{
+                                                  id: `cond-${Date.now()}`,
+                                                  parameter: firstField?.value ?? '',
+                                                  operator: '=' as ConditionOperator,
+                                                  value: '',
+                                                  fieldType: firstField?.fieldType ?? 'text',
+                                                }],
+                                              }],
+                                            };
+                                            markRoutingAsDraft(r, routingIndex);
+                                            setExpandedConditionGates((prev) => ({ ...prev, [routing.id]: true }));
+                                          }}
+                                        >+ Add condition gate</button>
+                                      ) : (
+                                        <div className="space-y-2">
+                                          <div className="flex items-center justify-between">
+                                            <span className="text-xs font-semibold text-gray-600">Condition gate</span>
+                                            <button
+                                              className="text-xs text-gray-400 hover:text-red-500"
+                                              onClick={() => {
+                                                const r = [...block.routings!];
+                                                r[routingIndex] = { ...r[routingIndex], conditionGate: [] };
+                                                markRoutingAsDraft(r, routingIndex);
+                                                setExpandedConditionGates((prev) => ({ ...prev, [routing.id]: false }));
+                                              }}
+                                            >− Remove</button>
+                                          </div>
+                                          {(routing.conditionGate ?? []).map((gateGroup, gi) => (
+                                            <div key={gateGroup.id} className="border rounded-lg bg-white overflow-hidden">
+                                              <div className="p-2 space-y-2">
+                                                {gateGroup.conditions.map((condition, ci) => {
+                                                  const ft = getFieldType(routerFields, condition.parameter);
+                                                  const ops = OPERATORS_BY_TYPE[ft];
+                                                  const noVal = NO_VALUE_OPERATORS.includes(condition.operator);
+                                                  const twoVal = TWO_VALUE_OPERATORS.includes(condition.operator);
+                                                  const nDays = NDAYS_OPERATORS.includes(condition.operator);
+
+                                                  const updateGateCond = (updates: Partial<Condition>) => {
+                                                    const r = [...block.routings!];
+                                                    const gate = [...(r[routingIndex].conditionGate ?? [])];
+                                                    const conds = [...gate[gi].conditions];
+                                                    conds[ci] = { ...conds[ci], ...updates };
+                                                    gate[gi] = { ...gate[gi], conditions: conds };
+                                                    r[routingIndex] = { ...r[routingIndex], conditionGate: gate };
+                                                    markRoutingAsDraft(r, routingIndex);
+                                                  };
+
+                                                  return (
+                                                    <div key={condition.id} className="flex flex-wrap items-center gap-1.5 p-1.5 bg-gray-50 rounded border text-xs">
+                                                      {ci > 0 && (
+                                                        <span className={`px-1.5 py-0.5 rounded font-semibold text-xs ${
+                                                          gateGroup.operator === 'AND' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                                                        }`}>{gateGroup.operator}</span>
+                                                      )}
+                                                      <Select value={condition.parameter}
+                                                        onValueChange={(v) => {
+                                                          const newFt = getFieldType(routerFields, v);
+                                                          const defaultOp = OPERATORS_BY_TYPE[newFt][0].value;
+                                                          updateGateCond({ parameter: v, fieldType: newFt, operator: defaultOp, value: '', valueTo: '' });
+                                                        }}
+                                                      >
+                                                        <SelectTrigger className="h-7 text-xs flex-1 min-w-[110px] max-w-[150px] font-mono"><SelectValue placeholder="Field…" /></SelectTrigger>
+                                                        <SelectContent>
+                                                          {(['native', 'custom', 'system'] as const).map((gn) => {
+                                                            const gf = routerFields.filter((f) => f.group === gn);
+                                                            if (gf.length === 0) return null;
+                                                            return (
+                                                              <div key={gn}>
+                                                                <div className="px-2 py-1 text-xs text-gray-400 font-semibold border-t first:border-t-0 uppercase tracking-wide">{gn}</div>
+                                                                {gf.map((f) => (
+                                                                  <SelectItem key={f.value} value={f.value} className="font-mono text-xs">
+                                                                    <span>{f.label}</span>
+                                                                    {f.sourceBlockName && <span className="ml-1.5 text-[10px] text-gray-400">({f.sourceBlockName})</span>}
+                                                                  </SelectItem>
+                                                                ))}
+                                                              </div>
+                                                            );
+                                                          })}
+                                                        </SelectContent>
+                                                      </Select>
+                                                      <Select value={condition.operator}
+                                                        onValueChange={(v) => updateGateCond({ operator: v as ConditionOperator, value: '', valueTo: '' })}
+                                                      >
+                                                        <SelectTrigger className="h-7 text-xs w-[130px]"><SelectValue /></SelectTrigger>
+                                                        <SelectContent>
+                                                          {ops.map((op) => <SelectItem key={op.value} value={op.value} className="text-xs">{op.label}</SelectItem>)}
+                                                        </SelectContent>
+                                                      </Select>
+                                                      {!noVal && (
+                                                        twoVal ? (
+                                                          <>
+                                                            <Input className="h-7 text-xs w-16" placeholder="from" value={condition.value} onChange={(e) => updateGateCond({ value: e.target.value })} />
+                                                            <span className="text-gray-400">–</span>
+                                                            <Input className="h-7 text-xs w-16" placeholder="to" value={condition.valueTo ?? ''} onChange={(e) => updateGateCond({ valueTo: e.target.value })} />
+                                                          </>
+                                                        ) : nDays ? (
+                                                          <Input className="h-7 text-xs w-16" placeholder="N" type="number" value={condition.value} onChange={(e) => updateGateCond({ value: e.target.value })} />
+                                                        ) : (
+                                                          <Input className="h-7 text-xs flex-1 min-w-[60px]"
+                                                            placeholder={condition.operator === 'in' || condition.operator === 'not in' ? 'a, b, c' : 'value'}
+                                                            value={condition.value} onChange={(e) => updateGateCond({ value: e.target.value })} />
+                                                        )
+                                                      )}
+                                                      {gateGroup.conditions.length > 1 && (
+                                                        <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-300 hover:text-red-500 shrink-0"
+                                                          onClick={() => {
+                                                            const r = [...block.routings!];
+                                                            const gate = [...(r[routingIndex].conditionGate ?? [])];
+                                                            gate[gi] = { ...gate[gi], conditions: gate[gi].conditions.filter((_, i) => i !== ci) };
+                                                            r[routingIndex] = { ...r[routingIndex], conditionGate: gate };
+                                                            markRoutingAsDraft(r, routingIndex);
+                                                          }}
+                                                        ><Trash2 className="h-3 w-3" /></Button>
+                                                      )}
+                                                    </div>
+                                                  );
+                                                })}
+                                                <Button variant="outline" size="sm" className="text-xs h-7 w-full"
+                                                  onClick={() => {
+                                                    const r = [...block.routings!];
+                                                    const firstField = routerFields[0];
+                                                    const gate = [...(r[routingIndex].conditionGate ?? [])];
+                                                    gate[gi] = {
+                                                      ...gate[gi],
+                                                      conditions: [...gate[gi].conditions, {
+                                                        id: `cond-${Date.now()}`,
+                                                        parameter: firstField?.value ?? '',
+                                                        operator: '=' as ConditionOperator,
+                                                        value: '',
+                                                        fieldType: firstField?.fieldType ?? 'text',
+                                                      }],
+                                                    };
+                                                    r[routingIndex] = { ...r[routingIndex], conditionGate: gate };
+                                                    markRoutingAsDraft(r, routingIndex);
+                                                  }}
+                                                ><Plus className="h-3 w-3 mr-1" /> Add Condition</Button>
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
-                                </div>
-                              ))}
-
-                              {/* Add condition group */}
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-xs h-7 w-full border-dashed"
-                                onClick={() => {
-                                  const r = [...block.routings!];
-                                  const firstField = routerFields[0];
-                                  const newGroup: ConditionGroup = {
-                                    id: `group-${Date.now()}`,
-                                    operator: 'AND',
-                                    conditions: [{
-                                      id: `cond-${Date.now()}`,
-                                      parameter: firstField?.value ?? '',
-                                      operator: '=' as ConditionOperator,
-                                      value: '',
-                                      fieldType: firstField?.fieldType ?? 'text',
-                                    }],
-                                  };
-                                  r[routingIndex] = { ...r[routingIndex], conditionGroups: [...(r[routingIndex].conditionGroups ?? []), newGroup] };
-                                  markRoutingAsDraft(r, routingIndex);
-                                }}
-                              >
-                                <Plus className="h-3 w-3 mr-1" /> Add Condition Group
-                              </Button>
+                                );
+                              })()}
 
                               {/* Route to */}
                               <div className="pt-2 border-t">
@@ -796,22 +954,16 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
                                     markRoutingAsDraft(r, routingIndex);
                                   }}
                                 >
-                                  <SelectTrigger className="h-8 mt-1 text-xs">
-                                    <SelectValue placeholder="Select target block..." />
-                                  </SelectTrigger>
+                                  <SelectTrigger className="h-8 mt-1 text-xs"><SelectValue placeholder="Select target block..." /></SelectTrigger>
                                   <SelectContent>
                                     {allBlocks.filter((b) => b.id !== block.id).map((b) => (
-                                      <SelectItem key={b.id} value={b.id} className="text-xs">
-                                        {b.name} ({b.type})
-                                      </SelectItem>
+                                      <SelectItem key={b.id} value={b.id} className="text-xs">{b.name} ({b.type})</SelectItem>
                                     ))}
                                   </SelectContent>
                                 </Select>
                               </div>
 
-                              <Button
-                                size="sm"
-                                className="w-full"
+                              <Button size="sm" className="w-full"
                                 onClick={() => {
                                   if (!routing.targetBlockId) return;
                                   const r = [...block.routings!];
@@ -819,9 +971,7 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
                                   handleFieldChange('routings', r);
                                 }}
                                 disabled={!routing.targetBlockId}
-                              >
-                                Save Route
-                              </Button>
+                              >Save Route</Button>
                             </div>
                           )}
                         </div>
@@ -833,13 +983,13 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
                     )}
 
                     {/* Add Route button */}
-                    <Button
-                      variant="outline"
+                    <Button variant="outline"
                       onClick={() => {
                         const firstField = routerFields[0];
                         const newRouting = {
                           id: `routing-${Date.now()}`,
                           label: '',
+                          routingType: 'condition' as const,
                           conditionGroups: [{
                             id: `group-${Date.now()}`,
                             operator: 'AND' as const,
@@ -851,7 +1001,6 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
                               fieldType: firstField?.fieldType ?? 'text' as FieldType,
                             }],
                           }],
-                          groupOperator: 'AND' as const,
                           targetBlockId: '',
                           saved: false,
                         };
@@ -872,14 +1021,10 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
                         value={block.defaultRoute || ''}
                         onValueChange={(value) => handleFieldChange('defaultRoute', value)}
                       >
-                        <SelectTrigger className="h-9">
-                          <SelectValue placeholder="Select default block..." />
-                        </SelectTrigger>
+                        <SelectTrigger className="h-9"><SelectValue placeholder="Select default block..." /></SelectTrigger>
                         <SelectContent>
                           {allBlocks.filter((b) => b.id !== block.id).map((b) => (
-                            <SelectItem key={b.id} value={b.id}>
-                              {b.name} ({b.type})
-                            </SelectItem>
+                            <SelectItem key={b.id} value={b.id}>{b.name} ({b.type})</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -1253,7 +1398,7 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
                               const newPage: PageConfig = {
                                 id: `landing-${Date.now()}`,
                                 name: `Landing Page ${(block.pages ?? []).length + 1}`,
-                                action: 'User confirmed',
+                                actions: ['User confirmed'],
                                 userInputs: [],
                                 isConfigured: false,
                               };

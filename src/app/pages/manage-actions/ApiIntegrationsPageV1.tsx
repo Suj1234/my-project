@@ -164,6 +164,71 @@ const MOCK_INTEGRATIONS: ApiIntegrationV1[] = [
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
+  // ── v1-8: CBS Dedupe ──────────────────────────────────────────────────────
+  {
+    ...createDefaultIntegrationV1(),
+    id: 'v1-8',
+    name: 'CBS Dedupe',
+    description: 'Core Banking System lookup — determines ETB vs NTB and pre-fills CBS profile data for existing customers',
+    method: 'POST',
+    url: 'https://api.cbs.internal/v1/dedupe/check',
+    auth: { type: 'bearer', bearerToken: 'cbs-internal-bearer-token' },
+    headers: [
+      { id: '1', key: 'Content-Type', value: 'application/json', enabled: true },
+      { id: '2', key: 'X-Channel', value: 'digital', enabled: true },
+    ],
+    bodyRaw: JSON.stringify({ pan_number: '{{pan_number}}', date_of_birth: '{{date_of_birth}}' }, null, 2),
+    bodySchema: [
+      { id: '1', path: 'pan_number',    required: true, fieldType: 'regex',  pattern: '^[A-Z]{5}[0-9]{4}[A-Z]$', description: 'PAN number of applicant' },
+      { id: '2', path: 'date_of_birth', required: true, fieldType: 'date',   description: 'Date of birth (YYYY-MM-DD)' },
+    ],
+    responseJson: JSON.stringify({ status: 'SUCCESS', is_etb: true, customer_name: 'RAVI KUMAR', customer_id: 'CBS-00123456', mobile_number: '9876543210', email_id: 'ravi@email.com', address: '12 MG Road', city: 'Bengaluru', state: 'Karnataka', pincode: '560001' }, null, 2),
+    status: 'active',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  // ── v1-9: CMS Dedupe ──────────────────────────────────────────────────────
+  {
+    ...createDefaultIntegrationV1(),
+    id: 'v1-9',
+    name: 'CMS Dedupe',
+    description: 'Card Management System lookup — checks if applicant already holds an active credit card; triggers hard reject if found',
+    method: 'POST',
+    url: 'https://api.cms.internal/v1/cards/dedupe',
+    auth: { type: 'bearer', bearerToken: 'cms-internal-bearer-token' },
+    headers: [
+      { id: '1', key: 'Content-Type', value: 'application/json', enabled: true },
+    ],
+    bodyRaw: JSON.stringify({ pan_number: '{{pan_number}}' }, null, 2),
+    bodySchema: [
+      { id: '1', path: 'pan_number', required: true, fieldType: 'regex', pattern: '^[A-Z]{5}[0-9]{4}[A-Z]$', description: 'PAN number of applicant' },
+    ],
+    responseJson: JSON.stringify({ status: 'SUCCESS', has_existing_card: false, existing_card_count: 0, cards: [] }, null, 2),
+    status: 'active',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  // ── v1-10: LMS Dedupe ─────────────────────────────────────────────────────
+  {
+    ...createDefaultIntegrationV1(),
+    id: 'v1-10',
+    name: 'LMS Dedupe',
+    description: 'Loan Management System lookup — checks for active in-progress credit card applications; enables resume flow for returning applicants',
+    method: 'POST',
+    url: 'https://api.lms.internal/v1/applications/dedupe',
+    auth: { type: 'bearer', bearerToken: 'lms-internal-bearer-token' },
+    headers: [
+      { id: '1', key: 'Content-Type', value: 'application/json', enabled: true },
+    ],
+    bodyRaw: JSON.stringify({ pan_number: '{{pan_number}}' }, null, 2),
+    bodySchema: [
+      { id: '1', path: 'pan_number', required: true, fieldType: 'regex', pattern: '^[A-Z]{5}[0-9]{4}[A-Z]$', description: 'PAN number of applicant' },
+    ],
+    responseJson: JSON.stringify({ status: 'SUCCESS', has_active_application: false, application_id: null, application_status: null }, null, 2),
+    status: 'active',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
 ];
 
 // ─── Constants ────────────────────────────────────────────────────────────────

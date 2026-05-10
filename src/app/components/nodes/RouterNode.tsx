@@ -21,7 +21,6 @@ export function RouterNode({ data, selected }: RouterNodeProps) {
 
   const savedRoutings = (data.routings ?? []).filter((r) => r.saved && r.targetBlockId);
   const hasDefault = Boolean(data.defaultRoute);
-  const branchType = data.routerBranchType ?? 'exclusive';
 
   // Distribute source handles across the bottom edge of the outer div.
   // The outer div is 176px wide. Handles are positioned as a percentage of that.
@@ -67,12 +66,6 @@ export function RouterNode({ data, selected }: RouterNodeProps) {
         <div className="transform -rotate-45 text-center px-2">
           <GitBranch className="h-5 w-5 text-orange-500 mx-auto mb-1" />
           <div className="font-semibold text-xs mb-1 leading-tight">{data.name}</div>
-          <Badge
-            variant="secondary"
-            className={`text-xs ${branchType === 'inclusive' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}
-          >
-            {branchType === 'inclusive' ? 'INCLUSIVE' : 'EXCLUSIVE'}
-          </Badge>
           {totalHandles > 0 && (
             <div className="mt-1 text-xs text-orange-600">
               {savedRoutings.length} route{savedRoutings.length !== 1 ? 's' : ''}

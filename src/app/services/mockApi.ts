@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Mock API Service
  * All functions mirror real axios calls to the FastAPI backend.
  * To switch to the real backend, replace the mock implementations
@@ -39,6 +39,7 @@ const PROGRAMS_STORE: Program[] = [
   { id: '10', program_name: 'CIMSME01',                  product_category: 'BUSINESS_LOAN', vertical: ['MSME'],   program_code: 'CIM10',  description: '',                           status: 'Active',   supported_identifiers: [{ type: 'account', label: 'Account Number', placeholder: 'e.g. 001234567890' }, { type: 'mobile', label: 'Mobile Number', placeholder: 'e.g. +91 9876543210' }, { type: 'pan', label: 'PAN Number', placeholder: 'e.g. ABCDE1234F' }],                  created_at: '2026-03-12T10:00:00Z', updated_at: '2026-04-12T10:00:00Z' },
   { id: '11', program_name: 'MSME Pilot Program',        product_category: 'BUSINESS_LOAN', vertical: ['MSME'],   program_code: 'MPP11',  description: 'Pilot MSME program',         status: 'Draft',    supported_identifiers: [{ type: 'mobile', label: 'Mobile Number', placeholder: 'e.g. +91 9876543210' }],                                                                                                                                                                            created_at: '2026-03-15T11:00:00Z', updated_at: '2026-04-01T12:00:00Z' },
   { id: '12', program_name: 'Gold Loan Express',         product_category: 'PERSONAL_LOAN', vertical: ['GOLD'],   program_code: 'GLE12',  description: '',                           status: 'Inactive', supported_identifiers: [{ type: 'mobile', label: 'Mobile Number', placeholder: 'e.g. +91 9876543210' }],                                                                                                                                                                            created_at: '2026-03-18T09:00:00Z', updated_at: '2026-04-02T09:00:00Z' },
+  { id: '13', program_name: 'Credit Card Onboarding',    product_category: 'CREDIT_CARD',   vertical: ['RETAIL'], program_code: 'CCO01',  description: 'End-to-end digital credit card onboarding for ETB and NTB customers', status: 'Active', supported_identifiers: [{ type: 'mobile', label: 'Mobile Number', placeholder: 'e.g. +91 9876543210' }, { type: 'pan', label: 'PAN Number', placeholder: 'e.g. ABCDE1234F' }], created_at: '2026-05-08T10:00:00Z', updated_at: '2026-05-08T10:00:00Z' },
 ];
 
 const DOCS_STORE: RequiredDocument[] = [
@@ -142,6 +143,620 @@ const WORKFLOWS_STORE: Workflow[] = [
         canvas_blocks: [],
         created_at: '2026-04-05T08:00:00Z',
         updated_at: '2026-04-05T08:00:00Z',
+      },
+    ],
+  },
+  {
+    id: 'wf4',
+    program_id: '13',
+    workflow_name: 'Credit Card Onboarding Journey',
+    workflow_code: 'CCO_MAIN_01',
+    description: 'End-to-end STP journey â€” 25 blocks covering ETB/NTB KYC, income verification, credit assessment, card selection, eSign, and VKYC',
+    default_version: 'v1',
+    status: 'ACTIVE',
+    created_at: '2026-05-08T10:00:00Z',
+    updated_at: '2026-05-08T10:00:00Z',
+    versions: [
+      {
+        id: 'wfv5',
+        workflow_id: 'wf4',
+        version: 'v1',
+        status: 'ACTIVE',
+        created_at: '2026-05-08T10:00:00Z',
+        updated_at: '2026-05-08T10:00:00Z',
+        canvas_blocks: [
+          /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+           * CREDIT CARD ONBOARDING â€” 25 blocks
+           * Common path: Start â†’ PAN Verify â†’ Entry Router
+           * ETB branch:  Entry Router â†’ ETB Profile â†’ Employment & Income
+           * NTB branch:  Entry Router â†’ Aadhaar â†’ Liveness â†’ NTB Profile â†’ Employment & Income
+           * Income:      Employment & Income â†’ Income Router â†’ [Payslip | ITR] â†’ BSA
+           * Decision:    BSA â†’ Credit Assessment â†’ Credit Router â†’ [Pre-Qual | Rejection]
+           * Fulfilment:  Pre-Qual â†’ Card Select â†’ Card Prefs â†’ MITC â†’ Consent â†’ eSign
+           * Close:       eSign â†’ Post-eSign Router â†’ [ETB End | VKYC â†’ NTB End]
+           * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
+          // 1 â”€ Journey Start
+          {
+            id: 'blk_start', type: 'start', name: 'Journey Start',
+            description: 'Credit card application entry via web channel with OTP authentication',
+            configured: true,
+            entrySource: 'web', authRequired: true, authMethod: 'otp',
+            collectConsent: true, consentScope: 'credit_card_application',
+            prefillSource: 'none', passthroughParams: [], startWebhookEnabled: false,
+          },
+          // 2 â”€ PAN Verification â€” checks + 4 data hooks (CBS, CMS, LMS, CIBIL)
+          {
+            id: 'blk_pan_verify', type: 'smart', blockTypeId: 'pan_verification',
+            name: 'PAN Verification', category: 'identity', provider: 'PAN Profile Detailed API',
+            description: 'Perform comprehensive PAN verification with AML screening, CFR validation, age verification, and serviceable pincode checks. Identity details are fetched using PAN Profile Detailed API with configurable retry mechanism.',
+            configured: true, hasRetry: true,
+            pages: [
+              { id: 'pan_input', name: 'PAN Input Page', actions: ['PAN initiated'], userInputs: [{ id: 'pan_number', name: 'PAN Number', type: 'text', dataType: 'STRING', required: true }] },
+              { id: 'pan_confirmed', name: 'PAN Confirmed Page', actions: ['PAN verified'], userInputs: [] },
+            ],
+            checks: [
+              { id: 'aml_check', name: 'AML Check', enabled: false, outputResponse: 'reject', fields: [] },
+              { id: 'cfr_check', name: 'CFR Check', enabled: false, outputResponse: 'reject', fields: [
+                { id: 'master_code', name: 'Configure Master Code', type: 'select', value: '', options: [{ label: 'CFR Master 1', value: 'cfr_master_1' }, { label: 'CFR Master 2', value: 'cfr_master_2' }, { label: 'CFR Master 3', value: 'cfr_master_3' }] },
+                { id: 'column_field', name: 'Column Field Name', type: 'dependent-select', value: '', dependsOn: 'master_code', masterColumns: { cfr_master_1: [{ label: 'Applicant ID', value: 'applicant_id', isPrimaryKey: true, dataType: 'Integer' }, { label: 'PAN Number', value: 'pan_number', isPrimaryKey: false, dataType: 'String' }, { label: 'CFR Score', value: 'cfr_score', isPrimaryKey: false, dataType: 'Float' }, { label: 'Risk Category', value: 'risk_category', isPrimaryKey: false, dataType: 'String' }], cfr_master_2: [{ label: 'Customer ID', value: 'customer_id', isPrimaryKey: true, dataType: 'Integer' }, { label: 'Full Name', value: 'full_name', isPrimaryKey: false, dataType: 'String' }, { label: 'CFR Flag', value: 'cfr_flag', isPrimaryKey: false, dataType: 'Boolean' }, { label: 'Check Date', value: 'check_date', isPrimaryKey: false, dataType: 'Date' }], cfr_master_3: [{ label: 'Record ID', value: 'record_id', isPrimaryKey: true, dataType: 'Integer' }, { label: 'Bureau Ref', value: 'bureau_ref', isPrimaryKey: false, dataType: 'String' }, { label: 'Fraud Indicator', value: 'fraud_indicator', isPrimaryKey: false, dataType: 'Boolean' }, { label: 'Source System', value: 'source_system', isPrimaryKey: false, dataType: 'String' }] } },
+              ]},
+              { id: 'age_check', name: 'Age Check', enabled: true, outputResponse: 'reject', fields: [
+                { id: 'min_age', name: 'Minimum Age', type: 'number', value: 21 },
+                { id: 'max_age', name: 'Maximum Age', type: 'number', value: 65 },
+              ]},
+              { id: 'pincode_check', name: 'Serviceable Pincode Check', enabled: false, outputResponse: 'reject', fields: [
+                { id: 'master_code', name: 'Configure Master Code', type: 'select', value: '', options: [{ label: 'Pincode Master 1', value: 'pincode_master_1' }, { label: 'Pincode Master 2', value: 'pincode_master_2' }, { label: 'Pincode Master 3', value: 'pincode_master_3' }] },
+                { id: 'column_field', name: 'Column Field Name', type: 'dependent-select', value: '', dependsOn: 'master_code', masterColumns: { pincode_master_1: [{ label: 'Pincode', value: 'pincode', isPrimaryKey: true, dataType: 'String' }, { label: 'City', value: 'city', isPrimaryKey: false, dataType: 'String' }, { label: 'State', value: 'state', isPrimaryKey: false, dataType: 'String' }, { label: 'Is Serviceable', value: 'is_serviceable', isPrimaryKey: false, dataType: 'Boolean' }], pincode_master_2: [{ label: 'Zip Code', value: 'zip_code', isPrimaryKey: true, dataType: 'String' }, { label: 'District', value: 'district', isPrimaryKey: false, dataType: 'String' }, { label: 'Region', value: 'region', isPrimaryKey: false, dataType: 'String' }, { label: 'Service Type', value: 'service_type', isPrimaryKey: false, dataType: 'String' }], pincode_master_3: [{ label: 'Postal Code', value: 'postal_code', isPrimaryKey: true, dataType: 'String' }, { label: 'Tier', value: 'tier', isPrimaryKey: false, dataType: 'String' }, { label: 'Coverage Area', value: 'coverage_area', isPrimaryKey: false, dataType: 'String' }, { label: 'Is Active', value: 'is_active', isPrimaryKey: false, dataType: 'Boolean' }] } },
+              ]},
+            ],
+            dataHooks: [
+              {
+                id: 'hook_pan_post', eventKey: 'after_pan_input', eventLabel: 'After PAN Input',
+                apis: [
+                  {
+                    id: 'dhapi_cbs', apiId: 'cbs_dedupe', apiName: 'CBS Dedupe',
+                    trigger: 'after_block_complete', latencyP95Ms: 800,
+                    inputMappings: [
+                      { requestPath: 'pan_number', label: 'PAN Number', sourceType: 'native', sourceValue: 'pan_number', isAutoMapped: true },
+                      { requestPath: 'date_of_birth', label: 'Date of Birth', sourceType: 'native', sourceValue: 'date_of_birth', isAutoMapped: true },
+                    ],
+                    outputCaptures: [
+                      { id: 'oc_is_etb', path: 'data.is_etb', label: 'Is ETB Customer', storeType: 'custom', storeName: 'is_etb' },
+                      { id: 'oc_cbs_name', path: 'data.customer_name', label: 'CBS Customer Name', storeType: 'native', storeName: 'customer_name' },
+                    ],
+                  },
+                  {
+                    id: 'dhapi_cms', apiId: 'cms_dedupe', apiName: 'CMS Dedupe',
+                    trigger: 'after_block_complete', latencyP95Ms: 400,
+                    inputMappings: [
+                      { requestPath: 'pan_number', label: 'PAN Number', sourceType: 'native', sourceValue: 'pan_number', isAutoMapped: true },
+                    ],
+                    outputCaptures: [
+                      { id: 'oc_has_card', path: 'data.has_existing_card', label: 'Has Existing Credit Card', storeType: 'custom', storeName: 'has_existing_card' },
+                    ],
+                  },
+                  {
+                    id: 'dhapi_lms', apiId: 'lms_dedupe', apiName: 'LMS Dedupe',
+                    trigger: 'after_block_complete', latencyP95Ms: 400,
+                    inputMappings: [
+                      { requestPath: 'pan_number', label: 'PAN Number', sourceType: 'native', sourceValue: 'pan_number', isAutoMapped: true },
+                    ],
+                    outputCaptures: [
+                      { id: 'oc_has_app', path: 'data.has_active_application', label: 'Has Active Application', storeType: 'custom', storeName: 'has_active_application' },
+                      { id: 'oc_app_id', path: 'data.application_id', label: 'Existing Application ID', storeType: 'custom', storeName: 'existing_application_id' },
+                    ],
+                  },
+                  {
+                    id: 'dhapi_cibil', apiId: 'cibil_bureau', apiName: 'CIBIL Bureau Report',
+                    trigger: 'after_block_complete', latencyP95Ms: 1450,
+                    inputMappings: [
+                      { requestPath: 'applicant.name.firstName', label: 'First Name', sourceType: 'native', sourceValue: 'first_name', isAutoMapped: true },
+                      { requestPath: 'applicant.name.lastName', label: 'Last Name', sourceType: 'native', sourceValue: 'last_name', isAutoMapped: true },
+                      { requestPath: 'applicant.dateOfBirth', label: 'Date of Birth', sourceType: 'native', sourceValue: 'dob', isAutoMapped: true },
+                      { requestPath: 'applicant.identifiers.pan', label: 'PAN Number', sourceType: 'native', sourceValue: 'pan_number', isAutoMapped: true },
+                      { requestPath: 'applicant.contact.mobile', label: 'Mobile Number', sourceType: 'native', sourceValue: 'mobile', isAutoMapped: true },
+                    ],
+                    outputCaptures: [
+                      { id: 'oc_score', path: 'data.scoreDetails.score', label: 'Credit Score', storeType: 'native', storeName: 'credit_score' },
+                      { id: 'oc_dpd90', path: 'data.derogatorySummary.dpd90Count', label: 'DPD 90+ Count', storeType: 'custom', storeName: 'bureau_dpd90' },
+                      { id: 'oc_enq', path: 'data.enquiryDetails.length', label: 'Total Enquiries', storeType: 'custom', storeName: 'bureau_enquiries' },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          // 3 â”€ Entry Router â€” reject existing card holders; route ETB vs NTB
+          {
+            id: 'blk_entry_router', type: 'router', name: 'Entry Router',
+            description: 'Reject applicants with active credit card; route ETB to pre-filled profile; default NTB to Aadhaar OTP eKYC',
+            configured: true, routerBranchType: 'exclusive', defaultRoute: 'blk_aadhaar',
+            routings: [
+              {
+                id: 'route_reject_card', label: 'Has Existing Card â†’ Reject', routingType: 'condition', saved: true,
+                conditionGroups: [{ id: 'cg_has_card', operator: 'AND', conditions: [{ id: 'c_has_card', parameter: 'has_existing_card', operator: '=', value: 'true', fieldType: 'text' }] }], targetBlockId: 'blk_rejection_end',
+              },
+              {
+                id: 'route_etb', label: 'ETB Customer â†’ Profile Review', routingType: 'condition', saved: true,
+                conditionGroups: [{ id: 'cg_etb', operator: 'AND', conditions: [{ id: 'c_etb', parameter: 'is_etb', operator: '=', value: 'true', fieldType: 'text' }] }], targetBlockId: 'blk_etb_profile',
+              },
+            ],
+          },
+          // 4 â”€ ETB Customer Profile (form â€” CBS pre-fill, 3 pages)
+          {
+            id: 'blk_etb_profile', type: 'form', name: 'ETB Customer Profile',
+            description: 'Review and confirm pre-filled profile data fetched from CBS for existing bank customers',
+            configured: true, journeyState: 'etb_profile_review',
+            pages: [
+              {
+                id: 'pg_etb_personal', name: 'Personal Information',
+                userInputs: [
+                  { id: 'inp_etb_name',    key: 'customer_name',  label: 'Full Name',     type: 'text',   required: true,  fieldSource: 'native' },
+                  { id: 'inp_etb_dob',     key: 'date_of_birth',  label: 'Date of Birth', type: 'date',   required: true,  fieldSource: 'native' },
+                  { id: 'inp_etb_pan',     key: 'pan_number',     label: 'PAN Number',    type: 'text',   required: true,  fieldSource: 'native' },
+                  { id: 'inp_etb_gender',  key: 'gender',         label: 'Gender',        type: 'select', required: false, fieldSource: 'native' },
+                ],
+              },
+              {
+                id: 'pg_etb_contact', name: 'Contact Details',
+                userInputs: [
+                  { id: 'inp_etb_mobile',  key: 'mobile_number',  label: 'Mobile Number', type: 'tel',   required: true,  fieldSource: 'native' },
+                  { id: 'inp_etb_email',   key: 'email_id',       label: 'Email Address', type: 'email', required: true,  fieldSource: 'native' },
+                ],
+              },
+              {
+                id: 'pg_etb_address', name: 'Address',
+                userInputs: [
+                  { id: 'inp_etb_addr',    key: 'address',        label: 'Address',       type: 'text', required: true,  fieldSource: 'native' },
+                  { id: 'inp_etb_city',    key: 'city',           label: 'City',          type: 'text', required: true,  fieldSource: 'native' },
+                  { id: 'inp_etb_state',   key: 'state',          label: 'State',         type: 'text', required: false, fieldSource: 'native' },
+                  { id: 'inp_etb_pincode', key: 'pincode',        label: 'Pincode',       type: 'text', required: true,  fieldSource: 'native' },
+                ],
+              },
+            ],
+          },
+          // 5 â”€ Aadhaar OTP eKYC (NTB path)
+          {
+            id: 'blk_aadhaar', type: 'smart', blockTypeId: 'aadhaar_verification',
+            name: 'Aadhaar OTP eKYC', category: 'identity', provider: 'DigiLocker',
+            description: 'OTP-based Aadhaar eKYC for NTB customers; ARK stored in Aadhaar Vault, number never persisted',
+            configured: true, hasRetry: true,
+            pages: [
+              { id: 'aadhaar_info', name: 'Aadhaar Info Page', actions: ['Confirm DigiLocker Details'], userInputs: [] },
+              { id: 'aadhaar_otp_input', name: 'Aadhaar OTP eKYC Input Page', actions: ['Aadhaar OTP verified'],
+                userInputs: [{ id: 'aadhaar_number', name: 'Aadhaar Number', type: 'text', dataType: 'STRING', required: true }] },
+            ],
+            generalConfig: [
+              { id: 'service_provider', name: 'Service Provider', type: 'select', value: 'otp_ekyc',
+                options: [{ label: 'DigiLocker', value: 'digilocker' }, { label: 'OTP eKYC (UIDAI)', value: 'otp_ekyc' }] },
+            ],
+            checks: [
+              { id: 'mobile_linkage', name: 'Aadhaar Mobile Linkage Check', enabled: false, outputResponse: 'reject', fields: [] },
+              { id: 'age_check', name: 'Age Check', enabled: false, outputResponse: 'reject',
+                fields: [{ id: 'min_age', name: 'Minimum Age', type: 'number', value: 18 }, { id: 'max_age', name: 'Maximum Age', type: 'number', value: 65 }] },
+              { id: 'pincode_check', name: 'Serviceable Pincode Check', enabled: false, outputResponse: 'reject',
+                fields: [
+                  { id: 'master_code', name: 'Configure Master Code', type: 'select', value: '',
+                    options: [{ label: 'Pincode Master 1', value: 'pincode_master_1' }, { label: 'Pincode Master 2', value: 'pincode_master_2' }, { label: 'Pincode Master 3', value: 'pincode_master_3' }] },
+                  { id: 'column_field', name: 'Column Field Name', type: 'dependent-select', value: '', dependsOn: 'master_code',
+                    masterColumns: {
+                      pincode_master_1: [{ label: 'Pincode', value: 'pincode', isPrimaryKey: true, dataType: 'String' }, { label: 'City', value: 'city', isPrimaryKey: false, dataType: 'String' }, { label: 'State', value: 'state', isPrimaryKey: false, dataType: 'String' }, { label: 'Is Serviceable', value: 'is_serviceable', isPrimaryKey: false, dataType: 'Boolean' }],
+                      pincode_master_2: [{ label: 'Zip Code', value: 'zip_code', isPrimaryKey: true, dataType: 'String' }, { label: 'District', value: 'district', isPrimaryKey: false, dataType: 'String' }, { label: 'Region', value: 'region', isPrimaryKey: false, dataType: 'String' }, { label: 'Service Type', value: 'service_type', isPrimaryKey: false, dataType: 'String' }],
+                      pincode_master_3: [{ label: 'Postal Code', value: 'postal_code', isPrimaryKey: true, dataType: 'String' }, { label: 'Tier', value: 'tier', isPrimaryKey: false, dataType: 'String' }, { label: 'Coverage Area', value: 'coverage_area', isPrimaryKey: false, dataType: 'String' }, { label: 'Is Active', value: 'is_active', isPrimaryKey: false, dataType: 'Boolean' }],
+                    } },
+                ] },
+            ],
+            retryConfig: { maxAttempts: 3, coolingPeriod: 120, velocityCycle: 3 },
+          },
+          // 6 â”€ Liveness & Face Match (NTB path)
+          {
+            id: 'blk_liveness', type: 'smart', blockTypeId: 'liveness_selfie',
+            name: 'Liveness & Face Match', category: 'identity', provider: 'TKYC',
+            description: 'Passive liveness detection and selfie-vs-Aadhaar face match for NTB applicants',
+            configured: true, hasRetry: true,
+            pages: [
+              { id: 'landing', name: 'Liveness Landing Page', actions: ['Liveness check initiated'], userInputs: [] },
+              { id: 'photo_capture', name: 'Photo Capture Page', actions: ['Photo captured'], userInputs: [] },
+              { id: 'photo_preview', name: 'Photo Preview Page', actions: ['Photo confirmed'], userInputs: [] },
+            ],
+            checks: [
+              { id: 'face_match', name: 'Face Match', enabled: false, outputResponse: 'reject',
+                fields: [
+                  { id: 'source', name: 'Face Match Source', type: 'select', value: '',
+                    options: [{ label: 'PAN', value: 'pan' }, { label: 'Aadhaar', value: 'aadhaar' }] },
+                  { id: 'threshold', name: 'Match Threshold %', type: 'number', value: 80 },
+                ] },
+              { id: 'liveness_score', name: 'Liveness Score', enabled: false, outputResponse: 'reject',
+                fields: [{ id: 'threshold', name: 'Minimum Score %', type: 'number', value: 80 }] },
+            ],
+            retryConfig: [
+              { id: 'face_match_retry', name: 'Face Match Retry', maxAttempts: 3, coolingPeriod: 120, velocityCycle: 3 },
+              { id: 'liveness_retry', name: 'Liveness Retry', maxAttempts: 3, coolingPeriod: 120, velocityCycle: 3 },
+            ],
+          },
+          // 7 â”€ NTB Customer Profile (form â€” 3 pages)
+          {
+            id: 'blk_ntb_profile', type: 'form', name: 'NTB Customer Profile',
+            description: 'Collect and confirm personal details for new-to-bank credit card applicants',
+            configured: true, journeyState: 'ntb_profile_collection',
+            pages: [
+              {
+                id: 'pg_ntb_personal', name: 'Personal Information',
+                userInputs: [
+                  { id: 'inp_ntb_name',   key: 'customer_name',      label: 'Full Name',            type: 'text',   required: true,  fieldSource: 'native' },
+                  { id: 'inp_ntb_dob',    key: 'date_of_birth',      label: 'Date of Birth',        type: 'date',   required: true,  fieldSource: 'native' },
+                  { id: 'inp_ntb_father', key: 'father_spouse_name', label: 'Father / Spouse Name', type: 'text',   required: false, fieldSource: 'custom' },
+                  { id: 'inp_ntb_nat',    key: 'nationality',        label: 'Nationality',          type: 'select', required: true,  fieldSource: 'custom' },
+                ],
+              },
+              {
+                id: 'pg_ntb_contact', name: 'Contact Details',
+                userInputs: [
+                  { id: 'inp_ntb_mobile', key: 'mobile_number',      label: 'Mobile Number',        type: 'tel',   required: true,  fieldSource: 'native' },
+                  { id: 'inp_ntb_email',  key: 'email_id',           label: 'Email Address',        type: 'email', required: true,  fieldSource: 'native' },
+                ],
+              },
+              {
+                id: 'pg_ntb_address', name: 'Address',
+                userInputs: [
+                  { id: 'inp_ntb_addr',    key: 'address', label: 'Address Line 1', type: 'text', required: true,  fieldSource: 'native' },
+                  { id: 'inp_ntb_city',    key: 'city',    label: 'City',           type: 'text', required: true,  fieldSource: 'native' },
+                  { id: 'inp_ntb_state',   key: 'state',   label: 'State',          type: 'text', required: false, fieldSource: 'native' },
+                  { id: 'inp_ntb_pincode', key: 'pincode', label: 'Pincode',        type: 'text', required: true,  fieldSource: 'native' },
+                ],
+              },
+            ],
+          },
+          // 8 â”€ Employment & Income Details (form â€” 2 pages)
+          {
+            id: 'blk_emp_income', type: 'form', name: 'Employment & Income Details',
+            description: 'Collect employment type, employer name, and net monthly income for credit assessment',
+            configured: true, journeyState: 'employment_income',
+            pages: [
+              {
+                id: 'pg_employment', name: 'Employment Details',
+                userInputs: [
+                  { id: 'inp_emp_type', key: 'employment_type',  label: 'Employment Type',          type: 'select', required: true,  fieldSource: 'native' },
+                  { id: 'inp_employer', key: 'employer_name',    label: 'Employer / Business Name', type: 'text',   required: true,  fieldSource: 'custom' },
+                  { id: 'inp_tenure',   key: 'job_tenure_years', label: 'Years in Current Job',     type: 'number', required: false, fieldSource: 'custom' },
+                ],
+              },
+              {
+                id: 'pg_income', name: 'Income Details',
+                userInputs: [
+                  { id: 'inp_income', key: 'monthly_income', label: 'Net Monthly Income (â‚¹)',      type: 'number', required: true,  fieldSource: 'native' },
+                  { id: 'inp_emi',    key: 'existing_emi',   label: 'Monthly EMI Obligations (â‚¹)', type: 'number', required: false, fieldSource: 'custom' },
+                ],
+              },
+            ],
+          },
+          // 9 â”€ Employment Type Router
+          {
+            id: 'blk_emp_router', type: 'router', name: 'Employment Type Router',
+            description: 'Route salaried applicants to payslip upload; self-employed (SEP/SENP) to ITR verification',
+            configured: true, routerBranchType: 'exclusive', defaultRoute: 'blk_itr',
+            routings: [
+              {
+                id: 'route_sal', label: 'Salaried', routingType: 'condition', saved: true,
+                conditionGroups: [{ id: 'cg_sal', operator: 'AND', conditions: [{ id: 'c_sal', parameter: 'native.employment_type', operator: '=', value: 'SALARIED', fieldType: 'text' }] }], targetBlockId: 'blk_payslip',
+              },
+              {
+                id: 'route_se', label: 'Self-Employed (SEP / SENP)', routingType: 'condition', saved: true,
+                conditionGroups: [{ id: 'cg_se', operator: 'OR', conditions: [
+                  { id: 'c_sep',  parameter: 'native.employment_type', operator: '=', value: 'SEP',  fieldType: 'text' },
+                  { id: 'c_senp', parameter: 'native.employment_type', operator: '=', value: 'SENP', fieldType: 'text' },
+                ]}], targetBlockId: 'blk_itr',
+              },
+            ],
+          },
+          // 10 â”€ Salary Slip Upload (Salaried path)
+          {
+            id: 'blk_payslip', type: 'smart', blockTypeId: 'payslip',
+            name: 'Salary Slip Upload', category: 'financial', provider: 'Document OCR',
+            description: 'Upload and verify last 3 salary slips for salaried credit card applicants',
+            configured: true, hasRetry: true,
+            pages: [
+              { id: 'payslip_upload', name: 'Payslip Upload Page', actions: ['Payslip uploaded'], userInputs: [] },
+              { id: 'payslip_confirmed', name: 'Payslip Confirmation Page', actions: ['Payslip confirmed'], userInputs: [] },
+            ],
+            generalConfig: [
+              { id: 'last_n_months', name: 'Last N Months Required', type: 'number', value: 3 },
+              { id: 'accepted_formats', name: 'Accepted Formats', type: 'select', value: 'pdf_jpg_png',
+                options: [{ label: 'PDF only', value: 'pdf' }, { label: 'PDF, JPG, PNG', value: 'pdf_jpg_png' }] },
+            ],
+            checks: [
+              { id: 'name_match', name: 'Name Match with Applicant', enabled: false, outputResponse: 'reject',
+                fields: [
+                  { id: 'source', name: 'Name Source', type: 'select', value: '',
+                    options: [{ label: 'PAN', value: 'pan' }, { label: 'Aadhaar', value: 'aadhaar' }] },
+                  { id: 'threshold', name: 'Match Threshold %', type: 'number', value: 60 },
+                ] },
+              { id: 'employer_match', name: 'Employer Name Match (vs Declared)', enabled: false, outputResponse: 'reject',
+                fields: [{ id: 'threshold', name: 'Match Threshold %', type: 'number', value: 70 }] },
+            ],
+            retryConfig: [
+              { id: 'payslip_upload_retry', name: 'Payslip Upload Retry', maxAttempts: 3, coolingPeriod: 0, velocityCycle: 1 },
+            ],
+          },
+          // 11 â”€ ITR Fetch & Analysis (Self-employed path)
+          {
+            id: 'blk_itr', type: 'smart', blockTypeId: 'itr_fetch_analysis',
+            name: 'ITR Verification', category: 'financial', provider: 'ITR Fetch (Online)',
+            description: 'Fetch and analyse last 2 years ITR for self-employed (SEP / SENP) credit card applicants',
+            configured: true, hasRetry: true,
+            pages: [
+              { id: 'itr_initiation', name: 'ITR Fetch Initiation Page', actions: ['ITR fetch initiated'], userInputs: [] },
+              { id: 'itr_result', name: 'ITR Analysis Result Page', actions: ['ITR analysis complete'], userInputs: [] },
+            ],
+            generalConfig: [
+              { id: 'number_of_years', name: 'Number of Years', type: 'select', value: '2',
+                options: [{ label: '1 Year', value: '1' }, { label: '2 Years', value: '2' }, { label: '3 Years', value: '3' }, { label: '4 Years', value: '4' }] },
+              { id: 'itr_type', name: 'ITR Type', type: 'select', value: 'itr_1',
+                options: [{ label: 'ITR-1 (Sahaj)', value: 'itr_1' }, { label: 'ITR-2', value: 'itr_2' }, { label: 'ITR-3', value: 'itr_3' }, { label: 'ITR-4 (Sugam)', value: 'itr_4' }, { label: 'ITR-5', value: 'itr_5' }, { label: 'ITR-6', value: 'itr_6' }] },
+            ],
+            retryConfig: { maxAttempts: 3, coolingPeriod: 120, velocityCycle: 3 },
+          },
+          // 12 â”€ Bank Statement Analysis
+          {
+            id: 'blk_bsa', type: 'smart', blockTypeId: 'bank_statement',
+            name: 'Bank Statement Analysis', category: 'financial', provider: 'Insights',
+            description: 'Analyse 6-month bank statements for average balance, salary credits, and liability obligations',
+            configured: true, hasRetry: true,
+            pages: [
+              { id: 'bank_statement', name: 'Bank Statement Page', actions: ['Bank statement submitted'], userInputs: [] },
+            ],
+            checks: [
+              { id: 'name_match', name: 'Name Match Configuration', enabled: false, outputResponse: 'reject',
+                fields: [
+                  { id: 'source', name: 'Name Source Selection', type: 'select', value: '',
+                    options: [{ label: 'PAN', value: 'pan' }, { label: 'Aadhaar', value: 'aadhaar' }] },
+                  { id: 'threshold', name: 'Threshold %', type: 'number', value: 80 },
+                ] },
+            ],
+            generalConfig: [
+              { id: 'start_month', name: 'Start Month', type: 'select', value: '1',
+                options: [{ label: 'January', value: '1' }, { label: 'February', value: '2' }, { label: 'March', value: '3' }, { label: 'April', value: '4' }, { label: 'May', value: '5' }, { label: 'June', value: '6' }, { label: 'July', value: '7' }, { label: 'August', value: '8' }, { label: 'September', value: '9' }, { label: 'October', value: '10' }, { label: 'November', value: '11' }, { label: 'December', value: '12' }] },
+              { id: 'start_year', name: 'Start Year', type: 'select', value: '2024',
+                options: [{ label: '2024', value: '2024' }, { label: '2025', value: '2025' }, { label: '2026', value: '2026' }] },
+              { id: 'end_month', name: 'End Month', type: 'select', value: '12',
+                options: [{ label: 'January', value: '1' }, { label: 'February', value: '2' }, { label: 'March', value: '3' }, { label: 'April', value: '4' }, { label: 'May', value: '5' }, { label: 'June', value: '6' }, { label: 'July', value: '7' }, { label: 'August', value: '8' }, { label: 'September', value: '9' }, { label: 'October', value: '10' }, { label: 'November', value: '11' }, { label: 'December', value: '12' }] },
+              { id: 'end_year', name: 'End Year', type: 'select', value: '2026',
+                options: [{ label: '2024', value: '2024' }, { label: '2025', value: '2025' }, { label: '2026', value: '2026' }] },
+            ],
+            retryConfig: { maxAttempts: 3, coolingPeriod: 120, velocityCycle: 3 },
+          },
+          // 13 â”€ Credit Assessment Decision (CIBIL score captured at PAN step)
+          {
+            id: 'blk_credit_decision', type: 'decision', name: 'Credit Assessment',
+            description: 'Evaluate credit eligibility using CIBIL score from PAN step: score â‰¥ 740 = PASS, score = 0 (NAI) = FLAG, 0 < score < 740 = REJECT',
+            configured: true,
+            decisionConfig: {
+              verdictStorageKey: 'custom.credit_verdict',
+              verdictField: 'custom.credit_verdict',
+              defaultVerdict: 'REJECT',
+              verdictRoutes: { PASS: 'blk_credit_router', FLAG: 'blk_credit_router', REJECT: 'blk_rejection_end' },
+              rules: [
+                {
+                  id: 'rule_pass_score',
+                  conditions: [{ id: 'c_pass', field: 'credit_score', operator: '>=', value: '740' }],
+                  conditionOperator: 'AND', verdict: 'PASS', targetBlockId: 'blk_credit_router',
+                },
+                {
+                  id: 'rule_nai_score',
+                  conditions: [{ id: 'c_nai', field: 'credit_score', operator: '<=', value: '0' }],
+                  conditionOperator: 'AND', verdict: 'FLAG', targetBlockId: 'blk_credit_router',
+                },
+                {
+                  id: 'rule_reject_score',
+                  conditions: [
+                    { id: 'c_rej_lo', field: 'credit_score', operator: '>', value: '0' },
+                    { id: 'c_rej_hi', field: 'credit_score', operator: '<', value: '740' },
+                  ],
+                  conditionOperator: 'AND', verdict: 'REJECT', targetBlockId: 'blk_rejection_end',
+                },
+              ],
+            },
+          },
+          // 14 â”€ Credit Verdict Router
+          {
+            id: 'blk_credit_router', type: 'router', name: 'Credit Verdict Router',
+            description: 'Route PASS and FLAG (NAI) applicants to pre-qualification; route REJECT to terminal state',
+            configured: true, routerBranchType: 'exclusive', defaultRoute: 'blk_rejection_end',
+            routings: [
+              {
+                id: 'route_eligible', label: 'Eligible (PASS or NAI)', routingType: 'condition', saved: true,
+                conditionGroups: [{ id: 'cg_elig', operator: 'OR', conditions: [
+                  { id: 'c_pass', parameter: 'custom.credit_verdict', operator: '=', value: 'PASS', fieldType: 'text' },
+                  { id: 'c_flag', parameter: 'custom.credit_verdict', operator: '=', value: 'FLAG', fieldType: 'text' },
+                ]}], targetBlockId: 'blk_prequal',
+              },
+              {
+                id: 'route_ineligible', label: 'Rejected', routingType: 'condition', saved: true,
+                conditionGroups: [{ id: 'cg_rej', operator: 'AND', conditions: [
+                  { id: 'c_rej', parameter: 'custom.credit_verdict', operator: '=', value: 'REJECT', fieldType: 'text' },
+                ]}], targetBlockId: 'blk_rejection_end',
+              },
+            ],
+          },
+          // 15 â”€ Pre-Qualification Offer
+          {
+            id: 'blk_prequal', type: 'smart', blockTypeId: 'offer_generation',
+            name: 'Pre-Qualification Offer', category: 'decision',
+            description: 'Generate eligible credit card offer with pre-approved credit limit based on BRE scoring output',
+            configured: true, hasRetry: false,
+            pages: [
+              { id: 'generate_offer', name: 'Generate Offer - Loader', actions: ['Offer generation initiated'], userInputs: [] },
+              { id: 'show_offer', name: 'Show Offer Page', actions: ['Offer displayed'], userInputs: [] },
+            ],
+            generalConfig: [
+              { id: 'bre', name: 'Which BRE to Call', type: 'select', value: 'bre_v1',
+                options: [{ label: 'BRE v1 - Standard', value: 'bre_v1' }, { label: 'BRE v2 - Advanced', value: 'bre_v2' }, { label: 'BRE v3 - Premium', value: 'bre_v3' }] },
+              { id: 'product_type', name: 'Product Type', type: 'select', value: 'credit_card',
+                options: [{ label: 'Lending (Loans)', value: 'lending' }, { label: 'Credit Card', value: 'credit_card' }] },
+            ],
+          },
+          // 16 â”€ Card Variant Selection
+          {
+            id: 'blk_card_selection', type: 'smart', blockTypeId: 'card_selection',
+            name: 'Card Variant Selection', category: 'decision', provider: 'BRE Integration',
+            description: 'Present BRE-eligible card variants for applicant to choose',
+            configured: true, hasRetry: false,
+            pages: [
+              { id: 'show_eligible_cards', name: 'Card Selection Page', actions: ['Card selected'], userInputs: [] },
+              { id: 'card_confirmed', name: 'Card Confirmation Page', actions: ['Selection confirmed'], userInputs: [] },
+            ],
+            generalConfig: [
+              { id: 'selection_mode', name: 'Card Display Mode', type: 'select', value: 'bre_driven',
+                options: [{ label: 'BRE-Driven (show eligible variants only)', value: 'bre_driven' }, { label: 'Show All (highlight eligible)', value: 'show_all' }] },
+              { id: 'show_credit_limit', name: 'Show Approved Credit Limit per Variant', type: 'toggle', value: true },
+              { id: 'allow_downgrade', name: 'Allow Customer to Select Lower Tier Card', type: 'toggle', value: true },
+            ],
+          },
+          // 17 â”€ Card Preferences (form â€” 2 pages: add-on card + embossing)
+          {
+            id: 'blk_card_prefs', type: 'form', name: 'Card Preferences',
+            description: 'Capture add-on card request and card embossing name in a single two-page form',
+            configured: true, journeyState: 'card_preferences',
+            pages: [
+              {
+                id: 'pg_addon', name: 'Add-On Card',
+                userInputs: [
+                  { id: 'inp_addon_req',  key: 'addon_card_required',   label: 'Request Add-On Card?',        type: 'select', required: true,  fieldSource: 'custom' },
+                  { id: 'inp_addon_name', key: 'addon_cardholder_name', label: 'Add-On Cardholder Name',      type: 'text',   required: false, fieldSource: 'custom' },
+                  { id: 'inp_addon_rel',  key: 'addon_relationship',    label: 'Relationship to Primary',     type: 'select', required: false, fieldSource: 'custom' },
+                ],
+              },
+              {
+                id: 'pg_embossing', name: 'Card Embossing',
+                userInputs: [
+                  { id: 'inp_emb_name', key: 'embossing_name',        label: 'Name on Card (max 26 chars)', type: 'text',   required: true,  fieldSource: 'custom',
+                    validations: [{ id: 'val_max', type: 'max_length', value: '26' }] },
+                  { id: 'inp_delivery', key: 'delivery_address_type', label: 'Card Delivery Address',       type: 'select', required: true,  fieldSource: 'custom' },
+                ],
+              },
+            ],
+          },
+          // 18 â”€ MITC / KFS Document
+          {
+            id: 'blk_mitc', type: 'smart', blockTypeId: 'kfs_document',
+            name: 'MITC / KFS Document', category: 'fulfilment',
+            description: 'Display Key Facts Statement and Most Important Terms & Conditions for the selected credit card variant',
+            configured: true, hasRetry: false,
+            pages: [
+              { id: 'display_kfs', name: 'KFS Display Page', actions: ['KFS displayed'], userInputs: [] },
+            ],
+            generalConfig: [
+              { id: 'template_id', name: 'KFS Template Selection', type: 'select', value: 'kfs_credit_card_mitc',
+                options: [
+                  { label: 'Personal Loan KFS', value: 'kfs_personal_loan' },
+                  { label: 'Home Loan KFS', value: 'kfs_home_loan' },
+                  { label: 'Business Loan KFS', value: 'kfs_business_loan' },
+                  { label: 'Two-Wheeler Loan KFS', value: 'kfs_two_wheeler_loan' },
+                  { label: 'Credit Card MITC', value: 'kfs_credit_card_mitc' },
+                ] },
+            ],
+          },
+          // 19 â”€ Final Consent (form â€” 1 page)
+          {
+            id: 'blk_consent', type: 'form', name: 'Final Consent',
+            description: 'Collect explicit consent for credit card issuance, bureau enquiry, and auto-debit mandate',
+            configured: true, journeyState: 'final_consent',
+            pages: [
+              {
+                id: 'pg_consent', name: 'Consent & Declarations',
+                userInputs: [
+                  { id: 'inp_con_terms',  key: 'consent_terms',      label: 'I agree to the Terms & Conditions',                type: 'select', required: true,  fieldSource: 'custom' },
+                  { id: 'inp_con_bureau', key: 'consent_bureau',     label: 'I consent to credit bureau enquiry',               type: 'select', required: true,  fieldSource: 'custom' },
+                  { id: 'inp_con_debit',  key: 'consent_auto_debit', label: 'Authorise bank for auto-debit on due date',        type: 'select', required: true,  fieldSource: 'custom' },
+                  { id: 'inp_con_mktg',   key: 'consent_marketing',  label: 'I consent to marketing communications (optional)', type: 'select', required: false, fieldSource: 'custom' },
+                ],
+              },
+            ],
+          },
+          // 20 â”€ Application eSign
+          {
+            id: 'blk_esign', type: 'smart', blockTypeId: 'esign',
+            name: 'Application eSign', category: 'fulfilment', provider: 'TKYC',
+            description: 'Digital signing of credit card application form via Aadhaar OTP eSign',
+            configured: true, hasRetry: true,
+            pages: [
+              { id: 'esign_initiation', name: 'eSign Initiation Page', actions: ['eSign initiated'], userInputs: [] },
+              { id: 'esign_completion', name: 'eSign Completion Page', actions: ['Document signed'], userInputs: [] },
+            ],
+            generalConfig: [
+              { id: 'template_id', name: 'Document Template Selection', type: 'select', value: 'esign_credit_card',
+                options: [
+                  { label: 'Personal Loan Agreement', value: 'esign_personal_loan' },
+                  { label: 'Home Loan Agreement', value: 'esign_home_loan' },
+                  { label: 'Business Loan Agreement', value: 'esign_business_loan' },
+                  { label: 'Overdraft Agreement', value: 'esign_overdraft' },
+                  { label: 'Credit Card Application Form', value: 'esign_credit_card' },
+                ] },
+            ],
+            retryConfig: { maxAttempts: 3, coolingPeriod: 120, velocityCycle: 3 },
+          },
+          // 21 â”€ Post eSign Router
+          {
+            id: 'blk_post_esign_router', type: 'router', name: 'Post eSign Router',
+            description: 'Route ETB customers to completion (no VKYC); route NTB customers to mandatory video KYC',
+            configured: true, routerBranchType: 'exclusive', defaultRoute: 'blk_vkyc',
+            routings: [
+              {
+                id: 'route_etb_done', label: 'ETB â€” Skip VKYC', routingType: 'condition', saved: true,
+                conditionGroups: [{ id: 'cg_etb_done', operator: 'AND', conditions: [{ id: 'c_etb_done', parameter: 'is_etb', operator: '=', value: 'true', fieldType: 'text' }] }], targetBlockId: 'blk_etb_end',
+              },
+              {
+                id: 'route_ntb_vkyc', label: 'NTB â€” Proceed to VKYC', routingType: 'condition', saved: true,
+                conditionGroups: [{ id: 'cg_ntb_vkyc', operator: 'AND', conditions: [{ id: 'c_ntb_vkyc', parameter: 'is_etb', operator: '=', value: 'false', fieldType: 'text' }] }], targetBlockId: 'blk_vkyc',
+              },
+            ],
+          },
+          // 22 â”€ ETB Success End
+          {
+            id: 'blk_etb_end', type: 'end', name: 'Application Successful (ETB)',
+            description: 'Terminal success state for existing bank customers â€” card issuance order placed in CMS',
+            configured: true, journeyState: 'ETB_COMPLETE',
+          },
+          // 23 â”€ Video KYC (NTB mandatory)
+          {
+            id: 'blk_vkyc', type: 'smart', blockTypeId: 'vkyc',
+            name: 'Video KYC', category: 'identity', provider: 'VKYC Vendor',
+            description: 'Mandatory video KYC for NTB customers â€” must be completed within 3 working days of eSign',
+            configured: true, hasRetry: false,
+            pages: [
+              { id: 'vkyc_schedule', name: 'VKYC Slot Scheduling Page', actions: ['VKYC slot scheduled'], userInputs: [] },
+              { id: 'vkyc_instructions', name: 'VKYC Instructions & Requirements Page', actions: ['VKYC initiated'], userInputs: [] },
+              { id: 'vkyc_result', name: 'VKYC Outcome Page', actions: ['VKYC completed'], userInputs: [] },
+            ],
+            checks: [
+              { id: 'vkyc_completion', name: 'VKYC Session Completion Required', enabled: true, outputResponse: 'reject', fields: [] },
+              { id: 'face_match', name: 'Face Match (vs Aadhaar Photo)', enabled: true, outputResponse: 'reject',
+                fields: [{ id: 'threshold', name: 'Match Threshold %', type: 'number', value: 80 }] },
+              { id: 'liveness_check', name: 'Liveness Detection', enabled: true, outputResponse: 'reject', fields: [] },
+              { id: 'document_visibility', name: 'Original Document Visibility (PAN + Aadhaar)', enabled: true, outputResponse: 'reject', fields: [] },
+            ],
+            generalConfig: [
+              { id: 'completion_window_days', name: 'Completion Window (Working Days)', type: 'number', value: 3 },
+              { id: 'expiry_window_days', name: 'Expiry After No-Show (Working Days)', type: 'number', value: 7 },
+              { id: 'max_reschedules', name: 'Max Reschedules Allowed', type: 'number', value: 2 },
+              { id: 'available_hours', name: 'Available Slot Hours', type: 'select', value: '9am_6pm',
+                options: [{ label: '9 AM â€“ 6 PM (Monâ€“Sat)', value: '9am_6pm' }, { label: '9 AM â€“ 8 PM (Monâ€“Sat)', value: '9am_8pm' }, { label: '9 AM â€“ 6 PM (Monâ€“Sun)', value: '9am_6pm_all' }] },
+            ],
+          },
+          // 24 â”€ NTB Success End
+          {
+            id: 'blk_ntb_end', type: 'end', name: 'Application Successful (NTB)',
+            description: 'Terminal success state for NTB customers after VKYC completion â€” card issuance order placed',
+            configured: true, journeyState: 'NTB_COMPLETE',
+          },
+          // 25 â”€ Rejection Terminal State
+          {
+            id: 'blk_rejection_end', type: 'end', name: 'Application Rejected',
+            description: 'Terminal state for rejected credit card applications â€” rejection SMS/email triggered',
+            configured: true, journeyState: 'REJECTED',
+          },
+        ],
       },
     ],
   },
@@ -728,3 +1343,5 @@ export const pagesApi = {
     return { ...PAGES_STORE[idx] };
   },
 };
+
+

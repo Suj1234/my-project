@@ -1,4 +1,4 @@
-import { SmartBlockDefinition } from '../types/journey';
+﻿import { SmartBlockDefinition } from '../types/journey';
 
 // Helper function to get short descriptions for canvas display
 export function getShortDescription(blockTypeId: string): string {
@@ -36,7 +36,7 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
       {
         id: 'pan_input',
         name: 'PAN Input Page',
-        action: 'PAN initiated',
+        actions: ['PAN initiated'],
         userInputs: [
           {
             id: 'pan_number',
@@ -50,7 +50,7 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
       {
         id: 'pan_confirmed',
         name: 'PAN Confirmed Page',
-        action: 'PAN verified',
+        actions: ['PAN verified'],
         userInputs: [],
       },
     ],
@@ -188,9 +188,35 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
     pages: [
       {
         id: 'aadhaar_info',
-        name: 'Aadhaar DigiLocker Consent Page',
-        action: 'Confirm DigiLocker Details',
+        name: 'Aadhaar Info Page',
+        actions: ['Confirm DigiLocker Details'],
         userInputs: [],
+      },
+      {
+        id: 'aadhaar_otp_input',
+        name: 'Aadhaar OTP eKYC Input Page',
+        actions: ['Aadhaar OTP verified'],
+        userInputs: [
+          {
+            id: 'aadhaar_number',
+            name: 'Aadhaar Number',
+            type: 'text',
+            dataType: 'STRING',
+            required: true,
+          },
+        ],
+      },
+    ],
+    generalConfig: [
+      {
+        id: 'service_provider',
+        name: 'Service Provider',
+        type: 'select',
+        value: 'digilocker',
+        options: [
+          { label: 'DigiLocker', value: 'digilocker' },
+          { label: 'OTP eKYC (UIDAI)', value: 'otp_ekyc' },
+        ],
       },
     ],
     checks: [
@@ -281,14 +307,20 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
     pages: [
       {
         id: 'landing',
-        name: 'Liveness SDK Loader',
-        action: 'Liveness check initiated',
+        name: 'Liveness Landing Page',
+        actions: ['Liveness check initiated'],
+        userInputs: [],
+      },
+      {
+        id: 'photo_capture',
+        name: 'Photo Capture Page',
+        actions: ['Photo captured'],
         userInputs: [],
       },
       {
         id: 'photo_preview',
-        name: 'Liveness Photo Preview Page',
-        action: 'Photo confirmed',
+        name: 'Photo Preview Page',
+        actions: ['Photo confirmed'],
         userInputs: [],
       },
     ],
@@ -362,8 +394,8 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
     pages: [
       {
         id: 'bank_statement',
-        name: 'Bank Statement Mode Selection Page',
-        action: 'Bank statement submitted',
+        name: 'Bank Statement Page',
+        actions: ['Bank statement submitted'],
         userInputs: [],
       },
     ],
@@ -471,13 +503,13 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
       {
         id: 'itr_initiation',
         name: 'ITR Fetch Initiation Page',
-        action: 'ITR fetch initiated',
+        actions: ['ITR fetch initiated'],
         userInputs: [],
       },
       {
         id: 'itr_result',
         name: 'ITR Analysis Result Page',
-        action: 'ITR analysis complete',
+        actions: ['ITR analysis complete'],
         userInputs: [],
       },
     ],
@@ -523,13 +555,13 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
       {
         id: 'gst_initiation',
         name: 'GST Fetch Initiation Page',
-        action: 'GST fetch initiated',
+        actions: ['GST fetch initiated'],
         userInputs: [],
       },
       {
         id: 'gst_result',
         name: 'GST Analysis Result Page',
-        action: 'GST analysis complete',
+        actions: ['GST analysis complete'],
         userInputs: [],
       },
     ],
@@ -563,7 +595,7 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
   {
     id: 'offer_generation',
     name: 'Soft Offer Generation',
-    description: 'Generate preliminary soft loan offers using Business Rule Engine (BRE). Automatically computes personalized pre-qualified offers based on applicant profile, credit assessment, and configured business rules — before final underwriting.',
+    description: 'Generate preliminary soft loan offers using Business Rule Engine (BRE). Automatically computes personalized pre-qualified offers based on applicant profile, credit assessment, and configured business rules â€” before final underwriting.',
     category: 'decision',
     icon: 'TrendingUp',
     hasChecks: false,
@@ -571,14 +603,14 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
     pages: [
       {
         id: 'generate_offer',
-        name: 'Generate Soft Offer - Loader',
-        action: 'Offer generation initiated',
+        name: 'Generate Offer - Loader',
+        actions: ['Offer generation initiated'],
         userInputs: [],
       },
       {
         id: 'show_offer',
-        name: 'Show Soft Offer Page',
-        action: 'Offer displayed',
+        name: 'Show Offer Page',
+        actions: ['Offer displayed'],
         userInputs: [],
       },
     ],
@@ -592,6 +624,16 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
           { label: 'BRE v1 - Standard', value: 'bre_v1' },
           { label: 'BRE v2 - Advanced', value: 'bre_v2' },
           { label: 'BRE v3 - Premium', value: 'bre_v3' },
+        ],
+      },
+      {
+        id: 'product_type',
+        name: 'Product Type',
+        type: 'select',
+        value: 'lending',
+        options: [
+          { label: 'Lending (Loans)', value: 'lending' },
+          { label: 'Credit Card', value: 'credit_card' },
         ],
       },
     ],
@@ -609,7 +651,13 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
       {
         id: 'bank_account_list',
         name: 'Bank Account List Page',
-        action: 'Account selection initiated',
+        actions: ['Account selection initiated'],
+        userInputs: [],
+      },
+      {
+        id: 'bank_account_selected',
+        name: 'Bank Account Selected Page',
+        actions: ['Account selected'],
         userInputs: [],
       },
     ],
@@ -673,7 +721,7 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
       {
         id: 'display_kfs',
         name: 'KFS Display Page',
-        action: 'KFS displayed',
+        actions: ['KFS displayed'],
         userInputs: [],
       },
     ],
@@ -688,6 +736,7 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
           { label: 'Home Loan KFS', value: 'kfs_home_loan' },
           { label: 'Business Loan KFS', value: 'kfs_business_loan' },
           { label: 'Two-Wheeler Loan KFS', value: 'kfs_two_wheeler_loan' },
+          { label: 'Credit Card MITC', value: 'kfs_credit_card_mitc' },
         ],
       },
     ],
@@ -704,7 +753,7 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
       {
         id: 'display_letter',
         name: 'Sanction Letter Display Page',
-        action: 'Sanction letter displayed',
+        actions: ['Sanction letter displayed'],
         userInputs: [],
       },
     ],
@@ -735,8 +784,14 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
     pages: [
       {
         id: 'esign_initiation',
-        name: 'eSign Landing Page',
-        action: 'eSign initiated',
+        name: 'eSign Initiation Page',
+        actions: ['eSign initiated'],
+        userInputs: [],
+      },
+      {
+        id: 'esign_completion',
+        name: 'eSign Completion Page',
+        actions: ['Document signed'],
         userInputs: [],
       },
     ],
@@ -751,6 +806,7 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
           { label: 'Home Loan Agreement', value: 'esign_home_loan' },
           { label: 'Business Loan Agreement', value: 'esign_business_loan' },
           { label: 'Overdraft Agreement', value: 'esign_overdraft' },
+          { label: 'Credit Card Application Form', value: 'esign_credit_card' },
         ],
       },
     ],
@@ -769,7 +825,7 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
       {
         id: 'udyam_input',
         name: 'Udyam Input Page',
-        action: 'Udyam fetch initiated',
+        actions: ['Udyam fetch initiated'],
         userInputs: [
           {
             id: 'udyam_number',
@@ -783,7 +839,7 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
       {
         id: 'udyam_verified',
         name: 'Udyam Verified Page',
-        action: 'Udyam verification complete',
+        actions: ['Udyam verification complete'],
         userInputs: [],
       },
     ],
@@ -808,13 +864,13 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
       {
         id: 'generate_final_offer',
         name: 'Generate Final Offer - Loader',
-        action: 'Final offer generation initiated',
+        actions: ['Final offer generation initiated'],
         userInputs: [],
       },
       {
         id: 'show_final_offer',
         name: 'Show Final Offer Page',
-        action: 'Final offer displayed',
+        actions: ['Final offer displayed'],
         userInputs: [],
       },
     ],
@@ -828,6 +884,16 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
           { label: 'BRE v1 - Standard', value: 'bre_v1' },
           { label: 'BRE v2 - Advanced', value: 'bre_v2' },
           { label: 'BRE v3 - Premium', value: 'bre_v3' },
+        ],
+      },
+      {
+        id: 'product_type',
+        name: 'Product Type',
+        type: 'select',
+        value: 'lending',
+        options: [
+          { label: 'Lending (Loans)', value: 'lending' },
+          { label: 'Credit Card', value: 'credit_card' },
         ],
       },
     ],
@@ -844,8 +910,252 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
       {
         id: 'profile_details',
         name: 'Profile Details Page',
-        action: 'Profile viewed',
+        actions: ['Profile viewed'],
         userInputs: [],
+      },
+      {
+        id: 'address_update',
+        name: 'Communication Address Update Page',
+        actions: ['Address updated'],
+        userInputs: [],
+      },
+    ],
+  },
+  // â”€â”€â”€ Credit Card Onboarding Blocks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  {
+    id: 'payslip',
+    name: 'Payslip Upload & Verification',
+    description: 'Collect and verify salary slips from salaried applicants. Configurable for the last N months with automated OCR extraction of salary, employer name, and deductions for income assessment.',
+    category: 'financial',
+    icon: 'FileText',
+    provider: 'Document OCR',
+    hasChecks: true,
+    hasRetry: true,
+    pages: [
+      {
+        id: 'payslip_upload',
+        name: 'Payslip Upload Page',
+        actions: ['Payslip uploaded'],
+        userInputs: [],
+      },
+      {
+        id: 'payslip_confirmed',
+        name: 'Payslip Confirmation Page',
+        actions: ['Payslip confirmed'],
+        userInputs: [],
+      },
+    ],
+    checks: [
+      {
+        id: 'name_match',
+        name: 'Name Match with Applicant',
+        enabled: false,
+        outputResponse: 'reject',
+        fields: [
+          {
+            id: 'source',
+            name: 'Name Source',
+            type: 'select',
+            value: '',
+            options: [
+              { label: 'PAN', value: 'pan' },
+              { label: 'Aadhaar', value: 'aadhaar' },
+            ],
+          },
+          {
+            id: 'threshold',
+            name: 'Match Threshold %',
+            type: 'number',
+            value: 60,
+          },
+        ],
+      },
+      {
+        id: 'employer_match',
+        name: 'Employer Name Match (vs Declared)',
+        enabled: false,
+        outputResponse: 'reject',
+        fields: [
+          {
+            id: 'threshold',
+            name: 'Match Threshold %',
+            type: 'number',
+            value: 70,
+          },
+        ],
+      },
+    ],
+    generalConfig: [
+      {
+        id: 'last_n_months',
+        name: 'Last N Months Required',
+        type: 'number',
+        value: 3,
+      },
+      {
+        id: 'accepted_formats',
+        name: 'Accepted Formats',
+        type: 'select',
+        value: 'pdf_jpg_png',
+        options: [
+          { label: 'PDF only', value: 'pdf' },
+          { label: 'PDF, JPG, PNG', value: 'pdf_jpg_png' },
+        ],
+      },
+    ],
+    retryConfig: [
+      {
+        id: 'payslip_upload_retry',
+        name: 'Payslip Upload Retry',
+        maxAttempts: 3,
+        coolingPeriod: 0,
+        velocityCycle: 1,
+      },
+    ],
+  },
+  {
+    id: 'vkyc',
+    name: 'Video KYC (VKYC)',
+    description: 'Schedule and conduct Video KYC sessions for identity verification. Mandatory for New to Bank (NTB) customers in credit card onboarding. Agent verifies identity via live video â€” includes face match, liveness detection, and original document visibility check.',
+    category: 'identity',
+    icon: 'Video',
+    provider: 'VKYC Vendor',
+    hasChecks: true,
+    hasRetry: false,
+    pages: [
+      {
+        id: 'vkyc_schedule',
+        name: 'VKYC Slot Scheduling Page',
+        actions: ['VKYC slot scheduled'],
+        userInputs: [],
+      },
+      {
+        id: 'vkyc_instructions',
+        name: 'VKYC Instructions & Requirements Page',
+        actions: ['VKYC initiated'],
+        userInputs: [],
+      },
+      {
+        id: 'vkyc_result',
+        name: 'VKYC Outcome Page',
+        actions: ['VKYC completed'],
+        userInputs: [],
+      },
+    ],
+    checks: [
+      {
+        id: 'vkyc_completion',
+        name: 'VKYC Session Completion Required',
+        enabled: true,
+        outputResponse: 'reject',
+        fields: [],
+      },
+      {
+        id: 'face_match',
+        name: 'Face Match (vs Aadhaar Photo)',
+        enabled: true,
+        outputResponse: 'reject',
+        fields: [
+          {
+            id: 'threshold',
+            name: 'Match Threshold %',
+            type: 'number',
+            value: 80,
+          },
+        ],
+      },
+      {
+        id: 'liveness_check',
+        name: 'Liveness Detection',
+        enabled: true,
+        outputResponse: 'reject',
+        fields: [],
+      },
+      {
+        id: 'document_visibility',
+        name: 'Original Document Visibility (PAN + Aadhaar)',
+        enabled: true,
+        outputResponse: 'reject',
+        fields: [],
+      },
+    ],
+    generalConfig: [
+      {
+        id: 'completion_window_days',
+        name: 'Completion Window (Working Days)',
+        type: 'number',
+        value: 3,
+      },
+      {
+        id: 'expiry_window_days',
+        name: 'Expiry After No-Show (Working Days)',
+        type: 'number',
+        value: 7,
+      },
+      {
+        id: 'max_reschedules',
+        name: 'Max Reschedules Allowed',
+        type: 'number',
+        value: 2,
+      },
+      {
+        id: 'available_hours',
+        name: 'Available Slot Hours',
+        type: 'select',
+        value: '9am_6pm',
+        options: [
+          { label: '9 AM â€“ 6 PM (Monâ€“Sat)', value: '9am_6pm' },
+          { label: '9 AM â€“ 8 PM (Monâ€“Sat)', value: '9am_8pm' },
+          { label: '9 AM â€“ 6 PM (Monâ€“Sun)', value: '9am_6pm_all' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'card_selection',
+    name: 'Card Variant Selection',
+    description: 'Display eligible credit card variants to the applicant based on BRE output and income eligibility. Customer selects one variant to proceed. Approved credit limit displayed per eligible variant.',
+    category: 'decision',
+    icon: 'CreditCard',
+    provider: 'BRE Integration',
+    hasChecks: false,
+    hasRetry: false,
+    pages: [
+      {
+        id: 'show_eligible_cards',
+        name: 'Card Selection Page',
+        actions: ['Card selected'],
+        userInputs: [],
+      },
+      {
+        id: 'card_confirmed',
+        name: 'Card Confirmation Page',
+        actions: ['Selection confirmed'],
+        userInputs: [],
+      },
+    ],
+    generalConfig: [
+      {
+        id: 'selection_mode',
+        name: 'Card Display Mode',
+        type: 'select',
+        value: 'bre_driven',
+        options: [
+          { label: 'BRE-Driven (show eligible variants only)', value: 'bre_driven' },
+          { label: 'Show All (highlight eligible)', value: 'show_all' },
+        ],
+      },
+      {
+        id: 'show_credit_limit',
+        name: 'Show Approved Credit Limit per Variant',
+        type: 'toggle',
+        value: true,
+      },
+      {
+        id: 'allow_downgrade',
+        name: 'Allow Customer to Select Lower Tier Card',
+        type: 'toggle',
+        value: true,
       },
     ],
   },

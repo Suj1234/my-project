@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+﻿import { useState, useCallback, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { ArrowLeft, Save, Settings2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './components/ui/select';
@@ -24,8 +24,8 @@ const DEFAULT_BLOCKS: BlockData[] = [
     authMethod: 'otp',
     collectConsent: false,
     pages: [
-      { id: 'start-welcome', name: 'Welcome Screen', action: 'Applicant views welcome screen', userInputs: [], isConfigured: false },
-      { id: 'start-consent', name: 'Consent Screen', action: 'Applicant provides consent', userInputs: [], isConfigured: false },
+      { id: 'start-welcome', name: 'Welcome Screen', actions: ['Applicant views welcome screen'], userInputs: [], isConfigured: false },
+      { id: 'start-consent', name: 'Consent Screen', actions: ['Applicant provides consent'], userInputs: [], isConfigured: false },
     ],
   },
 ];
@@ -114,7 +114,7 @@ export default function CanvasView() {
         description: 'User-defined input collection',
         configured: false,
         formFields: [],
-        pages: [{ id: 'form-page', name: 'Form Page', action: 'Form submitted', userInputs: [] }],
+        pages: [{ id: 'form-page', name: 'Form Page', actions: ['Form submitted'], userInputs: [] }],
       };
     } else if (blockType === 'router') {
       newBlock = {
@@ -151,7 +151,7 @@ export default function CanvasView() {
         name: 'Journey End',
         description: 'Journey terminus',
         configured: false,
-        pages: [{ id: 'outcome-page', name: 'Outcome Screen', action: 'Journey completed', userInputs: [] }],
+        pages: [{ id: 'outcome-page', name: 'Outcome Screen', actions: ['Journey completed'], userInputs: [] }],
       };
     } else {
       return;
@@ -400,3 +400,4 @@ export default function CanvasView() {
     </div>
   );
 }
+

@@ -278,6 +278,79 @@ export const API_CATALOG: ApiDefinition[] = [
       },
     },
   },
+
+  // ─────────────────────────────────────────────────────────────
+  // CBS Dedupe — ETB / NTB determination
+  // ─────────────────────────────────────────────────────────────
+  {
+    id: 'cbs_dedupe',
+    name: 'CBS Dedupe',
+    description: 'Check Core Banking System to determine if applicant is an Existing-to-Bank (ETB) customer; pre-fills CBS profile data for ETB customers',
+    icon: '🏦',
+    category: 'Dedupe',
+    latencyP95Ms: 800,
+    requestFields: [
+      { path: 'pan_number',    label: 'PAN Number',    isRequired: true,  isAutoMapped: true,  autoMapSource: { type: 'native', value: 'pan_number' } },
+      { path: 'date_of_birth', label: 'Date of Birth', isRequired: true,  isAutoMapped: true,  autoMapSource: { type: 'native', value: 'date_of_birth' } },
+    ],
+    sampleResponse: {
+      status: 'SUCCESS',
+      is_etb: true,
+      customer_name: 'RAVI KUMAR',
+      customer_id: 'CBS-CUST-00123456',
+      account_type: 'Savings',
+      account_number: 'SB001234567890',
+      address: '12, MG Road, Bengaluru, Karnataka - 560001',
+      city: 'Bengaluru',
+      state: 'Karnataka',
+      pincode: '560001',
+      mobile_number: '9876543210',
+      email_id: 'ravi@email.com',
+    },
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // CMS Dedupe — existing credit card check
+  // ─────────────────────────────────────────────────────────────
+  {
+    id: 'cms_dedupe',
+    name: 'CMS Dedupe',
+    description: 'Check Card Management System for existing active credit cards held by the applicant; hard-rejects applicants who already hold a card',
+    icon: '💳',
+    category: 'Dedupe',
+    latencyP95Ms: 400,
+    requestFields: [
+      { path: 'pan_number', label: 'PAN Number', isRequired: true, isAutoMapped: true, autoMapSource: { type: 'native', value: 'pan_number' } },
+    ],
+    sampleResponse: {
+      status: 'SUCCESS',
+      has_existing_card: false,
+      existing_card_count: 0,
+      cards: [],
+    },
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // LMS Dedupe — active in-progress application check
+  // ─────────────────────────────────────────────────────────────
+  {
+    id: 'lms_dedupe',
+    name: 'LMS Dedupe',
+    description: 'Check Loan Management System for active in-progress credit card applications; enables resume flow for returning applicants',
+    icon: '📋',
+    category: 'Dedupe',
+    latencyP95Ms: 400,
+    requestFields: [
+      { path: 'pan_number', label: 'PAN Number', isRequired: true, isAutoMapped: true, autoMapSource: { type: 'native', value: 'pan_number' } },
+    ],
+    sampleResponse: {
+      status: 'SUCCESS',
+      has_active_application: false,
+      application_id: null,
+      application_status: null,
+      last_updated_at: null,
+    },
+  },
 ];
 
 export function getApiById(id: string): ApiDefinition | undefined {

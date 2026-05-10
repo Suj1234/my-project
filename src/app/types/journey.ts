@@ -112,7 +112,7 @@ export interface FormInputField {
 export interface PageConfig {
   id: string;
   name: string;
-  action: string;
+  actions: string[];
   userInputs: FormInputField[];
   isConfigured?: boolean;
   configurationMethod?: 'assigned' | 'ai_generated';
@@ -187,7 +187,7 @@ export interface BlockData {
   // ─── Router/Logic fields ────────────────────────────────────────────────────
   routings?: RoutingConfig[];
   defaultRoute?: string;
-  routerBranchType?: 'exclusive' | 'inclusive';
+  routerBranchType?: 'exclusive';
 
   // ─── Data hooks ─────────────────────────────────────────────────────────────
   dataHooks?: HookEventSlot[];
@@ -234,13 +234,24 @@ export interface ConditionGroup {
   id: string;
   operator: 'AND' | 'OR';
   conditions: Condition[];
+  nextGroupOperator?: 'AND' | 'OR';
 }
 
 export interface RoutingConfig {
   id: string;
   label?: string;
-  conditionGroups: ConditionGroup[];
-  groupOperator: 'AND' | 'OR';
+  routingType: 'action' | 'condition';
+
+  // Condition-based routing — inter-group logic via nextGroupOperator on each ConditionGroup
+  conditionGroups?: ConditionGroup[];
+
+  // Action-based routing
+  sourceBlockId?: string;
+  sourcePageId?: string;
+  actionLabel?: string;
+  conditionGate?: ConditionGroup[];   // optional conditions checked after action match
+
+  // Common
   targetBlockId: string;
   saved?: boolean;
 }

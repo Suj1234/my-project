@@ -1,8 +1,8 @@
 # PRD + FSD: Journey Builder — Routing Parameter System
 
-**Document Version:** 1.0  
-**Date:** 2026-04-27  
-**Status:** Draft — For Review  
+**Document Version:** 1.1  
+**Date:** 2026-05-05  
+**Status:** Draft — Updated  
 **Scope:** Conditional Router block — field/parameter selection for routing conditions
 
 ---
@@ -14,7 +14,7 @@
 3. [Goals & Non-Goals](#3-goals--non-goals)
 4. [User Stories](#4-user-stories)
 5. [Conceptual Model](#5-conceptual-model)
-6. [The 6 Parameter Source Types](#6-the-6-parameter-source-types)
+6. [The 7 Parameter Source Types](#6-the-7-parameter-source-types)
 7. [Unified Storage Declaration Pattern](#7-unified-storage-declaration-pattern)
 8. [Field Nomenclature & Namespacing](#8-field-nomenclature--namespacing)
 9. [Journey-Contextual Field Availability ("Data Collected Till Now")](#9-journey-contextual-field-availability-data-collected-till-now)
@@ -63,7 +63,7 @@ The routing field list should be **dynamic and journey-contextual**: only fields
 - Dynamic, journey-contextual routing field list
 - Consistent `custom / native / system` namespace across the entire platform
 - Clean UX: designer sees exactly what's available, nothing more, nothing less
-- Support for all 6 parameter source types in routing conditions
+- Support for all 7 parameter source types in routing conditions (including page transition actions)
 - No naming conflicts — designer controls field names explicitly
 
 ### Non-Goals
@@ -122,12 +122,13 @@ Routing condition evaluated against stored value
 | `native.*` | Standard identity / KYC fields | Designer (per block) | No — only if declared upstream |
 | `custom.*` | Journey-specific / API output fields | Designer (per block) | No — only if declared upstream |
 | `system.*` | Runtime session metadata | Platform | Yes — always |
+| `page_action.*` | Transition action taken by user on a page | Declared on each page (actions list) | No — only if page has actions declared |
 
 ---
 
-## 6. The 6 Parameter Source Types
+## 6. The 7 Parameter Source Types
 
-All 6 types feed into the same `custom / native / system` namespace. The source type determines **where in the block configuration** the storage is declared.
+All 7 types feed into the same condition builder in the Router block. The source type determines **where in the block configuration** the routing parameter is declared.
 
 ---
 
@@ -252,6 +253,32 @@ All 4 appear independently in the router field list under `── custom ──`
 | `system.ip_address` | text | Applicant IP address |
 
 **Key Rule:** System fields are read-only. Designer cannot write to them.
+
+---
+
+### Type 7: Page Transition Actions
+
+**What it is:** The specific transition action (user-initiated event) that was triggered on a page. Each page in a block can have multiple possible transition actions (e.g., "Proceed", "Edit Details", "Skip", "Retry"). When a user triggers one, its label is stored as the "last action taken on this page."
+
+**Where declared:** Block config → UI Configuration → Page card → Transition Actions list. The designer adds all possible actions for that page (free text or pick from suggestions).
+
+**Examples:**
+- Review page with two actions: "Proceed" and "Edit Details"
+  - User clicks "Proceed" → `page_action.KYC Review.Review Page = "Proceed"`
+  - User clicks "Edit Details" → `page_action.KYC Review.Review Page = "Edit Details"`
+- Offer page with three actions: "Accept", "Reject", "Request Callback"
+
+**Namespace:** `page_action.{blockName}.{pageName}` — auto-generated, not designer-named
+
+**Field type for routing:** `text` — operator options: `=`, `!=`, `in`, `not in`
+
+**Value input in Router:** When this field is selected in the condition builder, the value input shows a dropdown of the declared transition actions for that page (not free text) — so the designer picks "Proceed" rather than typing it.
+
+**Optional actions:** If a transition action is optional (may not fire), the field value will be empty. Use `is empty` / `is not empty` operators to route on whether the action was triggered at all.
+
+**Sequential mandatory actions:** If all actions on a page are sequential and mandatory (all fire in order), the routing parameter holds the value of the **last** action triggered. To route on intermediate states, use Data Hooks output captures instead.
+
+**Key Rule:** A page must have at least one transition action declared for its `page_action.*` field to appear in the Router. Pages with no declared actions do not contribute a routing parameter.
 
 ---
 
@@ -423,23 +450,29 @@ Step 2: For each upstream block, collect:
      → Add that field reference
      → fieldType = 'text' (enum: PASS/REJECT/FLAG/MANUAL_REVIEW)
 
+  d. For each page in the block that has actions.length > 0:
+     → Add field: value = "page_action.{blockName}.{pageName}"
+     → label = "{blockName} → {pageName}"
+     → fieldType = 'text'
+     → Store the page's actions[] array for use as value dropdown options
+
 Step 3: Add all system fields unconditionally
 
 Step 4: Deduplicate by field reference (if same key captured by two blocks, show once — latest definition wins)
 
-Step 5: Group by namespace: native → custom → system
+Step 5: Group by namespace: native → custom → page_action → system
 ```
 
 ### 11.2 Field Object Structure (Internal)
 
 ```typescript
 interface RouterField {
-  value: string;          // full reference: "custom.cibil_score"
-  label: string;          // display label: "Cibil Score"
-  namespace: 'native' | 'custom' | 'system';
+  value: string;          // full reference: "custom.cibil_score" or "page_action.KYC Block.Review Page"
+  label: string;          // display label: "Cibil Score" or "KYC Block → Review Page"
+  group: 'native' | 'custom' | 'system' | 'page_action';
   fieldType: 'text' | 'number' | 'date' | 'boolean';
-  sourceBlockId: string;  // which block declared this (for tooltip/hint)
   sourceBlockName: string;
+  pageActions?: string[]; // only for page_action group — the declared transition actions
 }
 ```
 
@@ -456,6 +489,9 @@ Search fields...
   custom.cibil_score         Cibil Score         [from: Bureau Block]
   custom.credit_decision     Credit Decision     [from: Decision Block]
   custom.declared_income     Declared Income     [from: Form Block]
+── Transition Actions (2) ─────────
+  KYC Block → Review Page          [from: KYC Block]
+  Offer Block → Offer Display Page [from: Offer Block]
 ── system ──────────────────────────
   system.attempt_count       Attempt Count
   system.device_type         Device Type
@@ -503,38 +539,44 @@ interface Condition {
 }
 ```
 
-### 12.2 Condition Groups
+### 12.2 Condition Groups (DNF Model)
 
-Conditions within a route are grouped:
+Conditions within a route are grouped using **Disjunctive Normal Form (DNF)**:
+
+- **Within a group**: conditions are combined with AND or OR (designer selects per group)
+- **Between groups**: always OR — a route matches if ANY group evaluates to true
 
 ```typescript
 interface ConditionGroup {
   id: string;
-  operator: 'AND' | 'OR';       // between conditions in this group
+  operator: 'AND' | 'OR';       // between conditions within this group
   conditions: Condition[];
 }
 
 // On RoutingConfig:
 conditionGroups: ConditionGroup[];
-groupOperator: 'AND' | 'OR';    // between groups
+// NO groupOperator field — between groups is always OR
 ```
 
-This allows: `(custom.cibil_score >= 750 AND custom.pan_status = VALID) OR (custom.credit_decision = PASS)`
+**Example:** Two groups in a single route:
+- Group 1: `custom.cibil_score >= 750 AND custom.pan_status = VALID`
+- Group 2: `custom.credit_decision = PASS`
 
-### 12.3 Evaluation Order (Exclusive Mode)
+Route matches if: `(Group 1 is true) OR (Group 2 is true)`
 
-1. Routes evaluated top to bottom
-2. First route whose all condition groups evaluate to `true` is taken
-3. Remaining routes not evaluated
-4. If no route matches: default route taken
-5. If no default route: journey halts (error state)
+**Why DNF:** This is the industry standard used by n8n, Zapier, Make, Salesforce Flow, HubSpot, and Segment. It is expressive enough for all real-world routing use cases while keeping the UI intuitive — groups are visually separated with an "OR" label between them.
 
-### 12.4 Evaluation Order (Inclusive Mode)
+### 12.3 Evaluation Order
 
-1. All routes evaluated independently
-2. All routes whose conditions evaluate to `true` are activated simultaneously
-3. Parallel branches created for each matching route
-4. Downstream Merge Block required to converge parallel branches
+The Router uses **first-match** (exclusive) evaluation:
+
+1. Routes evaluated top to bottom in declared order
+2. First route whose condition groups evaluate to `true` (any group matches) is taken
+3. Remaining routes are not evaluated
+4. If no route matches: default route is taken
+5. If no default route is set: journey enters error state
+
+**Designer control over order:** Routes can be reordered using up/down arrows in the configuration panel. Order matters — a more specific condition should be placed above a broader one.
 
 ---
 
@@ -562,11 +604,7 @@ This allows: `(custom.cibil_score >= 750 AND custom.pan_status = VALID) OR (cust
 - **Builder behavior:** In the field dropdown, if a Decision Block exists upstream but has no verdictStorageKey: show it grayed out as "Decision Block: [Name] — verdict not stored. Configure verdict storage to use it here."
 - Clicking the grayed item opens the Decision Block config at the verdict section
 
-### E6: Inclusive Router With No Merge Block Downstream
-- Designer sets router to Inclusive mode → all matching branches fire
-- **Builder behavior:** Warning on the Router node: "⚠ Inclusive mode requires a Merge block downstream on each branch."
-
-### E7: Empty Condition Group
+### E6: Empty Condition Group
 - Designer adds a condition group but adds no conditions to it
 - **Builder behavior:** Prevent route save. "Add at least one condition to this group."
 
@@ -623,10 +661,11 @@ This allows: `(custom.cibil_score >= 750 AND custom.pan_status = VALID) OR (cust
 | Operator | Input Rendered |
 |----------|----------------|
 | `is empty` / `is not empty` / `is before today` / `is after today` | No input |
-| `between` | Two inputs with `–` separator |
+| `between` | Two inputs inline with `–` separator (inclusive bounds) |
 | `is in last N days` | Number input + "days" label |
 | `in` / `not in` | Comma-separated text input (or multi-select if field has known enum) |
 | Decision verdict field with `=` or `!=` | Dropdown: PASS / REJECT / FLAG / MANUAL REVIEW |
+| Page transition action field (any operator) | Dropdown populated from that page's declared `actions[]` — not free text |
 | Default | Single text input |
 
 ### 14.4 Empty State for Field Selector
@@ -697,18 +736,48 @@ interface DecisionBlockConfig {
 }
 ```
 
-### 15.4 RouterField (Computed, Not Stored)
+### 15.4 PageConfig — Transition Actions
+
+```typescript
+interface PageConfig {
+  id: string;
+  name: string;
+  actions: string[];      // list of transition action labels (e.g. ["Proceed", "Edit Details"])
+  userInputs: FormInputField[];
+  isConfigured?: boolean;
+  configurationMethod?: 'assigned' | 'ai_generated';
+  assignedPageId?: string;
+}
+```
+
+At runtime: when a user triggers a transition action on this page, the journey stores:
+`page_action.{blockName}.{pageName} = "{actionLabel}"`
+
+### 15.5 RoutingConfig — DNF Model (No groupOperator)
+
+```typescript
+interface RoutingConfig {
+  id: string;
+  label?: string;
+  conditionGroups: ConditionGroup[];   // between groups: always OR
+  targetBlockId: string;
+  saved?: boolean;
+  // groupOperator removed — inter-group is always OR (DNF)
+}
+```
+
+### 15.6 RouterField (Computed, Not Stored)
 
 This is computed at render time from upstream blocks. Not stored in the data model.
 
 ```typescript
 interface RouterField {
-  value: string;               // "custom.cibil_score"
-  label: string;               // "Cibil Score"
-  namespace: 'native' | 'custom' | 'system';
+  value: string;               // "custom.cibil_score" or "page_action.KYC Block.Review Page"
+  label: string;               // "Cibil Score" or "KYC Block → Review Page"
+  group: 'native' | 'custom' | 'system' | 'page_action';
   fieldType: FieldType;
-  sourceBlockId: string;
   sourceBlockName: string;
+  pageActions?: string[];      // only for page_action group — the page's declared actions
 }
 ```
 
