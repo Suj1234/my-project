@@ -416,5 +416,6 @@ export interface FlowNodeData extends BlockData {
   onAddBlock?: (nodeId: string) => void;
   onConfigure?: (nodeId: string) => void;
   onDelete?: (nodeId: string) => void;
+  onAddBlockFromBranch?: (routerBlockId: string, routingId: string) => void;
   hasIncomingConnection?: boolean;
 }

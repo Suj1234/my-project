@@ -18,7 +18,7 @@ import { StartNodeB } from './nodes/StartNodeB';
 import { SmartBlockNode } from './nodes/SmartBlockNode';
 import { FormBlockNode } from './nodes/FormBlockNode';
 import { EndNodeB } from './nodes/EndNodeB';
-import { RouterNode } from './nodes/RouterNode';
+import { RouterNodeB } from './nodes/RouterNodeB';
 import { MergeNode } from './nodes/MergeNode';
 import { DecisionNode } from './nodes/DecisionNode';
 import { FlowNodeData, BlockData } from '../types/journey';
@@ -28,7 +28,7 @@ const nodeTypes = {
   smart: SmartBlockNode,
   form: FormBlockNode,
   end: EndNodeB,
-  router: RouterNode,
+  router: RouterNodeB,
   merge: MergeNode,
   decision: DecisionNode,
 };
@@ -41,6 +41,7 @@ interface JourneyCanvasBProps {
   onBlockDelete: (blockId: string) => void;
   onAddBlockAfter: (sourceBlockId: string) => void;
   onConnect: (connection: Connection) => void;
+  onAddBlockFromBranch?: (routerBlockId: string, routingId: string) => void;
 }
 
 function CanvasBInner({
@@ -51,6 +52,7 @@ function CanvasBInner({
   onBlockDelete,
   onAddBlockAfter,
   onConnect,
+  onAddBlockFromBranch,
 }: JourneyCanvasBProps) {
 
   const initialNodes: Node<FlowNodeData>[] = useMemo(() => {
@@ -63,6 +65,9 @@ function CanvasBInner({
         onAddBlock: (nodeId: string) => { onAddBlockAfter(nodeId); },
         onConfigure: (nodeId: string) => { onBlockSelect(nodeId); },
         onDelete: (nodeId: string) => { onBlockDelete(nodeId); },
+        onAddBlockFromBranch: onAddBlockFromBranch
+          ? (routerBlockId: string, routingId: string) => { onAddBlockFromBranch(routerBlockId, routingId); }
+          : undefined,
       },
     }));
   }, [blocks, onBlockSelect, onBlockDelete, onAddBlockAfter]);

@@ -4,7 +4,7 @@ import { ArrowLeft, Save, Settings2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './components/ui/select';
 import { BlockLibrary } from './components/BlockLibrary';
 import { JourneyCanvasA } from './components/JourneyCanvasA';
-import { ConfigurationPanel } from './components/ConfigurationPanel';
+import { ConfigurationPanelA } from './components/ConfigurationPanelA';
 import { AddBlockDialog } from './components/AddBlockDialog';
 import { JourneySettingsPanel } from './components/JourneySettingsPanel';
 import { BlockData, JourneySettings, DEFAULT_JOURNEY_SETTINGS } from './types/journey';
@@ -362,7 +362,7 @@ export default function CanvasViewA() {
         />
 
         {selectedBlock && !journeySettingsOpen && (
-          <ConfigurationPanel
+          <ConfigurationPanelA
             block={selectedBlock}
             allBlocks={blocks}
             onClose={handleClosePanel}

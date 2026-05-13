@@ -50,7 +50,7 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
       {
         id: 'pan_confirmed',
         name: 'PAN Confirmed Page',
-        actions: ['PAN verified'],
+        actions: ['PAN verified', 'PAN submitted'],
         userInputs: [],
       },
     ],

@@ -4,7 +4,7 @@ import { ArrowLeft, Save, Settings2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './components/ui/select';
 import { BlockLibrary } from './components/BlockLibrary';
 import { JourneyCanvasB } from './components/JourneyCanvasB';
-import { ConfigurationPanel } from './components/ConfigurationPanel';
+import { ConfigurationPanelB } from './components/ConfigurationPanelB';
 import { AddBlockDialog } from './components/AddBlockDialog';
 import { JourneySettingsPanel } from './components/JourneySettingsPanel';
 import { BlockData, JourneySettings, DEFAULT_JOURNEY_SETTINGS } from './types/journey';
@@ -41,6 +41,7 @@ export default function CanvasViewB() {
   const [journeySettings, setJourneySettings] = useState<JourneySettings>(DEFAULT_JOURNEY_SETTINGS);
   const [addBlockDialogOpen, setAddBlockDialogOpen] = useState(false);
   const [addBlockAfterNodeId, setAddBlockAfterNodeId] = useState<string | null>(null);
+  const [pendingBranchWire, setPendingBranchWire] = useState<{ routerBlockId: string; routingId: string } | null>(null);
   const [loadingCanvas, setLoadingCanvas] = useState(isWorkflowMode);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
   const [workflowName, setWorkflowName] = useState('');
@@ -80,8 +81,8 @@ export default function CanvasViewB() {
 
   const selectedBlock = blocks.find((b) => b.id === selectedBlockId) || null;
 
-  const handleBlockSelect = useCallback((blockType: string, blockTypeId?: string) => {
-    const newBlockId = `${blockType}-${Date.now()}`;
+  const handleBlockSelect = useCallback((blockType: string, blockTypeId?: string, forceId?: string) => {
+    const newBlockId = forceId ?? `${blockType}-${Date.now()}`;
     let newBlock: BlockData;
 
     if (blockType === 'smart' && blockTypeId) {
@@ -186,15 +187,73 @@ export default function CanvasViewB() {
     setAddBlockDialogOpen(true);
   }, []);
 
+  const handleAddBlockFromBranch = useCallback((routerBlockId: string, routingId: string) => {
+    setPendingBranchWire({ routerBlockId, routingId });
+    setAddBlockDialogOpen(true);
+  }, []);
+
+  const handleAddDefaultBlock = useCallback(() => {
+    if (!selectedBlockId) return;
+    setPendingBranchWire({ routerBlockId: selectedBlockId, routingId: '__default__' });
+    setAddBlockDialogOpen(true);
+  }, [selectedBlockId]);
+
   const handleDialogSelect = useCallback((blockType: string, blockTypeId?: string) => {
-    handleBlockSelect(blockType, blockTypeId);
+    const newBlockId = `${blockType}-${Date.now()}`;
+    handleBlockSelect(blockType, blockTypeId, newBlockId);
+
+    if (pendingBranchWire) {
+      const { routerBlockId, routingId } = pendingBranchWire;
+      setBlocks((prev) => {
+        const updated = prev.map((b) => {
+          if (b.id !== routerBlockId) return b;
+          if (routingId === '__default__') {
+            return { ...b, defaultRoute: newBlockId };
+          }
+          return {
+            ...b,
+            routings: (b.routings ?? []).map((r) =>
+              r.id === routingId ? { ...r, targetBlockId: newBlockId } : r
+            ),
+          };
+        });
+        autoSave(updated);
+        return updated;
+      });
+      setPendingBranchWire(null);
+    }
+
     setAddBlockDialogOpen(false);
     setAddBlockAfterNodeId(null);
-  }, [handleBlockSelect]);
+  }, [handleBlockSelect, pendingBranchWire, autoSave]);
 
   const handleConnect = useCallback((connection: Connection) => {
-    console.log('Connection created:', connection);
-  }, []);
+    if (!connection.target) return;
+    if (connection.sourceHandle === 'default-route') {
+      setBlocks((prev) => {
+        const updated = prev.map((b) =>
+          b.id === connection.source ? { ...b, defaultRoute: connection.target! } : b
+        );
+        autoSave(updated);
+        return updated;
+      });
+    } else if (connection.sourceHandle?.startsWith('route-')) {
+      const routingId = connection.sourceHandle.slice('route-'.length);
+      setBlocks((prev) => {
+        const updated = prev.map((b) => {
+          if (b.id !== connection.source) return b;
+          return {
+            ...b,
+            routings: (b.routings ?? []).map((r) =>
+              r.id === routingId ? { ...r, targetBlockId: connection.target! } : r
+            ),
+          };
+        });
+        autoSave(updated);
+        return updated;
+      });
+    }
+  }, [autoSave]);
 
   const handleClosePanel = useCallback(() => setSelectedBlockId(null), []);
 
@@ -359,15 +418,17 @@ export default function CanvasViewB() {
           onBlockDelete={handleBlockDelete}
           onAddBlockAfter={handleAddBlockAfter}
           onConnect={handleConnect}
+          onAddBlockFromBranch={handleAddBlockFromBranch}
         />
 
         {selectedBlock && !journeySettingsOpen && (
-          <ConfigurationPanel
+          <ConfigurationPanelB
             block={selectedBlock}
             allBlocks={blocks}
             onClose={handleClosePanel}
             onSave={handleSave}
             onDelete={handleBlockDelete}
+            onAddDefaultBlock={handleAddDefaultBlock}
           />
         )}
         {journeySettingsOpen && !selectedBlock && (
