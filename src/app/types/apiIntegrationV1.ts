@@ -78,6 +78,9 @@ export interface ApiIntegrationV1 {
   bodySchema: BodyFieldV1[];      // field-level validation rules for POST body
   responseJson: string;           // expected response JSON (documentation)
   status: IntegrationStatusV1;
+  category?: string;
+  provider?: string;
+  latencyP95Ms?: number;
   createdAt: string;
   updatedAt: string;
 }

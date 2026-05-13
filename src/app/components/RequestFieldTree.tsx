@@ -68,6 +68,16 @@ function RequestTreeNode({ nodeKey, node, depth, mappings, selectedPath, onSelec
             : <Circle className="h-3.5 w-3.5 text-gray-300 shrink-0" />}
         <span className="text-xs font-medium text-gray-800 shrink-0">{nodeKey}</span>
         {f.isRequired && <span className="text-red-400 text-[10px] shrink-0">*</span>}
+        {f.fieldType && (
+          <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0 ${
+            f.fieldType === 'number'  ? 'bg-blue-50 text-blue-600'   :
+            f.fieldType === 'boolean' ? 'bg-green-50 text-green-600' :
+            f.fieldType === 'date'    ? 'bg-purple-50 text-purple-600' :
+            f.fieldType === 'phone'   ? 'bg-orange-50 text-orange-600' :
+            f.fieldType === 'email'   ? 'bg-pink-50 text-pink-600'   :
+            'bg-gray-100 text-gray-500'
+          }`}>{f.fieldType}</span>
+        )}
         <span className="flex-1" />
         {isMapped
           ? <span className="text-[10px] font-mono text-green-700 truncate max-w-[160px]">{m!.sourceType}.{m!.sourceValue}</span>

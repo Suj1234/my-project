@@ -1,10 +1,10 @@
-import { useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Pencil, Plus, Trash2 } from 'lucide-react';
 import {
   BlockData,
   DataHookApiBinding,
@@ -216,9 +216,8 @@ interface DataHooksSectionProps {
 }
 
 export function DataHooksSection({ block, slots, onChange }: DataHooksSectionProps) {
-  const [activeSlotId, setActiveSlotId] = useState<string | null>(null);
+  const [dialogState, setDialogState] = useState<{ mode: 'add'; slotId: string } | { mode: 'edit'; slotId: string; api: DataHookApiBinding } | null>(null);
   const [expandedSlots, setExpandedSlots] = useState<Record<string, boolean>>({});
-  const [expandedApis, setExpandedApis] = useState<Record<string, boolean>>({});
 
   function updateSlots(next: HookEventSlot[]) {
     onChange(next);
@@ -230,9 +229,13 @@ export function DataHooksSection({ block, slots, onChange }: DataHooksSectionPro
 
   function addApiToSlot(slotId: string, api: DataHookApiBinding) {
     updateSlot(slotId, (slot) => ({ ...slot, apis: [...slot.apis, api] }));
-    setActiveSlotId(null);
+    setDialogState(null);
     setExpandedSlots((prev) => ({ ...prev, [slotId]: true }));
-    setExpandedApis((prev) => ({ ...prev, [api.id]: true }));
+  }
+
+  function updateApiInSlot(slotId: string, api: DataHookApiBinding) {
+    updateSlot(slotId, (slot) => ({ ...slot, apis: slot.apis.map((a) => (a.id === api.id ? api : a)) }));
+    setDialogState(null);
   }
 
   function removeApiFromSlot(slotId: string, apiId: string) {
@@ -264,74 +267,27 @@ export function DataHooksSection({ block, slots, onChange }: DataHooksSectionPro
 
             {expandedSlot && (
               <div className="p-3 space-y-3">
-                {slot.apis.map((api, idx) => {
-                  const expandedApi = expandedApis[api.id] ?? idx === 0;
-                  const manualInputs = api.inputMappings.filter((m) => !m.isAutoMapped).length;
-                  return (
-                    <div key={api.id} className="border rounded-md overflow-hidden">
-                      <div className="flex items-center gap-2 px-3 py-2 bg-white cursor-pointer" onClick={() => setExpandedApis((prev) => ({ ...prev, [api.id]: !expandedApi }))}>
-                        {expandedApi ? <ChevronDown className="h-3.5 w-3.5 text-gray-400" /> : <ChevronRight className="h-3.5 w-3.5 text-gray-400" />}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-medium">{api.apiName}</span>
-                            {api.latencyP95Ms ? (
-                              <Badge variant="secondary" className="text-[10px] bg-amber-100 text-amber-700">p95 {api.latencyP95Ms}ms</Badge>
-                            ) : null}
-                          </div>
-                          <div className="text-xs text-gray-500">{api.outputCaptures.length} captures � {manualInputs} manual inputs</div>
-                        </div>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); removeApiFromSlot(slot.id, api.id); }}>
-                          <Trash2 className="h-3.5 w-3.5 text-red-500" />
-                        </Button>
+                {slot.apis.map((api) => (
+                  <div key={api.id} className="border rounded-md">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-white">
+                      <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium">{api.apiName}</span>
+                        {api.latencyP95Ms ? (
+                          <Badge variant="secondary" className="text-[10px] bg-amber-100 text-amber-700">p95 {api.latencyP95Ms}ms</Badge>
+                        ) : null}
                       </div>
-
-                      {expandedApi && (
-                        <div className="px-3 pb-3 space-y-2 bg-gray-50/50">
-                          <div>
-                            <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Inputs</div>
-                            <div className="space-y-1">
-                              {api.inputMappings.map((m) => (
-                                <div key={m.requestPath} className="text-xs flex items-center gap-1.5">
-                                  <span className="font-mono text-gray-500 truncate flex-1">{m.requestPath}</span>
-                                  <span className="text-gray-400">?</span>
-                                  <span className="font-medium text-blue-700">{m.sourceType}.{m.sourceValue || '-'}</span>
-                                  {(m.transforms?.length ?? 0) > 0 && <Badge variant="secondary" className="text-[10px]">{m.transforms?.length} tfm</Badge>}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-
-                          <div>
-                            <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Outputs</div>
-                            {api.outputCaptures.length === 0 ? (
-                              <div className="text-xs text-gray-400">No captures configured</div>
-                            ) : (
-                              <div className="space-y-1">
-                                {api.outputCaptures.map((c) => (
-                                  <div key={c.id} className="text-xs flex items-center gap-1.5">
-                                    <span className="font-mono text-gray-500 truncate flex-1">{c.path}</span>
-                                    <span className="text-gray-400">?</span>
-                                    <span className="font-mono text-purple-700">{c.storeType === 'none' ? 'ref only' : `${c.storeType}.${c.storeName}`}</span>
-                                    {(c.transforms?.length ?? 0) > 0 && <Badge variant="secondary" className="text-[10px]">{c.transforms?.length} tfm</Badge>}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDialogState({ mode: 'edit', slotId: slot.id, api })}>
+                        <Pencil className="h-3.5 w-3.5 text-gray-500" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeApiFromSlot(slot.id, api.id)}>
+                        <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                      </Button>
                     </div>
-                  );
-                })}
-
-                <Button variant="outline" size="sm" className="text-xs" onClick={() => setActiveSlotId(slot.id)}>
+                  </div>
+                ))}
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => setDialogState({ mode: 'add', slotId: slot.id })}>
                   <Plus className="h-3.5 w-3.5 mr-1" /> Add API in {slot.eventLabel}
                 </Button>
-
-                <EventDecisionEditor
-                  slot={slot}
-                  onChange={(decision) => updateSlotDecision(slot.id, decision)}
-                />
               </div>
             )}
           </div>
@@ -339,12 +295,17 @@ export function DataHooksSection({ block, slots, onChange }: DataHooksSectionPro
       })}
 
       <AddHookDialog
-        open={Boolean(activeSlotId)}
-        onClose={() => setActiveSlotId(null)}
+        open={Boolean(dialogState)}
+        onClose={() => setDialogState(null)}
         onSave={(api) => {
-          if (!activeSlotId) return;
-          addApiToSlot(activeSlotId, api);
+          if (!dialogState) return;
+          if (dialogState.mode === 'edit') {
+            updateApiInSlot(dialogState.slotId, api);
+          } else {
+            addApiToSlot(dialogState.slotId, api);
+          }
         }}
+        initialData={dialogState?.mode === 'edit' ? dialogState.api : undefined}
         availableFields={slots.flatMap(slot =>
           slot.apis.flatMap(api =>
             api.outputCaptures
@@ -356,7 +317,7 @@ export function DataHooksSection({ block, slots, onChange }: DataHooksSectionPro
               }))
           )
         )}
-        eventUserInputs={activeSlotId ? getUserInputsForSlot(block, activeSlotId) : []}
+        eventUserInputs={dialogState ? getUserInputsForSlot(block, dialogState.slotId) : []}
       />
     </div>
   );

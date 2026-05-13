@@ -43,6 +43,51 @@ export function DetailsTabV1({ integration, onChange }: DetailsTabV1Props) {
             />
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Category</label>
+              <select
+                value={integration.category ?? ''}
+                onChange={(e) => onChange({ ...integration, category: e.target.value || undefined })}
+                className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-700"
+              >
+                <option value="">Select category</option>
+                {['Identity', 'Credit Bureau', 'KYC', 'Financial', 'Document', 'CRM', 'Government', 'Dedupe', 'Communication'].map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Provider</label>
+              <select
+                value={integration.provider ?? ''}
+                onChange={(e) => onChange({ ...integration, provider: e.target.value || undefined })}
+                className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-700"
+              >
+                <option value="">Select provider</option>
+                {['CIBIL', 'Experian', 'Equifax', 'Perfios', 'NSDL', 'DigiLocker', 'MCA', 'CBS', 'CMS', 'LMS', 'Internal', 'Custom'].map(p => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Latency (p95)</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={0}
+                value={integration.latencyP95Ms ?? ''}
+                onChange={(e) => onChange({ ...integration, latencyP95Ms: e.target.value ? Number(e.target.value) : undefined })}
+                placeholder="e.g. 800"
+                className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder:text-gray-400"
+              />
+              <span className="text-sm text-gray-500 shrink-0">ms</span>
+            </div>
+            <p className="text-xs text-gray-400 mt-1.5">95th percentile response time. Shown as a badge on API cards.</p>
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Status</label>
             <select

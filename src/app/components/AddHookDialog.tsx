@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Badge } from './ui/badge';
 import { Search, Trash2 } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
-import { API_CATALOG, ApiDefinition, ApiRequestField } from '../data/apiCatalog';
+import { API_CATALOG, ApiDefinition, ApiRequestField, getApiById } from '../data/apiCatalog';
 import { ResponseTree, CaptureSpec } from './ResponseTree';
 import { RequestFieldTree } from './RequestFieldTree';
 import { InputFieldMapper, AvailableField } from './InputFieldMapper';
@@ -141,17 +141,26 @@ interface AddHookDialogProps {
   onSave: (hook: DataHookApiBinding) => void;
   availableFields?: AvailableField[];
   eventUserInputs?: FormInputField[];
+  initialData?: DataHookApiBinding;
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
-export function AddHookDialog({ open, onClose, onSave, availableFields = [], eventUserInputs = [] }: AddHookDialogProps) {
-  const [step, setStep] = useState(1);
+export function AddHookDialog({ open, onClose, onSave, availableFields = [], eventUserInputs = [], initialData }: AddHookDialogProps) {
+  const isEditMode = Boolean(initialData);
+
+  const [step, setStep] = useState(isEditMode ? 2 : 1);
   const [search, setSearch] = useState('');
-  const [selectedApi, setSelectedApi] = useState<ApiDefinition | null>(null);
-  const [mappings, setMappings] = useState<InputMapping[]>([]);
+  const [selectedApi, setSelectedApi] = useState<ApiDefinition | null>(() =>
+    initialData ? (getApiById(initialData.apiId) ?? null) : null
+  );
+  const [mappings, setMappings] = useState<InputMapping[]>(() =>
+    initialData ? initialData.inputMappings : []
+  );
   const [selectedField, setSelectedField] = useState<ApiRequestField | null>(null);
-  const [captures, setCaptures] = useState<OutputCapture[]>([]);
+  const [captures, setCaptures] = useState<OutputCapture[]>(() =>
+    initialData ? initialData.outputCaptures : []
+  );
   const [pendingCapture, setPendingCapture] = useState<Omit<CaptureSpec, 'storagePath'> | null>(null);
   const [storeName, setStoreName] = useState('');
   const [storeType, setStoreType] = useState<'custom' | 'native' | 'none'>('custom');
@@ -161,15 +170,17 @@ export function AddHookDialog({ open, onClose, onSave, availableFields = [], eve
 
   const filteredApis = useMemo(
     () => API_CATALOG.filter(
-      (a) => a.name.toLowerCase().includes(search.toLowerCase()) ||
-             a.description.toLowerCase().includes(search.toLowerCase())
+      (a) => a.name.toLowerCase().includes(search.toLowerCase())
     ),
     [search]
   );
 
   function reset() {
-    setStep(1); setSearch(''); setSelectedApi(null);
-    setMappings([]); setSelectedField(null); setCaptures([]);
+    setStep(isEditMode ? 2 : 1); setSearch('');
+    setSelectedApi(initialData ? (getApiById(initialData.apiId) ?? null) : null);
+    setMappings(initialData ? initialData.inputMappings : []);
+    setSelectedField(null);
+    setCaptures(initialData ? initialData.outputCaptures : []);
     setPendingCapture(null); setStoreName(''); setStoreType('custom');
     setCaptureTransforms([]);
   }
@@ -237,7 +248,7 @@ export function AddHookDialog({ open, onClose, onSave, availableFields = [], eve
   function handleSave() {
     if (!selectedApi) return;
     onSave({
-      id: `hook-api-${Date.now()}`,
+      id: initialData?.id ?? `hook-api-${Date.now()}`,
       apiId: selectedApi.id,
       apiName: selectedApi.name,
       latencyP95Ms: selectedApi.latencyP95Ms,
@@ -251,7 +262,9 @@ export function AddHookDialog({ open, onClose, onSave, availableFields = [], eve
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="w-[96vw] max-w-[1500px] sm:max-w-[1500px] h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
         <DialogHeader className="px-5 pt-4 pb-3 border-b shrink-0">
-          <DialogTitle className="text-sm font-semibold">Add API in Event</DialogTitle>
+          <DialogTitle className="text-sm font-semibold">
+            {isEditMode ? `Edit ${selectedApi?.name ?? 'API'}` : 'Add API in Event'}
+          </DialogTitle>
         </DialogHeader>
 
         {/* Step tabs */}
@@ -285,18 +298,17 @@ export function AddHookDialog({ open, onClose, onSave, availableFields = [], eve
                         selectedApi?.id === api.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                       }`}
                     >
-                      <div className="flex items-start gap-3">
-                        <span className="text-2xl shrink-0">{api.icon}</span>
+                      <div className="flex items-start gap-2">
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-0.5">
+                          <div className="flex items-center gap-2 flex-wrap mb-0.5">
                             <span className="text-sm font-semibold">{api.name}</span>
-                            <Badge variant="secondary" className="text-xs">{api.category}</Badge>
-                            {api.latencyP95Ms && <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700">p95 {api.latencyP95Ms}ms</Badge>}
+                            <Badge variant="secondary" className="text-[10px] bg-gray-100 text-gray-600">{api.category}</Badge>
+                            <Badge variant="secondary" className="text-[10px] bg-blue-50 text-blue-600">{api.provider}</Badge>
+                            {api.latencyP95Ms && <Badge variant="secondary" className="text-[10px] bg-amber-100 text-amber-700">p95 {api.latencyP95Ms}ms</Badge>}
                           </div>
                           <p className="text-xs text-gray-500">{api.description}</p>
-                          <p className="text-xs text-gray-400 mt-1">{api.requestFields.length} input fields</p>
                         </div>
-                        {selectedApi?.id === api.id && <span className="text-blue-600 font-bold">✓</span>}
+                        {selectedApi?.id === api.id && <span className="text-blue-600 font-bold shrink-0">✓</span>}
                       </div>
                     </div>
                   ))}
@@ -310,6 +322,13 @@ export function AddHookDialog({ open, onClose, onSave, availableFields = [], eve
             <div className="flex-1 min-h-0 flex overflow-hidden">
               {/* LEFT: Request field tree */}
               <div className="w-[42%] min-w-[300px] border-r flex flex-col overflow-hidden">
+                {isEditMode && (
+                  <div className="px-3 py-1.5 bg-amber-50 border-b border-amber-100 shrink-0 flex items-center gap-2">
+                    <span className="text-[10px] font-semibold text-amber-700 uppercase tracking-wide">Editing</span>
+                    <span className="text-xs font-medium text-amber-800">{selectedApi.name}</span>
+                    <span className="ml-auto text-[10px] bg-amber-200 text-amber-700 px-1.5 py-0.5 rounded font-semibold">Locked</span>
+                  </div>
+                )}
                 <div className="px-3 py-2 border-b bg-gray-50 shrink-0">
                   <div className="text-xs font-semibold text-gray-700">{selectedApi.name} — Request Fields</div>
                   <div className="text-xs text-gray-400">Click a field to configure its mapping</div>
@@ -431,12 +450,16 @@ export function AddHookDialog({ open, onClose, onSave, availableFields = [], eve
 
         {/* Footer */}
         <div className="flex gap-2 px-5 py-3 border-t bg-white shrink-0">
-          {step > 1 && <Button variant="outline" size="sm" className="text-xs" onClick={() => setStep(step - 1)}>← Back</Button>}
+          {step > 1 && !(isEditMode && step === 2) && (
+            <Button variant="outline" size="sm" className="text-xs" onClick={() => setStep(step - 1)}>← Back</Button>
+          )}
           <div className="flex-1" />
           <Button variant="outline" size="sm" className="text-xs" onClick={handleClose}>Cancel</Button>
           {step < 3
             ? <Button size="sm" className="text-xs" disabled={step === 1 && !selectedApi} onClick={() => setStep(step + 1)}>Next →</Button>
-            : <Button size="sm" className="text-xs" onClick={handleSave} disabled={!selectedApi}>Save API ✓</Button>
+            : <Button size="sm" className="text-xs" onClick={handleSave} disabled={!selectedApi}>
+                {isEditMode ? 'Update API ✓' : 'Save API ✓'}
+              </Button>
           }
         </div>
       </DialogContent>

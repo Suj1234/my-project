@@ -35,12 +35,24 @@ function formatSample(val: any): string {
   return String(val);
 }
 
-function sampleColor(val: any): string {
-  if (val === null || val === undefined) return 'text-gray-400';
-  if (typeof val === 'boolean') return val ? 'text-green-600 font-semibold' : 'text-red-500 font-semibold';
-  if (typeof val === 'number') return 'text-blue-600 font-semibold';
-  return 'text-emerald-700';
+function inferType(val: any): string {
+  if (val === null || val === undefined) return 'null';
+  if (typeof val === 'boolean') return 'boolean';
+  if (typeof val === 'number') return 'number';
+  if (typeof val === 'string') {
+    if (/^\d{4}-\d{2}-\d{2}(T[\d:.Z+-]*)?\s*$/.test(val)) return 'date';
+    return 'string';
+  }
+  return 'string';
 }
+
+const TYPE_BADGE: Record<string, string> = {
+  string:  'bg-gray-100 text-gray-500',
+  number:  'bg-blue-50 text-blue-600',
+  boolean: 'bg-green-50 text-green-600',
+  date:    'bg-purple-50 text-purple-600',
+  null:    'bg-gray-100 text-gray-400',
+};
 
 function toLabel(key: string) {
   return key.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase()).trim();
@@ -287,13 +299,14 @@ function TreeNode({
   const isCaptured = capturedPaths.has(path);
 
   if (isPrimitive) {
+    const type = inferType(value);
     return (
       <div className="space-y-0">
         <div className="flex items-center gap-1 py-1 w-full" style={{ paddingLeft: `${depth * 14}px` }}>
           <span className="w-2 shrink-0" />
-          <span className="text-blue-700 text-xs font-medium truncate max-w-[36%]">{nodeKey}</span>
-          <span className="text-gray-300 text-xs mx-0.5 shrink-0">:</span>
-          <span className={`text-xs truncate flex-1 min-w-0 max-w-[45%] ${sampleColor(value)}`}>{formatSample(value)}</span>
+          <span className="text-blue-700 text-xs font-medium truncate max-w-[45%]">{nodeKey}</span>
+          <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0 ${TYPE_BADGE[type] ?? TYPE_BADGE.string}`}>{type}</span>
+          <span className="flex-1 min-w-0" />
 
           {/* If inside an array, show array capture button */}
           {arrayContext ? (

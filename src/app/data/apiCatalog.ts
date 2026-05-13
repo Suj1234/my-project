@@ -1,8 +1,11 @@
 import { InputSourceType } from '../types/journey';
 
+export type ApiFieldType = 'string' | 'number' | 'boolean' | 'date' | 'phone' | 'email';
+
 export interface ApiRequestField {
   path: string;           // e.g. "applicant.name.firstName"
   label: string;          // human-readable
+  fieldType?: ApiFieldType;
   isRequired: boolean;
   isAutoMapped: boolean;
   autoMapSource?: { type: InputSourceType; value: string }; // pre-filled mapping
@@ -16,6 +19,7 @@ export interface ApiDefinition {
   description: string;
   icon: string;           // emoji for now
   category: string;
+  provider: string;
   latencyP95Ms?: number;
   requestFields: ApiRequestField[];
   sampleResponse: Record<string, any>;
@@ -31,23 +35,24 @@ export const API_CATALOG: ApiDefinition[] = [
     description: 'Credit score, account history, DPD, derogatory summary from CIBIL',
     icon: '📊',
     category: 'Credit Bureau',
+    provider: 'CIBIL',
     latencyP95Ms: 1450,
     requestFields: [
-      { path: 'applicant.name.firstName',         label: 'First Name',          isRequired: true,  isAutoMapped: true,  autoMapSource: { type: 'native', value: 'first_name' } },
-      { path: 'applicant.name.lastName',          label: 'Last Name',           isRequired: true,  isAutoMapped: true,  autoMapSource: { type: 'native', value: 'last_name' } },
-      { path: 'applicant.dateOfBirth',            label: 'Date of Birth',       isRequired: true,  isAutoMapped: true,  autoMapSource: { type: 'native', value: 'dob' } },
-      { path: 'applicant.gender',                 label: 'Gender',              isRequired: false, isAutoMapped: true,  autoMapSource: { type: 'native', value: 'gender' } },
-      { path: 'applicant.identifiers.pan',        label: 'PAN Number',          isRequired: true,  isAutoMapped: true,  autoMapSource: { type: 'native', value: 'pan_number' } },
-      { path: 'applicant.identifiers.aadhaar',    label: 'Aadhaar Number',      isRequired: false, isAutoMapped: true,  autoMapSource: { type: 'native', value: 'aadhaar_number' } },
-      { path: 'applicant.contact.mobile',         label: 'Mobile Number',       isRequired: true,  isAutoMapped: true,  autoMapSource: { type: 'native', value: 'mobile' } },
-      { path: 'applicant.contact.email',          label: 'Email',               isRequired: false, isAutoMapped: true,  autoMapSource: { type: 'native', value: 'email' } },
-      { path: 'applicant.addresses[0].pincode',   label: 'Pincode',             isRequired: false, isAutoMapped: true,  autoMapSource: { type: 'native', value: 'pincode' } },
-      { path: 'consent.consentGiven',             label: 'Consent Given',       isRequired: true,  isAutoMapped: true,  isSystem: true, staticValue: 'true' },
-      { path: 'consent.consentTimestamp',         label: 'Consent Timestamp',   isRequired: true,  isAutoMapped: true,  isSystem: true, staticValue: 'current_timestamp' },
-      { path: 'config.reportType',                label: 'Report Type',         isRequired: true,  isAutoMapped: true,  isSystem: true, staticValue: 'CCR_FULL' },
-      { path: 'consent.purpose',                  label: 'Enquiry Purpose',     isRequired: true,  isAutoMapped: false },
-      { path: 'config.includeEnquiries',          label: 'Include Enquiries',   isRequired: false, isAutoMapped: false },
-      { path: 'config.includeDerogatory',         label: 'Include Derogatory',  isRequired: false, isAutoMapped: false },
+      { path: 'applicant.name.firstName',         label: 'First Name',          fieldType: 'string',  isRequired: true,  isAutoMapped: true,  autoMapSource: { type: 'native', value: 'first_name' } },
+      { path: 'applicant.name.lastName',          label: 'Last Name',           fieldType: 'string',  isRequired: true,  isAutoMapped: true,  autoMapSource: { type: 'native', value: 'last_name' } },
+      { path: 'applicant.dateOfBirth',            label: 'Date of Birth',       fieldType: 'date',    isRequired: true,  isAutoMapped: true,  autoMapSource: { type: 'native', value: 'dob' } },
+      { path: 'applicant.gender',                 label: 'Gender',              fieldType: 'string',  isRequired: false, isAutoMapped: true,  autoMapSource: { type: 'native', value: 'gender' } },
+      { path: 'applicant.identifiers.pan',        label: 'PAN Number',          fieldType: 'string',  isRequired: true,  isAutoMapped: true,  autoMapSource: { type: 'native', value: 'pan_number' } },
+      { path: 'applicant.identifiers.aadhaar',    label: 'Aadhaar Number',      fieldType: 'string',  isRequired: false, isAutoMapped: true,  autoMapSource: { type: 'native', value: 'aadhaar_number' } },
+      { path: 'applicant.contact.mobile',         label: 'Mobile Number',       fieldType: 'phone',   isRequired: true,  isAutoMapped: true,  autoMapSource: { type: 'native', value: 'mobile' } },
+      { path: 'applicant.contact.email',          label: 'Email',               fieldType: 'email',   isRequired: false, isAutoMapped: true,  autoMapSource: { type: 'native', value: 'email' } },
+      { path: 'applicant.addresses[0].pincode',   label: 'Pincode',             fieldType: 'string',  isRequired: false, isAutoMapped: true,  autoMapSource: { type: 'native', value: 'pincode' } },
+      { path: 'consent.consentGiven',             label: 'Consent Given',       fieldType: 'boolean', isRequired: true,  isAutoMapped: true,  isSystem: true, staticValue: 'true' },
+      { path: 'consent.consentTimestamp',         label: 'Consent Timestamp',   fieldType: 'date',    isRequired: true,  isAutoMapped: true,  isSystem: true, staticValue: 'current_timestamp' },
+      { path: 'config.reportType',                label: 'Report Type',         fieldType: 'string',  isRequired: true,  isAutoMapped: true,  isSystem: true, staticValue: 'CCR_FULL' },
+      { path: 'consent.purpose',                  label: 'Enquiry Purpose',     fieldType: 'string',  isRequired: true,  isAutoMapped: false },
+      { path: 'config.includeEnquiries',          label: 'Include Enquiries',   fieldType: 'boolean', isRequired: false, isAutoMapped: false },
+      { path: 'config.includeDerogatory',         label: 'Include Derogatory',  fieldType: 'boolean', isRequired: false, isAutoMapped: false },
     ],
     sampleResponse: {
       status: 'SUCCESS',
@@ -207,11 +212,12 @@ export const API_CATALOG: ApiDefinition[] = [
     name: 'CRM Customer Lookup',
     description: 'Fetch existing customer profile and loan history from internal CRM',
     icon: '🏢',
-    category: 'Internal CRM',
+    category: 'CRM',
+    provider: 'Internal',
     latencyP95Ms: 420,
     requestFields: [
-      { path: 'pan',    label: 'PAN Number',    isRequired: true,  isAutoMapped: true,  autoMapSource: { type: 'native', value: 'pan_number' } },
-      { path: 'mobile', label: 'Mobile Number', isRequired: false, isAutoMapped: true,  autoMapSource: { type: 'native', value: 'mobile' } },
+      { path: 'pan',    label: 'PAN Number',    fieldType: 'string', isRequired: true,  isAutoMapped: true,  autoMapSource: { type: 'native', value: 'pan_number' } },
+      { path: 'mobile', label: 'Mobile Number', fieldType: 'phone',  isRequired: false, isAutoMapped: true,  autoMapSource: { type: 'native', value: 'mobile' } },
     ],
     sampleResponse: {
       status: 'FOUND',
@@ -247,10 +253,11 @@ export const API_CATALOG: ApiDefinition[] = [
     description: 'Director verification and company status via MCA21 database',
     icon: '📋',
     category: 'Government',
+    provider: 'MCA',
     latencyP95Ms: 920,
     requestFields: [
-      { path: 'pan',       label: 'Director PAN',  isRequired: true,  isAutoMapped: true,  autoMapSource: { type: 'native', value: 'pan_number' } },
-      { path: 'companyId', label: 'Company CIN',   isRequired: false, isAutoMapped: false },
+      { path: 'pan',       label: 'Director PAN',  fieldType: 'string', isRequired: true,  isAutoMapped: true,  autoMapSource: { type: 'native', value: 'pan_number' } },
+      { path: 'companyId', label: 'Company CIN',   fieldType: 'string', isRequired: false, isAutoMapped: false },
     ],
     sampleResponse: {
       status: 'SUCCESS',
@@ -288,10 +295,11 @@ export const API_CATALOG: ApiDefinition[] = [
     description: 'Check Core Banking System to determine if applicant is an Existing-to-Bank (ETB) customer; pre-fills CBS profile data for ETB customers',
     icon: '🏦',
     category: 'Dedupe',
+    provider: 'CBS',
     latencyP95Ms: 800,
     requestFields: [
-      { path: 'pan_number',    label: 'PAN Number',    isRequired: true,  isAutoMapped: true,  autoMapSource: { type: 'native', value: 'pan_number' } },
-      { path: 'date_of_birth', label: 'Date of Birth', isRequired: true,  isAutoMapped: true,  autoMapSource: { type: 'native', value: 'date_of_birth' } },
+      { path: 'pan_number',    label: 'PAN Number',    fieldType: 'string', isRequired: true,  isAutoMapped: true,  autoMapSource: { type: 'native', value: 'pan_number' } },
+      { path: 'date_of_birth', label: 'Date of Birth', fieldType: 'date',   isRequired: true,  isAutoMapped: true,  autoMapSource: { type: 'native', value: 'date_of_birth' } },
     ],
     sampleResponse: {
       status: 'SUCCESS',
@@ -318,9 +326,10 @@ export const API_CATALOG: ApiDefinition[] = [
     description: 'Check Card Management System for existing active credit cards held by the applicant; hard-rejects applicants who already hold a card',
     icon: '💳',
     category: 'Dedupe',
+    provider: 'CMS',
     latencyP95Ms: 400,
     requestFields: [
-      { path: 'pan_number', label: 'PAN Number', isRequired: true, isAutoMapped: true, autoMapSource: { type: 'native', value: 'pan_number' } },
+      { path: 'pan_number', label: 'PAN Number', fieldType: 'string', isRequired: true, isAutoMapped: true, autoMapSource: { type: 'native', value: 'pan_number' } },
     ],
     sampleResponse: {
       status: 'SUCCESS',
@@ -339,9 +348,10 @@ export const API_CATALOG: ApiDefinition[] = [
     description: 'Check Loan Management System for active in-progress credit card applications; enables resume flow for returning applicants',
     icon: '📋',
     category: 'Dedupe',
+    provider: 'LMS',
     latencyP95Ms: 400,
     requestFields: [
-      { path: 'pan_number', label: 'PAN Number', isRequired: true, isAutoMapped: true, autoMapSource: { type: 'native', value: 'pan_number' } },
+      { path: 'pan_number', label: 'PAN Number', fieldType: 'string', isRequired: true, isAutoMapped: true, autoMapSource: { type: 'native', value: 'pan_number' } },
     ],
     sampleResponse: {
       status: 'SUCCESS',

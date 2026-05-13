@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { Plus, Eye, Trash2, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import {
-  ApiIntegrationV1, createDefaultIntegrationV1,
-  AUTH_LABEL_V1, AuthTypeV1, HttpMethodV1, IntegrationStatusV1,
+  ApiIntegrationV1, createDefaultIntegrationV1, IntegrationStatusV1,
 } from '../../types/apiIntegrationV1';
 import { ApiIntegrationEditorV1 } from './ApiIntegrationEditorV1';
 
@@ -32,6 +31,8 @@ const MOCK_INTEGRATIONS: ApiIntegrationV1[] = [
     ],
     responseJson: JSON.stringify({ status: 'success', score: 748, bureau: 'CIBIL', reportId: 'RPT-2024-00123', creditAge: '4 years 3 months', activeAccounts: 3, enquiries: 2 }, null, 2),
     status: 'active',
+    category: 'Credit Bureau',
+    provider: 'CIBIL',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -55,6 +56,8 @@ const MOCK_INTEGRATIONS: ApiIntegrationV1[] = [
     ],
     responseJson: JSON.stringify({ status: 'valid', panNumber: 'ABCDE1234F', name: 'Rahul Kumar', type: 'Individual', aadhaarLinked: true, lastVerified: '2024-03-15' }, null, 2),
     status: 'active',
+    category: 'KYC',
+    provider: 'NSDL',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -74,6 +77,8 @@ const MOCK_INTEGRATIONS: ApiIntegrationV1[] = [
     ],
     responseJson: JSON.stringify({ status: 'success', verified: true, nameMatch: 'full', bank: 'HDFC Bank', branch: 'Koramangala, Bengaluru', accountType: 'Savings' }, null, 2),
     status: 'active',
+    category: 'Financial',
+    provider: 'Internal',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -94,6 +99,8 @@ const MOCK_INTEGRATIONS: ApiIntegrationV1[] = [
     ],
     responseJson: JSON.stringify({ status: 'Success', postOffices: [{ name: 'Indiranagar', district: 'Bengaluru', state: 'Karnataka', pincode: '560038', deliveryStatus: 'Delivery' }] }, null, 2),
     status: 'inactive',
+    category: 'KYC',
+    provider: 'Internal',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -116,6 +123,8 @@ const MOCK_INTEGRATIONS: ApiIntegrationV1[] = [
     ],
     responseJson: JSON.stringify({ status: 'success', gstin: '29ABCDE1234F1Z5', legalName: 'Acme Pvt Ltd', tradeName: 'Acme', state: 'Karnataka', registrationDate: '2018-07-01', taxpayerType: 'Regular', filingStatus: 'Active' }, null, 2),
     status: 'active',
+    category: 'Government',
+    provider: 'Internal',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -134,6 +143,8 @@ const MOCK_INTEGRATIONS: ApiIntegrationV1[] = [
     params: [],
     responseJson: JSON.stringify({ id: 'APP-2024-00456', status: 'under_review', applicantName: 'Priya Sharma', loanAmount: 500000, product: 'Personal Loan', appliedAt: '2024-03-10T09:30:00Z', lastUpdated: '2024-03-12T14:20:00Z' }, null, 2),
     status: 'active',
+    category: 'Financial',
+    provider: 'Internal',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -161,6 +172,8 @@ const MOCK_INTEGRATIONS: ApiIntegrationV1[] = [
     ],
     responseJson: JSON.stringify({ success: true, documentId: 'DOC-789', loanId: 'LN-2024-00456', docType: 'aadhaar', uploadedAt: '2024-03-15T11:00:00Z' }, null, 2),
     status: 'active',
+    category: 'Document',
+    provider: 'Internal',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -184,6 +197,8 @@ const MOCK_INTEGRATIONS: ApiIntegrationV1[] = [
     ],
     responseJson: JSON.stringify({ status: 'SUCCESS', is_etb: true, customer_name: 'RAVI KUMAR', customer_id: 'CBS-00123456', mobile_number: '9876543210', email_id: 'ravi@email.com', address: '12 MG Road', city: 'Bengaluru', state: 'Karnataka', pincode: '560001' }, null, 2),
     status: 'active',
+    category: 'Dedupe',
+    provider: 'CBS',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -205,6 +220,8 @@ const MOCK_INTEGRATIONS: ApiIntegrationV1[] = [
     ],
     responseJson: JSON.stringify({ status: 'SUCCESS', has_existing_card: false, existing_card_count: 0, cards: [] }, null, 2),
     status: 'active',
+    category: 'Dedupe',
+    provider: 'CMS',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -226,6 +243,8 @@ const MOCK_INTEGRATIONS: ApiIntegrationV1[] = [
     ],
     responseJson: JSON.stringify({ status: 'SUCCESS', has_active_application: false, application_id: null, application_status: null }, null, 2),
     status: 'active',
+    category: 'Dedupe',
+    provider: 'LMS',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -234,11 +253,6 @@ const MOCK_INTEGRATIONS: ApiIntegrationV1[] = [
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const ROWS_PER_PAGE = 10;
-
-const METHOD_COLORS: Record<HttpMethodV1, string> = {
-  GET:  'bg-emerald-50 text-emerald-700 border-emerald-200',
-  POST: 'bg-blue-50 text-blue-700 border-blue-200',
-};
 
 const STATUS_COLORS: Record<IntegrationStatusV1, string> = {
   active:   'bg-green-100 text-green-700 border-green-200',
@@ -249,12 +263,12 @@ const STATUS_COLORS: Record<IntegrationStatusV1, string> = {
 
 interface Filters {
   name: string;
-  method: HttpMethodV1 | '';
-  authType: AuthTypeV1 | '';
+  category: string;
+  provider: string;
   status: IntegrationStatusV1 | '';
 }
 
-const EMPTY_FILTERS: Filters = { name: '', method: '', authType: '', status: '' };
+const EMPTY_FILTERS: Filters = { name: '', category: '', provider: '', status: '' };
 
 // ─── Delete confirmation modal ────────────────────────────────────────────────
 
@@ -308,8 +322,8 @@ export function ApiIntegrationsPageV1() {
   // ── Filtering ──
   const filtered = items.filter((item) => {
     if (applied.name     && !item.name.toLowerCase().includes(applied.name.toLowerCase())) return false;
-    if (applied.method   && item.method !== applied.method) return false;
-    if (applied.authType && item.auth.type !== applied.authType) return false;
+    if (applied.category && item.category !== applied.category) return false;
+    if (applied.provider && item.provider !== applied.provider) return false;
     if (applied.status   && item.status !== applied.status) return false;
     return true;
   });
@@ -368,33 +382,33 @@ export function ApiIntegrationsPageV1() {
               />
             </div>
 
-            {/* Method */}
+            {/* Category */}
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Method</label>
+              <label className="block text-xs text-gray-500 mb-1">Category</label>
               <select
-                value={draft.method}
-                onChange={(e) => setDraft((f) => ({ ...f, method: e.target.value as HttpMethodV1 | '' }))}
+                value={draft.category}
+                onChange={(e) => setDraft((f) => ({ ...f, category: e.target.value }))}
                 className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
               >
-                <option value="">All Methods</option>
-                <option value="GET">GET</option>
-                <option value="POST">POST</option>
+                <option value="">All Categories</option>
+                {['Identity', 'Credit Bureau', 'KYC', 'Financial', 'Document', 'CRM', 'Government', 'Dedupe', 'Communication'].map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
               </select>
             </div>
 
-            {/* Auth Type */}
+            {/* Provider */}
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Auth Type</label>
+              <label className="block text-xs text-gray-500 mb-1">Provider</label>
               <select
-                value={draft.authType}
-                onChange={(e) => setDraft((f) => ({ ...f, authType: e.target.value as AuthTypeV1 | '' }))}
+                value={draft.provider}
+                onChange={(e) => setDraft((f) => ({ ...f, provider: e.target.value }))}
                 className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
               >
-                <option value="">All Auth Types</option>
-                <option value="none">No Auth</option>
-                <option value="bearer">Bearer Token</option>
-                <option value="api_key">API Key</option>
-                <option value="basic">Basic Auth</option>
+                <option value="">All Providers</option>
+                {['CIBIL', 'Experian', 'Equifax', 'Perfios', 'NSDL', 'DigiLocker', 'MCA', 'CBS', 'CMS', 'LMS', 'Internal', 'Custom'].map(p => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
               </select>
             </div>
 
@@ -432,8 +446,8 @@ export function ApiIntegrationsPageV1() {
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Integration Name</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Method</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Auth Type</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Provider</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Updated</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -460,12 +474,16 @@ export function ApiIntegrationsPageV1() {
                     </td>
 
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded border text-xs font-semibold ${METHOD_COLORS[item.method]}`}>
-                        {item.method}
+                      <span className="inline-flex items-center px-2 py-0.5 rounded border text-xs font-medium bg-gray-50 text-gray-600 border-gray-200">
+                        {item.category || '—'}
                       </span>
                     </td>
 
-                    <td className="px-4 py-3 text-gray-600 text-xs">{AUTH_LABEL_V1[item.auth.type]}</td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded border text-xs font-medium bg-blue-50 text-blue-700 border-blue-200">
+                        {item.provider || '—'}
+                      </span>
+                    </td>
 
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded border text-xs font-medium uppercase ${STATUS_COLORS[item.status]}`}>
