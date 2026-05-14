@@ -306,17 +306,12 @@ export function DataHooksSection({ block, slots, onChange }: DataHooksSectionPro
           }
         }}
         initialData={dialogState?.mode === 'edit' ? dialogState.api : undefined}
-        availableFields={slots.flatMap(slot =>
-          slot.apis.flatMap(api =>
-            api.outputCaptures
-              .filter(c => c.storeType !== 'none' && c.storeName.trim())
-              .map(c => ({
-                storeName: c.storeName.trim(),
-                label: c.label || c.storeName,
-                isArray: c.aggregation === 'all',
-              }))
-          )
-        )}
+        currentSlot={dialogState ? (slots.find(s => s.id === dialogState.slotId) ?? null) : null}
+        currentApiIndex={
+          dialogState?.mode === 'edit'
+            ? (slots.find(s => s.id === dialogState.slotId)?.apis.findIndex(a => a.id === dialogState.api.id) ?? 0)
+            : (slots.find(s => s.id === dialogState?.slotId)?.apis.length ?? 0)
+        }
         eventUserInputs={dialogState ? getUserInputsForSlot(block, dialogState.slotId) : []}
       />
     </div>

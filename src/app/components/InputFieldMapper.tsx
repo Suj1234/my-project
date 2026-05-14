@@ -5,34 +5,39 @@ import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
-import { Trash2, ArrowUp, ArrowDown, Plus } from 'lucide-react';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command';
+import { Trash2, ArrowUp, ArrowDown, Plus, ChevronDown, Check } from 'lucide-react';
 import type { ApiRequestField } from '../data/apiCatalog';
+import type { ApiOutputField } from './AddHookDialog';
 import type {
   InputMapping, InputSourceType,
   ExtractionType, ExtractionConfig, AggregationType,
   TransformationType, TransformationStep,
   FormInputField,
 } from '../types/journey';
+import { NATIVE_FIELD_CATALOG, CUSTOM_FIELD_CATALOG, PROGRAM_CONFIG_CATALOG } from '../data/fieldCatalog';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
-export const NATIVE_FIELDS = [
-  { key: 'first_name',     label: 'First Name' },
-  { key: 'last_name',      label: 'Last Name' },
-  { key: 'dob',            label: 'Date of Birth' },
-  { key: 'gender',         label: 'Gender' },
-  { key: 'pan_number',     label: 'PAN Number' },
-  { key: 'aadhaar_number', label: 'Aadhaar Number' },
-  { key: 'mobile',         label: 'Mobile Number' },
-  { key: 'email',          label: 'Email' },
-  { key: 'pincode',        label: 'Pincode' },
-];
+const TYPE_BADGE_COLORS: Record<string, string> = {
+  string:  'bg-gray-100 text-gray-600',
+  number:  'bg-blue-50 text-blue-600',
+  array:   'bg-purple-50 text-purple-600',
+  object:  'bg-amber-50 text-amber-600',
+  boolean: 'bg-green-50 text-green-600',
+  date:    'bg-rose-50 text-rose-600',
+  null:    'bg-gray-100 text-gray-400',
+};
 
-export interface AvailableField {
-  storeName: string;
-  label: string;
-  isArray: boolean;
+function formFieldDataType(f: FormInputField): string {
+  if (f.dataType) {
+    const map: Record<string, string> = { STRING: 'string', NUMBER: 'number', BOOLEAN: 'boolean', DATE: 'date' };
+    return map[f.dataType] ?? 'string';
+  }
+  const map: Record<string, string> = { text: 'string', email: 'string', tel: 'string', select: 'string', number: 'number', date: 'date' };
+  return map[f.type] ?? 'string';
 }
+
 
 const EXTRACTION_TYPES: { value: ExtractionType; label: string }[] = [
   { value: 'none',                   label: 'None — use value directly' },
@@ -88,6 +93,13 @@ const DATE_FORMATS = [
 ];
 
 const DATE_COMPONENTS = ['year', 'month', 'day', 'hour', 'minute', 'second'] as const;
+
+function toSchema(value: any): any {
+  if (value === null) return null;
+  if (Array.isArray(value)) return value.length > 0 ? [toSchema(value[0])] : [];
+  if (typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, toSchema(v)]));
+  return typeof value;
+}
 
 // ─── Section label ──────────────────────────────────────────────────────────────
 
@@ -325,16 +337,17 @@ function TransformRow({
 interface Props {
   field: ApiRequestField | null;
   mapping: InputMapping | null;
-  availableFields: AvailableField[];
+  apiOutputFields: ApiOutputField[];
   eventUserInputs?: FormInputField[];
   onSave: (m: InputMapping) => void;
 }
 
-export function InputFieldMapper({ field, mapping, availableFields, eventUserInputs = [], onSave }: Props) {
+export function InputFieldMapper({ field, mapping, apiOutputFields, eventUserInputs = [], onSave }: Props) {
   const [sourceType, setSourceType] = useState<InputSourceType>(mapping?.sourceType ?? 'native');
   const [sourceValue, setSourceValue] = useState(mapping?.sourceValue ?? '');
   const [extraction, setExtraction] = useState<ExtractionConfig>(mapping?.extraction ?? { type: 'none' });
   const [transforms, setTransforms] = useState<TransformationStep[]>(mapping?.transforms ?? []);
+  const [apiOutputOpen, setApiOutputOpen] = useState(false);
 
   if (!field) {
     return (
@@ -347,11 +360,11 @@ export function InputFieldMapper({ field, mapping, availableFields, eventUserInp
   }
 
   const SOURCE_BTNS: { value: InputSourceType; label: string }[] = [
-    { value: 'native',     label: 'Native' },
-    { value: 'custom',     label: 'Custom' },
-    { value: 'static',     label: 'Static' },
-    { value: 'api_output', label: 'API Output' },
-    { value: 'user_input', label: 'User Input' },
+    { value: 'native',                label: 'Native' },
+    { value: 'custom',                label: 'Custom' },
+    { value: 'program_configuration', label: 'Program Configuration' },
+    { value: 'api_output',            label: 'API Output' },
+    { value: 'user_input',            label: 'User Input' },
   ];
 
   function addTransform() {
@@ -393,7 +406,6 @@ export function InputFieldMapper({ field, mapping, availableFields, eventUserInp
             <code className="text-xs text-blue-700 font-semibold break-all">{field.path}</code>
             {field.isRequired && <Badge variant="destructive" className="text-[10px] shrink-0 h-4">Required</Badge>}
           </div>
-          <p className="text-xs text-gray-500 mt-1">{field.label}</p>
         </div>
 
         {/* Source */}
@@ -416,38 +428,113 @@ export function InputFieldMapper({ field, mapping, availableFields, eventUserInp
             <Select value={sourceValue} onValueChange={setSourceValue}>
               <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select native field…" /></SelectTrigger>
               <SelectContent>
-                {NATIVE_FIELDS.map(f => (
+                {NATIVE_FIELD_CATALOG.map(f => (
                   <SelectItem key={f.key} value={f.key} className="text-xs">
-                    {f.label} <span className="text-gray-400 font-mono ml-1">({f.key})</span>
+                    <span className="flex items-center gap-2 w-full">
+                      <span className="flex-1">{f.label}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold shrink-0 ${TYPE_BADGE_COLORS[f.dataType] ?? TYPE_BADGE_COLORS.string}`}>{f.dataType}</span>
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           )}
           {sourceType === 'custom' && (
-            <Input className="h-8 text-xs font-mono" placeholder="custom_field_name"
-              value={sourceValue} onChange={e => setSourceValue(e.target.value)} />
+            <Select value={sourceValue} onValueChange={setSourceValue}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select custom field…" /></SelectTrigger>
+              <SelectContent>
+                {CUSTOM_FIELD_CATALOG.map(f => (
+                  <SelectItem key={f.key} value={f.key} className="text-xs">
+                    <span className="flex items-center gap-2 w-full">
+                      <span className="flex-1">{f.label}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold shrink-0 ${TYPE_BADGE_COLORS[f.dataType] ?? TYPE_BADGE_COLORS.string}`}>{f.dataType}</span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
-          {sourceType === 'static' && (
-            <Input className="h-8 text-xs" placeholder="Enter a static value"
-              value={sourceValue} onChange={e => setSourceValue(e.target.value)} />
+          {sourceType === 'program_configuration' && (
+            <Select value={sourceValue} onValueChange={setSourceValue}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select program config field…" /></SelectTrigger>
+              <SelectContent>
+                {PROGRAM_CONFIG_CATALOG.map(f => (
+                  <SelectItem key={f.key} value={f.key} className="text-xs">
+                    <span className="flex items-center gap-2 w-full">
+                      <span className="flex-1">{f.label}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold shrink-0 ${TYPE_BADGE_COLORS[f.dataType] ?? TYPE_BADGE_COLORS.string}`}>{f.dataType}</span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
           {sourceType === 'api_output' && (
-            availableFields.length > 0 ? (
-              <Select value={sourceValue} onValueChange={setSourceValue}>
-                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select captured field…" /></SelectTrigger>
-                <SelectContent>
-                  {availableFields.map(f => (
-                    <SelectItem key={f.storeName} value={f.storeName} className="text-xs">
-                      <span className="font-mono">{f.storeName}</span>
-                      {f.isArray && <span className="ml-1.5 text-purple-500 text-[10px]">[array]</span>}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            apiOutputFields.length > 0 ? (
+              <div className="space-y-1">
+                {/* Trigger */}
+                <button
+                  type="button"
+                  onClick={() => setApiOutputOpen(v => !v)}
+                  className="w-full h-8 text-xs flex items-center justify-between gap-2 px-3 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
+                >
+                  {sourceValue ? (
+                    (() => {
+                      const found = apiOutputFields.find(f => `${f.apiId}.${f.key}` === sourceValue);
+                      return found ? (
+                        <span className="flex items-center gap-1.5 truncate">
+                          <span className="text-gray-400 text-[10px] shrink-0">{found.apiName} /</span>
+                          <span className="font-mono truncate">{found.key}</span>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold shrink-0 ${TYPE_BADGE_COLORS[found.type] ?? TYPE_BADGE_COLORS.string}`}>{found.type}</span>
+                        </span>
+                      ) : <span className="font-mono truncate">{sourceValue}</span>;
+                    })()
+                  ) : (
+                    <span className="text-gray-400">Select API output field…</span>
+                  )}
+                  <ChevronDown className={`h-3 w-3 shrink-0 text-gray-400 transition-transform ${apiOutputOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Inline panel */}
+                {apiOutputOpen && (
+                  <div className="border rounded-lg bg-white shadow-sm overflow-hidden">
+                    <Command>
+                      <CommandInput placeholder="Search fields…" className="h-8 text-xs border-b" />
+                      <CommandList className="max-h-[220px]">
+                        <CommandEmpty className="py-4 text-xs text-center text-gray-400">No fields found.</CommandEmpty>
+                        {Array.from(new Set(apiOutputFields.map(f => f.apiId))).map(apiId => {
+                          const fields = apiOutputFields.filter(f => f.apiId === apiId);
+                          const apiName = fields[0].apiName;
+                          return (
+                            <CommandGroup key={apiId} heading={apiName}>
+                              {fields.map(f => {
+                                const val = `${f.apiId}.${f.key}`;
+                                return (
+                                  <CommandItem
+                                    key={val}
+                                    value={`${apiName} ${f.key}`}
+                                    onSelect={() => { setSourceValue(val); setApiOutputOpen(false); }}
+                                    className="text-xs flex items-center gap-2 cursor-pointer"
+                                  >
+                                    <Check className={`h-3 w-3 shrink-0 ${sourceValue === val ? 'opacity-100 text-blue-600' : 'opacity-0'}`} />
+                                    <span className="font-mono flex-1 truncate">{f.key}</span>
+                                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold shrink-0 ${TYPE_BADGE_COLORS[f.type] ?? TYPE_BADGE_COLORS.string}`}>
+                                      {f.type}
+                                    </span>
+                                  </CommandItem>
+                                );
+                              })}
+                            </CommandGroup>
+                          );
+                        })}
+                      </CommandList>
+                    </Command>
+                  </div>
+                )}
+              </div>
             ) : (
               <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2.5">
-                No captured fields available in this block. Configure API output captures in other event slots first.
+                No previous APIs in this event slot. Add another API before this one to use its output.
               </p>
             )
           )}
@@ -456,11 +543,17 @@ export function InputFieldMapper({ field, mapping, availableFields, eventUserInp
               <Select value={sourceValue} onValueChange={setSourceValue}>
                 <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select user input field…" /></SelectTrigger>
                 <SelectContent>
-                  {eventUserInputs.map(f => (
-                    <SelectItem key={f.key ?? f.id} value={f.key ?? f.id} className="text-xs">
-                      {f.name}
-                    </SelectItem>
-                  ))}
+                  {eventUserInputs.map(f => {
+                    const dt = formFieldDataType(f);
+                    return (
+                      <SelectItem key={f.key ?? f.id} value={f.key ?? f.id} className="text-xs">
+                        <span className="flex items-center gap-2 w-full">
+                          <span className="flex-1">{f.name}</span>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold shrink-0 ${TYPE_BADGE_COLORS[dt] ?? TYPE_BADGE_COLORS.string}`}>{dt}</span>
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             ) : (
@@ -470,6 +563,54 @@ export function InputFieldMapper({ field, mapping, availableFields, eventUserInp
             )
           )}
         </div>
+
+        {/* Value Preview */}
+        {sourceValue && (() => {
+          // Program configuration: always show the single configured value
+          if (sourceType === 'program_configuration') {
+            const f = PROGRAM_CONFIG_CATALOG.find(c => c.key === sourceValue);
+            if (!f) return null;
+            return (
+              <div className="rounded-lg border bg-indigo-50 p-3 space-y-1.5">
+                <span className="text-[10px] font-semibold text-indigo-400 uppercase tracking-wide">Configured Value</span>
+                <pre className="text-xs font-mono text-indigo-700 bg-white rounded p-2 overflow-x-auto whitespace-pre-wrap break-all">
+                  {JSON.stringify(f.configuredValue, null, 2)}
+                </pre>
+              </div>
+            );
+          }
+
+          if (sourceType === 'user_input') return null;
+
+          // Native / Custom / API Output: show structure only for array or object types
+          let dataType: string | undefined;
+          let structure: any;
+
+          if (sourceType === 'native') {
+            const f = NATIVE_FIELD_CATALOG.find(c => c.key === sourceValue);
+            dataType = f?.dataType;
+            structure = f?.sampleStructure;
+          } else if (sourceType === 'custom') {
+            const f = CUSTOM_FIELD_CATALOG.find(c => c.key === sourceValue);
+            dataType = f?.dataType;
+            structure = f?.sampleStructure;
+          } else if (sourceType === 'api_output') {
+            const f = apiOutputFields.find(f => `${f.apiId}.${f.key}` === sourceValue);
+            dataType = f?.type;
+            structure = f?.sampleValue;
+          }
+
+          if (dataType !== 'array' && dataType !== 'object') return null;
+
+          return (
+            <div className="rounded-lg border bg-slate-50 p-3 space-y-1.5">
+              <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Structure Preview</span>
+              <pre className="text-xs font-mono text-gray-700 bg-white rounded p-2 overflow-x-auto whitespace-pre-wrap break-all">
+                {JSON.stringify(toSchema(structure), null, 2)}
+              </pre>
+            </div>
+          );
+        })()}
 
         {/* Extraction */}
         <div className="space-y-2">

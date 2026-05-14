@@ -12,6 +12,7 @@ export interface CaptureSpec {
   label: string;
   sampleValue: string;
   isArray: boolean;
+  captureLevel?: 'field' | 'object' | 'array' | 'full_response';
   arrayOptions?: ArrayCaptureOptions;
 }
 
@@ -383,19 +384,25 @@ function TreeNode({
           <span className="text-gray-400 text-xs italic ml-1 flex-1 min-w-0 truncate">
             [ {value.length} {objectItems.length > 0 ? 'objects' : 'values'} ]
           </span>
-          {/* Capture entire primitive array directly */}
-          {primitiveItems.length > 0 && (
-            <button
-              className={`ml-auto shrink-0 text-[11px] px-2 py-0.5 rounded border font-semibold shadow-sm ${
-                capturedPaths.has(path)
-                  ? 'bg-green-100 text-green-700 border-green-300'
-                  : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
-              }`}
-              onClick={(e) => { e.stopPropagation(); onCapture({ displayPath: path, label, sampleValue: `[${primitiveItems.slice(0,2).map(formatSample).join(', ')}…]`, isArray: false }); }}
-            >
-              {capturedPaths.has(path) ? '✓ Captured' : '+ Capture list'}
-            </button>
-          )}
+          {/* Capture entire array (objects or primitives) */}
+          <button
+            className={`ml-auto shrink-0 text-[11px] px-2 py-0.5 rounded border font-semibold shadow-sm ${
+              capturedPaths.has(path)
+                ? 'bg-green-100 text-green-700 border-green-300'
+                : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+            }`}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!capturedPaths.has(path)) {
+                const sample = primitiveItems.length > 0
+                  ? `[${primitiveItems.slice(0, 2).map(formatSample).join(', ')}…]`
+                  : `[{...} × ${value.length}]`;
+                onCapture({ displayPath: path, label, sampleValue: sample, isArray: true, captureLevel: 'array' });
+              }
+            }}
+          >
+            {capturedPaths.has(path) ? '✓ Captured' : '+ Capture array'}
+          </button>
         </div>
         {expanded && objectItems.length > 0 && (
           <div className="border-l-2 border-purple-100 ml-2 pl-1">
@@ -426,12 +433,22 @@ function TreeNode({
   // Object
   return (
     <div style={{ paddingLeft: `${depth * 14}px` }}>
-      <div className="flex items-center gap-1 py-1 cursor-pointer w-full" onClick={() => setExpanded(!expanded)}>
-        <span className="text-gray-400 shrink-0">
+      <div className="flex items-center gap-1 py-1 w-full">
+        <span className="text-gray-400 shrink-0 cursor-pointer" onClick={() => setExpanded(!expanded)}>
           {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
         </span>
-        <span className="text-blue-700 text-xs font-medium shrink-0">{nodeKey}</span>
-        <span className="text-gray-400 text-xs italic ml-1">{'{ object }'}</span>
+        <span className="text-blue-700 text-xs font-medium shrink-0 cursor-pointer" onClick={() => setExpanded(!expanded)}>{nodeKey}</span>
+        <span className="text-gray-400 text-xs italic ml-1 flex-1 cursor-pointer" onClick={() => setExpanded(!expanded)}>{'{ object }'}</span>
+        <button
+          className={`ml-auto shrink-0 text-[11px] px-2 py-0.5 rounded border font-semibold shadow-sm ${
+            capturedPaths.has(path)
+              ? 'bg-green-100 text-green-700 border-green-300'
+              : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+          }`}
+          onClick={() => !capturedPaths.has(path) && onCapture({ displayPath: path, label, sampleValue: '{...}', isArray: false, captureLevel: 'object' })}
+        >
+          {capturedPaths.has(path) ? '✓ Captured' : '+ Capture'}
+        </button>
       </div>
       {expanded && (
         <div className="border-l-2 border-gray-100 ml-2 pl-1">
@@ -462,8 +479,24 @@ interface ResponseTreeProps {
 }
 
 export function ResponseTree({ data, capturedPaths, onCapture }: ResponseTreeProps) {
+  const fullResponseCaptured = capturedPaths.has('__full_response__');
   return (
     <div className="font-mono text-sm">
+      {/* Capture entire response */}
+      <div className="flex items-center gap-2 px-2 py-1.5 mb-1 border-b border-dashed border-gray-200">
+        <span className="text-xs text-gray-500 flex-1">Full API response</span>
+        <button
+          className={`shrink-0 text-[11px] px-2 py-0.5 rounded border font-semibold shadow-sm ${
+            fullResponseCaptured
+              ? 'bg-green-100 text-green-700 border-green-300'
+              : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+          }`}
+          onClick={() => !fullResponseCaptured && onCapture({ displayPath: '__full_response__', label: 'Full Response', sampleValue: '{...}', isArray: false, captureLevel: 'full_response' })}
+        >
+          {fullResponseCaptured ? '✓ Captured' : '+ Capture entire response'}
+        </button>
+      </div>
+
       {Object.entries(data).map(([key, value]) => (
         <TreeNode
           key={key}

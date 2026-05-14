@@ -265,7 +265,7 @@ export type HookTrigger =
   | 'after_user_submit'
   | 'after_block_complete';
 
-export type InputSourceType = 'native' | 'custom' | 'static' | 'system' | 'api_output' | 'user_input';
+export type InputSourceType = 'native' | 'custom' | 'static' | 'program_configuration' | 'system' | 'api_output' | 'user_input';
 
 export type TransformationType =
   | 'trim'
@@ -340,8 +340,9 @@ export interface OutputCapture {
   id: string;
   path: string;
   label: string;
-  storeType: 'custom' | 'native' | 'none';
+  storeType: 'custom' | 'native';
   storeName: string;
+  captureLevel?: 'field' | 'object' | 'array' | 'full_response';
   isArrayExtract?: boolean;
   arrayPath?: string;
   arrayField?: string;

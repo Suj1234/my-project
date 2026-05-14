@@ -10,15 +10,37 @@ import { ScrollArea } from './ui/scroll-area';
 import { API_CATALOG, ApiDefinition, ApiRequestField, getApiById } from '../data/apiCatalog';
 import { ResponseTree, CaptureSpec } from './ResponseTree';
 import { RequestFieldTree } from './RequestFieldTree';
-import { InputFieldMapper, AvailableField } from './InputFieldMapper';
+import { InputFieldMapper } from './InputFieldMapper';
 import {
   DataHookApiBinding,
   FormInputField,
+  HookEventSlot,
   InputMapping,
   OutputCapture,
   TransformationStep,
   TransformationType,
 } from '../types/journey';
+
+// ─── Api Output Field (for Step 2 combobox) ────────────────────────────────────
+
+export type ApiOutputFieldType = 'string' | 'number' | 'array' | 'object' | 'boolean' | 'null';
+
+export interface ApiOutputField {
+  apiId: string;
+  apiName: string;
+  key: string;
+  type: ApiOutputFieldType;
+  sampleValue: any;
+}
+
+function inferTopLevelType(val: any): ApiOutputFieldType {
+  if (val === null || val === undefined) return 'null';
+  if (typeof val === 'boolean') return 'boolean';
+  if (typeof val === 'number') return 'number';
+  if (typeof val === 'string') return 'string';
+  if (Array.isArray(val)) return 'array';
+  return 'object';
+}
 
 // ─── Transform helpers (used by Step 3 capture panel) ─────────────────────────
 
@@ -139,15 +161,31 @@ interface AddHookDialogProps {
   open: boolean;
   onClose: () => void;
   onSave: (hook: DataHookApiBinding) => void;
-  availableFields?: AvailableField[];
+  currentSlot: HookEventSlot | null;
+  currentApiIndex: number;
   eventUserInputs?: FormInputField[];
   initialData?: DataHookApiBinding;
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
-export function AddHookDialog({ open, onClose, onSave, availableFields = [], eventUserInputs = [], initialData }: AddHookDialogProps) {
+export function AddHookDialog({ open, onClose, onSave, currentSlot, currentApiIndex, eventUserInputs = [], initialData }: AddHookDialogProps) {
   const isEditMode = Boolean(initialData);
+
+  const apiOutputFields = useMemo((): ApiOutputField[] => {
+    if (!currentSlot || currentApiIndex === 0) return [];
+    return currentSlot.apis.slice(0, currentApiIndex).flatMap(binding => {
+      const def = getApiById(binding.apiId);
+      if (!def) return [];
+      return Object.entries(def.sampleResponse).map(([key, value]) => ({
+        apiId: def.id,
+        apiName: def.name,
+        key,
+        type: inferTopLevelType(value),
+        sampleValue: value,
+      }));
+    });
+  }, [currentSlot, currentApiIndex]);
 
   const [step, setStep] = useState(isEditMode ? 2 : 1);
   const [search, setSearch] = useState('');
@@ -163,7 +201,7 @@ export function AddHookDialog({ open, onClose, onSave, availableFields = [], eve
   );
   const [pendingCapture, setPendingCapture] = useState<Omit<CaptureSpec, 'storagePath'> | null>(null);
   const [storeName, setStoreName] = useState('');
-  const [storeType, setStoreType] = useState<'custom' | 'native' | 'none'>('custom');
+  const [storeType, setStoreType] = useState<'custom' | 'native'>('custom');
   const [captureTransforms, setCaptureTransforms] = useState<TransformationStep[]>([]);
 
   const capturedPaths = new Set(captures.map((c) => c.path));
@@ -229,6 +267,7 @@ export function AddHookDialog({ open, onClose, onSave, availableFields = [], eve
       {
         id, path: pendingCapture.displayPath, label: pendingCapture.label,
         storeType, storeName, transforms: captureTransforms,
+        captureLevel: pendingCapture.captureLevel,
         isArrayExtract: pendingCapture.isArray,
         ...(pendingCapture.arrayOptions ? {
           arrayPath: pendingCapture.arrayOptions.arrayPath,
@@ -357,7 +396,7 @@ export function AddHookDialog({ open, onClose, onSave, availableFields = [], eve
                   key={selectedField?.path ?? '__none__'}
                   field={selectedField}
                   mapping={selectedField ? (mappings.find(m => m.requestPath === selectedField.path) ?? null) : null}
-                  availableFields={availableFields}
+                  apiOutputFields={apiOutputFields}
                   eventUserInputs={eventUserInputs}
                   onSave={handleUpdateMapping}
                 />
@@ -395,17 +434,15 @@ export function AddHookDialog({ open, onClose, onSave, availableFields = [], eve
                         <div className="space-y-1.5">
                           <Label className="text-xs text-gray-600">Store as</Label>
                           <div className="flex gap-2">
-                            {(['custom', 'native', 'none'] as const).map((t) => (
+                            {(['custom', 'native'] as const).map((t) => (
                               <label key={t} className="flex items-center gap-1 text-xs cursor-pointer">
                                 <input type="radio" name="storetype" checked={storeType === t} onChange={() => setStoreType(t)} />
                                 {t}
                               </label>
                             ))}
                           </div>
-                          {storeType !== 'none' && (
-                            <Input className="h-7 text-xs font-mono" placeholder="field_name"
-                              value={storeName} onChange={(e) => setStoreName(e.target.value)} />
-                          )}
+                          <Input className="h-7 text-xs font-mono" placeholder="field_name"
+                            value={storeName} onChange={(e) => setStoreName(e.target.value)} />
                         </div>
                         <div>
                           <Label className="text-xs text-gray-600">Output transformations</Label>
@@ -415,7 +452,7 @@ export function AddHookDialog({ open, onClose, onSave, availableFields = [], eve
                         </div>
                         <div className="flex gap-1">
                           <Button variant="outline" size="sm" className="flex-1 h-6 text-xs" onClick={() => setPendingCapture(null)}>Cancel</Button>
-                          <Button size="sm" className="flex-1 h-6 text-xs" onClick={confirmCapture} disabled={storeType !== 'none' && !storeName.trim()}>Add</Button>
+                          <Button size="sm" className="flex-1 h-6 text-xs" onClick={confirmCapture} disabled={!storeName.trim()}>Add</Button>
                         </div>
                       </div>
                     )}
@@ -427,8 +464,8 @@ export function AddHookDialog({ open, onClose, onSave, availableFields = [], eve
                         <div className="font-mono text-gray-500 truncate">{c.path}</div>
                         <div className="flex items-center gap-1">
                           <span className="text-gray-400">→</span>
-                          <span className={`font-mono font-medium truncate ${c.storeType === 'none' ? 'text-gray-400 italic' : 'text-purple-600'}`}>
-                            {c.storeType === 'none' ? 'ref only' : `${c.storeType}.${c.storeName}`}
+                          <span className="font-mono font-medium truncate text-purple-600">
+                            {c.storeType}.{c.storeName}
                           </span>
                           <button className="ml-auto text-gray-300 hover:text-red-400" onClick={() => removeCapture(c.id)}>
                             <Trash2 className="h-3 w-3" />
