@@ -1098,15 +1098,23 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
                           </AlertDescription>
                         </Alert>
                         {block.checks!.map((check) => (
-                          <div key={check.id} className="border rounded p-3 space-y-3">
+                          <div key={check.id} className={`border rounded p-3 space-y-3 ${check.phase === 2 ? 'opacity-60' : ''}`}>
                             <div className="flex items-center justify-between">
-                              <Label htmlFor={`check-${check.id}`} className="text-sm font-medium">
-                                {check.name}
-                              </Label>
+                              <div className="flex items-center gap-2">
+                                <Label htmlFor={`check-${check.id}`} className="text-sm font-medium">
+                                  {check.name}
+                                </Label>
+                                {check.phase === 2 && (
+                                  <Badge variant="secondary" className="bg-violet-100 text-violet-700 text-xs">
+                                    Phase 2
+                                  </Badge>
+                                )}
+                              </div>
                               <Switch
                                 id={`check-${check.id}`}
                                 checked={check.enabled}
                                 onCheckedChange={() => handleCheckToggle(check.id)}
+                                disabled={check.phase === 2}
                               />
                             </div>
                             {check.enabled && (
@@ -1247,22 +1255,37 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
                     <AccordionContent>
                       {hasGeneralConfig ? (
                       <div className="space-y-3">
-                        {block.generalConfig!.map((field) => (
-                          <div key={field.id}>
-                            <Label className="text-sm">{field.name}</Label>
+                        {block.generalConfig!.map((field) => {
+                          if (field.dependsOn !== undefined) {
+                            const parent = block.generalConfig!.find((f) => f.id === field.dependsOn);
+                            if (!parent || parent.value !== field.showWhen) return null;
+                          }
+                          const isPhase2 = field.phase === 2;
+                          return (
+                          <div key={field.id} className={isPhase2 ? 'opacity-60' : ''}>
+                            <div className="flex items-center gap-2 mb-1">
+                              <Label className="text-sm">{field.name}</Label>
+                              {isPhase2 && (
+                                <Badge variant="secondary" className="bg-violet-100 text-violet-700 text-xs">
+                                  Phase 2
+                                </Badge>
+                              )}
+                            </div>
                             {field.type === 'toggle' ? (
-                              <div className="flex items-center gap-2 mt-1">
+                              <div className="flex items-center gap-2">
                                 <Switch
                                   checked={field.value}
                                   onCheckedChange={(checked) =>
                                     handleGeneralConfigChange(field.id, checked)
                                   }
+                                  disabled={isPhase2}
                                 />
                               </div>
                             ) : field.type === 'select' ? (
                               <Select
                                 value={field.value}
                                 onValueChange={(value) => handleGeneralConfigChange(field.id, value)}
+                                disabled={isPhase2}
                               >
                                 <SelectTrigger className="h-8 text-sm">
                                   <SelectValue placeholder="Select..." />
@@ -1288,10 +1311,12 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
                                   )
                                 }
                                 className="h-8 text-sm"
+                                disabled={isPhase2}
                               />
                             )}
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                       ) : (
                         <p className="text-sm text-gray-500">No configuration available</p>

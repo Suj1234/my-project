@@ -17,6 +17,7 @@ export function getShortDescription(blockTypeId: string): string {
     esign: 'Digital signing',
     profile_address: 'Profile & address',
     udyam_verification: 'Udyam fetch (OTPless)',
+    business_image_geo: 'Business image & geo check',
   };
   return shortDescriptions[blockTypeId] || 'Block configuration';
 }
@@ -1156,6 +1157,86 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
         name: 'Allow Customer to Select Lower Tier Card',
         type: 'toggle',
         value: true,
+      },
+    ],
+  },
+  // ─── Business Verification Blocks ────────────────────────────────────────────
+  {
+    id: 'business_image_geo',
+    name: 'Business Image & Geo Verification',
+    description: 'Capture a photo of the business unit and optionally validate the applicant\'s location against the registered business address using GPS coordinates and distance matrix verification. Image is uploaded to S3; geo check compares live coordinates against the pincode-derived address coordinates.',
+    category: 'fulfilment',
+    icon: 'Store',
+    hasChecks: true,
+    hasRetry: true,
+    pages: [
+      {
+        id: 'image_capture',
+        name: 'Business Image Capture Page',
+        actions: ['Image captured'],
+        userInputs: [],
+      },
+      {
+        id: 'verification_result',
+        name: 'Verification Result Page',
+        actions: ['Verification complete'],
+        userInputs: [],
+      },
+    ],
+    generalConfig: [
+      {
+        id: 'geo_check_enabled',
+        name: 'Enable Geo Coordinate Check',
+        type: 'toggle',
+        value: false,
+      },
+      {
+        id: 'distance_threshold_metres',
+        name: 'Distance Threshold (metres)',
+        type: 'number',
+        value: 500,
+        dependsOn: 'geo_check_enabled',
+        showWhen: true,
+      },
+      {
+        id: 'location_source',
+        name: 'Location Source',
+        type: 'select',
+        value: 'registered_business_address',
+        options: [
+          { label: 'Registered Business Address', value: 'registered_business_address' },
+          { label: 'Aadhaar Address', value: 'aadhaar_address' },
+          { label: 'Communication Address', value: 'communication_address' },
+        ],
+        dependsOn: 'geo_check_enabled',
+        showWhen: true,
+        phase: 2,
+      },
+    ],
+    checks: [
+      {
+        id: 'image_quality',
+        name: 'Image Quality Check',
+        enabled: false,
+        outputResponse: 'reject',
+        fields: [],
+        phase: 2,
+      },
+    ],
+    retryConfig: [
+      {
+        id: 'image_capture_retry',
+        name: 'Image Capture Retry',
+        maxAttempts: 3,
+        coolingPeriod: 0,
+        velocityCycle: 1,
+      },
+      {
+        id: 'geo_verification_retry',
+        name: 'Geo Verification Retry',
+        maxAttempts: 3,
+        coolingPeriod: 120,
+        velocityCycle: 3,
       },
     ],
   },

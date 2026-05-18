@@ -126,6 +126,7 @@ export interface CheckConfig {
   enabled: boolean;
   outputResponse?: 'pass' | 'reject';
   fields: CheckField[];
+  phase?: number;
 }
 
 export interface MasterColumnOption {
@@ -151,6 +152,9 @@ export interface GeneralConfigField {
   type: 'select' | 'number' | 'text' | 'date' | 'toggle';
   value: any;
   options?: { label: string; value: string }[];
+  dependsOn?: string;
+  showWhen?: any;
+  phase?: number;
 }
 
 // Block Data

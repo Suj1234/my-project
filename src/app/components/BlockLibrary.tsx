@@ -3,7 +3,7 @@ import { Input } from './ui/input';
 import {
   Search, ChevronDown, ChevronRight,
   CreditCard, Fingerprint, Camera, Building, TrendingUp, Landmark,
-  FileText, FileCheck, PenTool, User, FileBarChart, ReceiptText, Award,
+  FileText, FileCheck, PenTool, User, FileBarChart, ReceiptText, Award, Store,
   FileInput, GitBranch, GitMerge, CircleStop, SplitSquareHorizontal,
 } from 'lucide-react';
 import { SMART_BLOCKS } from '../data/blockDefinitions';
@@ -16,7 +16,7 @@ interface BlockLibraryProps {
 
 const iconMap: Record<string, any> = {
   CreditCard, Fingerprint, Camera, Building, TrendingUp, Landmark,
-  FileText, FileCheck, PenTool, User, FileBarChart, ReceiptText, Award,
+  FileText, FileCheck, PenTool, User, FileBarChart, ReceiptText, Award, Store,
 };
 
 // Colors per smart category — matches SmartBlockNode canvas colors
