@@ -78,7 +78,8 @@
       "Bash(git -C \"e:/Antigravity/my-project\" status)",
       "Bash(git -C \"e:/Antigravity/my-project\" log --all --oneline --follow -- src/app/components/ConfigurationPanel.tsx)",
       "Bash(git -C \"e:/Antigravity/my-project\" log --all --oneline -- \"src/app/components/RoutingPanel*\" \"src/app/components/RouterConfig*\" \"src/app/components/RoutingConfig*\")",
-      "Bash(git -C \"e:/Antigravity/my-project\" reflog --oneline -15)"
+      "Bash(git -C \"e:/Antigravity/my-project\" reflog --oneline -15)",
+      "Bash(git pull *)"
     ]
   }
 }
