@@ -361,6 +361,305 @@ export const API_CATALOG: ApiDefinition[] = [
       last_updated_at: null,
     },
   },
+
+  // ─────────────────────────────────────────────────────────────
+  // CBS Dedupe by Mobile — ETB/NTB detection for Savings STP
+  // ─────────────────────────────────────────────────────────────
+  {
+    id: 'cbs_dedupe_mobile',
+    name: 'CBS Dedupe by Mobile',
+    description: 'Determine ETB/NTB status using mobile number against Core Banking System. Returns customer_id and profile data for ETB customers without requiring PAN.',
+    icon: '🏦',
+    category: 'Dedupe',
+    provider: 'CBS',
+    latencyP95Ms: 600,
+    requestFields: [
+      { path: 'mobile_number', label: 'Mobile Number', fieldType: 'phone', isRequired: true, isAutoMapped: true, autoMapSource: { type: 'native', value: 'mobile_number' } },
+    ],
+    sampleResponse: {
+      status: 'SUCCESS',
+      is_etb: true,
+      customer_id: 'CBS-CUST-00123456',
+      customer_name: 'RAVI KUMAR',
+      account_number: 'SB001234567890',
+      branch_code: 'BOI0001234',
+    },
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // CERSAI C-KYC Fetch — silent background KYC pre-fill
+  // ─────────────────────────────────────────────────────────────
+  {
+    id: 'cersai_ckyc_fetch',
+    name: 'CERSAI C-KYC Fetch',
+    description: 'Fetch Central KYC record from CERSAI registry using PAN, name, and DOB. Runs silently in background to pre-fill address and identity fields. C-KYC number stored for compliance.',
+    icon: '🔍',
+    category: 'KYC',
+    provider: 'CERSAI',
+    latencyP95Ms: 1200,
+    requestFields: [
+      { path: 'pan_number',    label: 'PAN Number',    fieldType: 'string', isRequired: true,  isAutoMapped: true, autoMapSource: { type: 'native', value: 'pan_number' } },
+      { path: 'full_name',     label: 'Full Name',     fieldType: 'string', isRequired: true,  isAutoMapped: true, autoMapSource: { type: 'native', value: 'customer_name' } },
+      { path: 'date_of_birth', label: 'Date of Birth', fieldType: 'date',   isRequired: true,  isAutoMapped: true, autoMapSource: { type: 'native', value: 'date_of_birth' } },
+    ],
+    sampleResponse: {
+      status: 'SUCCESS',
+      ckyc_found: true,
+      ckyc_number: 'CKYC12345678901234',
+      address: '12, MG Road, Bengaluru, Karnataka - 560001',
+      city: 'Bengaluru',
+      state: 'Karnataka',
+      pincode: '560001',
+      aadhaar_seeding_status: 'SEEDED',
+    },
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // LMS Lead ID Creation — fired at Entry Router after routing
+  // ─────────────────────────────────────────────────────────────
+  {
+    id: 'lms_lead_create',
+    name: 'LMS Lead ID Creation',
+    description: 'Create a new lead record in the Loan Management System immediately after ETB/NTB routing. Lead ID is used to track the application through all downstream stages.',
+    icon: '📋',
+    category: 'LMS',
+    provider: 'LMS',
+    latencyP95Ms: 500,
+    requestFields: [
+      { path: 'pan_number',    label: 'PAN Number',    fieldType: 'string',  isRequired: true,  isAutoMapped: true,  autoMapSource: { type: 'native', value: 'pan_number' } },
+      { path: 'mobile_number', label: 'Mobile Number', fieldType: 'phone',   isRequired: true,  isAutoMapped: true,  autoMapSource: { type: 'native', value: 'mobile_number' } },
+      { path: 'is_etb',        label: 'Is ETB',        fieldType: 'boolean', isRequired: true,  isAutoMapped: false },
+      { path: 'program_code',  label: 'Program Code',  fieldType: 'string',  isRequired: true,  isAutoMapped: false, staticValue: 'SA_STP_01' },
+    ],
+    sampleResponse: {
+      status: 'SUCCESS',
+      lead_id: 'LMS-SA-2026-000001',
+      created_at: '2026-05-19T10:00:00Z',
+    },
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // CBS Customer ID Creation — NTB only, post eSign
+  // ─────────────────────────────────────────────────────────────
+  {
+    id: 'cbs_customer_create',
+    name: 'CBS Customer ID Creation',
+    description: 'Create a new customer record in CBS for NTB applicants post eSign. Generates CBS customer ID (CIF) used for all downstream account and product creation.',
+    icon: '🏦',
+    category: 'CBS',
+    provider: 'CBS',
+    latencyP95Ms: 1000,
+    requestFields: [
+      { path: 'full_name',     label: 'Full Name',     fieldType: 'string', isRequired: true,  isAutoMapped: true,  autoMapSource: { type: 'native', value: 'customer_name' } },
+      { path: 'date_of_birth', label: 'Date of Birth', fieldType: 'date',   isRequired: true,  isAutoMapped: true,  autoMapSource: { type: 'native', value: 'date_of_birth' } },
+      { path: 'pan_number',    label: 'PAN Number',    fieldType: 'string', isRequired: true,  isAutoMapped: true,  autoMapSource: { type: 'native', value: 'pan_number' } },
+      { path: 'mobile_number', label: 'Mobile Number', fieldType: 'phone',  isRequired: true,  isAutoMapped: true,  autoMapSource: { type: 'native', value: 'mobile_number' } },
+      { path: 'gender',        label: 'Gender',        fieldType: 'string', isRequired: true,  isAutoMapped: true,  autoMapSource: { type: 'native', value: 'gender' } },
+      { path: 'address',       label: 'Address',       fieldType: 'string', isRequired: true,  isAutoMapped: true,  autoMapSource: { type: 'native', value: 'address_line_1' } },
+    ],
+    sampleResponse: {
+      status: 'SUCCESS',
+      customer_id: 'CBS-CUST-00987654',
+      cif_number: 'CIF-2026-000001',
+      created_at: '2026-05-19T10:01:00Z',
+    },
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // CBS Account Creation — post eSign, uses BRE scheme code
+  // ─────────────────────────────────────────────────────────────
+  {
+    id: 'cbs_account_create',
+    name: 'CBS Account Creation',
+    description: 'Create savings account in CBS using customer ID, BRE-determined scheme code, preferred branch, and nominee details. Debit freeze applied automatically per RBI Min KYC.',
+    icon: '🏦',
+    category: 'CBS',
+    provider: 'CBS',
+    latencyP95Ms: 1500,
+    requestFields: [
+      { path: 'customer_id',  label: 'CBS Customer ID',   fieldType: 'string', isRequired: true,  isAutoMapped: false },
+      { path: 'scheme_code',  label: 'Scheme Code (BRE)', fieldType: 'string', isRequired: true,  isAutoMapped: false },
+      { path: 'branch_code',  label: 'Branch Code',       fieldType: 'string', isRequired: true,  isAutoMapped: false },
+      { path: 'nominee_name', label: 'Nominee Name',      fieldType: 'string', isRequired: true,  isAutoMapped: false },
+    ],
+    sampleResponse: {
+      status: 'SUCCESS',
+      account_number: 'SB009876543210',
+      ifsc_code: 'BKID0001234',
+      cif_number: 'CIF-2026-000001',
+      scheme_code: 'SB101',
+      debit_freeze: true,
+      created_at: '2026-05-19T10:02:00Z',
+    },
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // DCMS Virtual Debit Card — issued immediately post account creation
+  // ─────────────────────────────────────────────────────────────
+  {
+    id: 'dcms_virtual_debit_card',
+    name: 'DCMS Virtual Debit Card',
+    description: 'Issue a virtual debit card via Debit Card Management System immediately after account creation. Physical card dispatched separately; virtual card active for online transactions.',
+    icon: '💳',
+    category: 'DCMS',
+    provider: 'DCMS',
+    latencyP95Ms: 800,
+    requestFields: [
+      { path: 'account_number', label: 'Account Number', fieldType: 'string', isRequired: true,  isAutoMapped: false },
+      { path: 'customer_id',    label: 'Customer ID',    fieldType: 'string', isRequired: true,  isAutoMapped: false },
+      { path: 'card_variant',   label: 'Card Variant',   fieldType: 'string', isRequired: true,  isAutoMapped: false },
+    ],
+    sampleResponse: {
+      status: 'SUCCESS',
+      masked_card_number: '4111XXXXXXXX1234',
+      kit_number: 'KIT-2026-000001',
+      card_type: 'VISA_CLASSIC',
+      valid_thru: '05/29',
+    },
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // Internet Banking Registration — post account creation
+  // ─────────────────────────────────────────────────────────────
+  {
+    id: 'internet_banking_register',
+    name: 'Internet Banking Registration',
+    description: 'Auto-register the customer for internet banking using customer ID, mobile, and email. Credentials sent via SMS to registered mobile number.',
+    icon: '🌐',
+    category: 'Banking',
+    provider: 'CBS',
+    latencyP95Ms: 700,
+    requestFields: [
+      { path: 'customer_id',   label: 'Customer ID',   fieldType: 'string', isRequired: true,  isAutoMapped: false },
+      { path: 'mobile_number', label: 'Mobile Number', fieldType: 'phone',  isRequired: true,  isAutoMapped: true,  autoMapSource: { type: 'native', value: 'mobile_number' } },
+      { path: 'email_id',      label: 'Email ID',      fieldType: 'email',  isRequired: true,  isAutoMapped: true,  autoMapSource: { type: 'native', value: 'email_id' } },
+    ],
+    sampleResponse: {
+      status: 'SUCCESS',
+      ib_user_id: 'IB-2026-000001',
+      sms_sent: true,
+      registered_at: '2026-05-19T10:03:00Z',
+    },
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // UPI VPA Registration — post account creation
+  // ─────────────────────────────────────────────────────────────
+  {
+    id: 'upi_vpa_register',
+    name: 'UPI VPA Registration',
+    description: 'Register a UPI Virtual Payment Address for the new account using account number and mobile. Default VPA format: mobilenumber@bankcode.',
+    icon: '📱',
+    category: 'Payments',
+    provider: 'NPCI',
+    latencyP95Ms: 600,
+    requestFields: [
+      { path: 'account_number', label: 'Account Number', fieldType: 'string', isRequired: true,  isAutoMapped: false },
+      { path: 'mobile_number',  label: 'Mobile Number',  fieldType: 'phone',  isRequired: true,  isAutoMapped: true, autoMapSource: { type: 'native', value: 'mobile_number' } },
+    ],
+    sampleResponse: {
+      status: 'SUCCESS',
+      vpa: '9876543210@boi',
+      registered_at: '2026-05-19T10:04:00Z',
+    },
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // LMS Lead Status Update — post account creation
+  // ─────────────────────────────────────────────────────────────
+  {
+    id: 'lms_lead_update',
+    name: 'LMS Lead Status Update',
+    description: 'Update the LMS lead record with account number and current journey status. Called after account creation and at key milestones for end-to-end application tracking.',
+    icon: '📋',
+    category: 'LMS',
+    provider: 'LMS',
+    latencyP95Ms: 400,
+    requestFields: [
+      { path: 'lead_id',        label: 'Lead ID',        fieldType: 'string', isRequired: true,  isAutoMapped: false },
+      { path: 'account_number', label: 'Account Number', fieldType: 'string', isRequired: false, isAutoMapped: false },
+      { path: 'status',         label: 'Status',         fieldType: 'string', isRequired: true,  isAutoMapped: false },
+    ],
+    sampleResponse: {
+      status: 'SUCCESS',
+      lead_id: 'LMS-SA-2026-000001',
+      updated_status: 'ACCOUNT_CREATED',
+      updated_at: '2026-05-19T10:05:00Z',
+    },
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // DMS Document Push — dual push (post account creation + post CA certification)
+  // ─────────────────────────────────────────────────────────────
+  {
+    id: 'dms_document_push',
+    name: 'DMS Document Push',
+    description: 'Push signed documents to the Document Management System. Called twice: Push 1 after account creation (eSign form), Push 2 after Concurrent Auditor KYC certification.',
+    icon: '📁',
+    category: 'DMS',
+    provider: 'DMS',
+    latencyP95Ms: 1000,
+    requestFields: [
+      { path: 'account_number', label: 'Account Number', fieldType: 'string', isRequired: true,  isAutoMapped: false },
+      { path: 'cif_number',     label: 'CIF Number',     fieldType: 'string', isRequired: true,  isAutoMapped: false },
+      { path: 'document_type',  label: 'Document Type',  fieldType: 'string', isRequired: true,  isAutoMapped: false },
+    ],
+    sampleResponse: {
+      status: 'SUCCESS',
+      push_status: 'PUSHED',
+      dms_reference: 'DMS-2026-000001',
+      pushed_at: '2026-05-19T10:06:00Z',
+    },
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // BillDesk Payment Gateway — initial account funding
+  // ─────────────────────────────────────────────────────────────
+  {
+    id: 'billdesk_payment',
+    name: 'BillDesk Payment Gateway',
+    description: 'Initiate and confirm initial deposit payment via BillDesk. Maximum funding limit Rs.10,000 per RBI Min KYC guidelines. Returns payment ID and transaction reference for reconciliation.',
+    icon: '💰',
+    category: 'Payments',
+    provider: 'BillDesk',
+    latencyP95Ms: 2000,
+    requestFields: [
+      { path: 'account_number', label: 'Account Number', fieldType: 'string', isRequired: true,  isAutoMapped: false },
+      { path: 'amount',         label: 'Deposit Amount', fieldType: 'number', isRequired: true,  isAutoMapped: true,  autoMapSource: { type: 'native', value: 'funding_amount' } },
+      { path: 'customer_id',    label: 'Customer ID',    fieldType: 'string', isRequired: true,  isAutoMapped: false },
+    ],
+    sampleResponse: {
+      status: 'SUCCESS',
+      payment_id: 'BD-PAY-2026-000001',
+      transaction_ref: 'TXN-2026-0519-001',
+      amount: 5000,
+      payment_status: 'CAPTURED',
+      paid_at: '2026-05-19T10:07:00Z',
+    },
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // CBS Debit Freeze Removal — ETB post liveness, NTB post CA certification
+  // ─────────────────────────────────────────────────────────────
+  {
+    id: 'cbs_debit_freeze_remove',
+    name: 'CBS Debit Freeze Removal',
+    description: 'Remove debit freeze on the savings account after KYC closure. For ETB: triggered after successful liveness selfie. For NTB: triggered after Concurrent Auditor certifies VKYC.',
+    icon: '🔓',
+    category: 'CBS',
+    provider: 'CBS',
+    latencyP95Ms: 600,
+    requestFields: [
+      { path: 'account_number', label: 'Account Number', fieldType: 'string', isRequired: true,  isAutoMapped: false },
+      { path: 'customer_id',    label: 'Customer ID',    fieldType: 'string', isRequired: true,  isAutoMapped: false },
+    ],
+    sampleResponse: {
+      status: 'SUCCESS',
+      freeze_removal_status: 'REMOVED',
+      account_number: 'SB009876543210',
+      removed_at: '2026-05-19T10:08:00Z',
+    },
+  },
 ];
 
 export function getApiById(id: string): ApiDefinition | undefined {

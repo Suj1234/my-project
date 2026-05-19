@@ -18,6 +18,7 @@ export function getShortDescription(blockTypeId: string): string {
     profile_address: 'Profile & address',
     udyam_verification: 'Udyam fetch (OTPless)',
     business_image_geo: 'Business image & geo check',
+    account_funding: 'Initial deposit collection',
   };
   return shortDescriptions[blockTypeId] || 'Block configuration';
 }
@@ -173,6 +174,18 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
               ],
             },
           },
+        ],
+      },
+    ],
+    generalConfig: [
+      {
+        id: 'service_provider',
+        name: 'PAN Verification Provider',
+        type: 'select',
+        value: 'pan_profile_detailed',
+        options: [
+          { label: 'PAN Profile Detailed API', value: 'pan_profile_detailed' },
+          { label: 'NSDL Protean', value: 'nsdl_protean' },
         ],
       },
     ],
@@ -635,6 +648,7 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
         options: [
           { label: 'Lending (Loans)', value: 'lending' },
           { label: 'Credit Card', value: 'credit_card' },
+          { label: 'Savings Account', value: 'savings_account' },
         ],
       },
     ],
@@ -808,6 +822,7 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
           { label: 'Business Loan Agreement', value: 'esign_business_loan' },
           { label: 'Overdraft Agreement', value: 'esign_overdraft' },
           { label: 'Credit Card Application Form', value: 'esign_credit_card' },
+          { label: 'Savings Account Opening Form', value: 'esign_savings_account' },
         ],
       },
     ],
@@ -1157,6 +1172,98 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
         name: 'Allow Customer to Select Lower Tier Card',
         type: 'toggle',
         value: true,
+      },
+    ],
+  },
+  // ─── Savings / Banking Blocks ─────────────────────────────────────────────────
+  {
+    id: 'account_funding',
+    name: 'Account Funding',
+    description: 'Collect initial deposit from the customer via payment gateway. Supports configurable minimum and maximum funding limits. Mandatory for savings account activation per RBI Minimum KYC guidelines.',
+    category: 'fulfilment',
+    icon: 'Wallet',
+    hasChecks: true,
+    hasRetry: false,
+    pages: [
+      {
+        id: 'funding_input',
+        name: 'Funding Amount Page',
+        actions: ['Funding initiated'],
+        userInputs: [
+          {
+            id: 'funding_amount',
+            name: 'Deposit Amount (₹)',
+            type: 'number',
+            dataType: 'NUMBER',
+            required: true,
+          },
+        ],
+      },
+      {
+        id: 'payment_processing',
+        name: 'Payment Processing Page',
+        actions: ['Payment initiated'],
+        userInputs: [],
+      },
+      {
+        id: 'funding_result',
+        name: 'Funding Result Page',
+        actions: ['Payment completed', 'Payment failed'],
+        userInputs: [],
+      },
+    ],
+    generalConfig: [
+      {
+        id: 'payment_gateway',
+        name: 'Payment Gateway',
+        type: 'select',
+        value: 'billdesk',
+        options: [
+          { label: 'BillDesk', value: 'billdesk' },
+          { label: 'Razorpay', value: 'razorpay' },
+          { label: 'PayU', value: 'payu' },
+        ],
+      },
+      {
+        id: 'min_amount',
+        name: 'Minimum Funding Amount (₹)',
+        type: 'number',
+        value: 1,
+      },
+      {
+        id: 'max_amount',
+        name: 'Maximum Funding Amount (₹)',
+        type: 'number',
+        value: 10000,
+      },
+      {
+        id: 'funding_optional',
+        name: 'Funding Optional (Skip Allowed)',
+        type: 'toggle',
+        value: false,
+      },
+    ],
+    checks: [
+      {
+        id: 'payment_success',
+        name: 'Payment Success Required',
+        enabled: true,
+        outputResponse: 'reject',
+        fields: [],
+      },
+      {
+        id: 'minimum_amount_check',
+        name: 'Minimum Amount Validation',
+        enabled: true,
+        outputResponse: 'reject',
+        fields: [
+          {
+            id: 'min_amount_threshold',
+            name: 'Minimum Amount (₹)',
+            type: 'number',
+            value: 1,
+          },
+        ],
       },
     ],
   },

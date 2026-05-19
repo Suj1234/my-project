@@ -40,6 +40,7 @@ const PROGRAMS_STORE: Program[] = [
   { id: '11', program_name: 'MSME Pilot Program',        product_category: 'BUSINESS_LOAN', vertical: ['MSME'],   program_code: 'MPP11',  description: 'Pilot MSME program',         status: 'Draft',    supported_identifiers: [{ type: 'mobile', label: 'Mobile Number', placeholder: 'e.g. +91 9876543210' }],                                                                                                                                                                            created_at: '2026-03-15T11:00:00Z', updated_at: '2026-04-01T12:00:00Z' },
   { id: '12', program_name: 'Gold Loan Express',         product_category: 'PERSONAL_LOAN', vertical: ['GOLD'],   program_code: 'GLE12',  description: '',                           status: 'Inactive', supported_identifiers: [{ type: 'mobile', label: 'Mobile Number', placeholder: 'e.g. +91 9876543210' }],                                                                                                                                                                            created_at: '2026-03-18T09:00:00Z', updated_at: '2026-04-02T09:00:00Z' },
   { id: '13', program_name: 'Credit Card Onboarding',    product_category: 'CREDIT_CARD',   vertical: ['RETAIL'], program_code: 'CCO01',  description: 'End-to-end digital credit card onboarding for ETB and NTB customers', status: 'Active', supported_identifiers: [{ type: 'mobile', label: 'Mobile Number', placeholder: 'e.g. +91 9876543210' }, { type: 'pan', label: 'PAN Number', placeholder: 'e.g. ABCDE1234F' }], created_at: '2026-05-08T10:00:00Z', updated_at: '2026-05-08T10:00:00Z' },
+  { id: '14', program_name: 'Savings Account STP',       product_category: 'SAVINGS_ACCOUNT', vertical: ['RETAIL'], program_code: 'SA_STP_01', description: 'End-to-end digital savings account opening for ETB and NTB customers via STP', status: 'Active', supported_identifiers: [{ type: 'mobile', label: 'Mobile Number', placeholder: 'e.g. +91 9876543210' }], created_at: '2026-05-19T10:00:00Z', updated_at: '2026-05-19T10:00:00Z' },
 ];
 
 const DOCS_STORE: RequiredDocument[] = [
@@ -755,6 +756,657 @@ const WORKFLOWS_STORE: Workflow[] = [
             id: 'blk_rejection_end', type: 'end', name: 'Application Rejected',
             description: 'Terminal state for rejected credit card applications â€” rejection SMS/email triggered',
             configured: true, journeyState: 'REJECTED',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'wf5',
+    program_id: '14',
+    workflow_name: 'Savings Account STP Journey',
+    workflow_code: 'SA_STP_01',
+    description: 'End-to-end STP savings account opening â€” 20 blocks covering ETB/NTB KYC, scheme selection, eSign, account creation, funding, and KYC closure',
+    default_version: 'v1',
+    status: 'ACTIVE',
+    created_at: '2026-05-19T10:00:00Z',
+    updated_at: '2026-05-19T10:00:00Z',
+    versions: [
+      {
+        id: 'wfv6',
+        workflow_id: 'wf5',
+        version: 'v1',
+        status: 'ACTIVE',
+        created_at: '2026-05-19T10:00:00Z',
+        updated_at: '2026-05-19T10:00:00Z',
+        canvas_blocks: [
+          /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+           * SAVINGS ACCOUNT STP â€” 20 blocks
+           * Common:    Start â†' PAN Verify â†' Entry Router
+           * ETB:       Entry Router â†' ETB Profile â†' Merge
+           * NTB:       Entry Router â†' Aadhaar â†' NTB Personal â†' Merge
+           * Common:    Merge â†' Branch & Nominee â†' BRE Scheme â†' VAS â†' FATCA
+           *            â†' eSign â†' Account Funding â†' KYC Closure Router
+           * ETB close: KYC Closure â†' Liveness â†' ETB Success End
+           * NTB close: KYC Closure â†' VKYC â†' NTB VKYC Pending End
+           * Reject:    PAN checks â†' Rejected End | Funding fail â†' Payment End
+           * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
+          // 1 â”€ Journey Start
+          {
+            id: 'sab_start', type: 'start', name: 'Journey Start',
+            description: 'Savings account application entry via web channel with mobile OTP authentication',
+            configured: true,
+            entrySource: 'web', authRequired: true, authMethod: 'otp',
+            collectConsent: true, consentScope: 'Terms & Conditions, Privacy Policy, Product T&C',
+            prefillSource: 'none', passthroughParams: [], startWebhookEnabled: false,
+          },
+
+          // 2 â”€ PAN Verification â€” NSDL/PAN Profile provider + AML/CFR/age/pincode checks + 3 data hooks
+          {
+            id: 'sab_pan', type: 'smart', blockTypeId: 'pan_verification',
+            name: 'PAN Verification', category: 'identity', provider: 'PAN Profile Detailed API',
+            description: 'PAN verification with AML, CFR, age and pincode checks. CBS dedupe by mobile detects ETB/NTB. CERSAI C-KYC runs silently for address pre-fill.',
+            configured: true, hasRetry: true,
+            pages: [
+              { id: 'pan_input', name: 'PAN Input Page', actions: ['PAN initiated'], userInputs: [{ id: 'pan_number', name: 'PAN Number', type: 'text', dataType: 'STRING', required: true }] },
+              { id: 'pan_confirmed', name: 'PAN Confirmed Page', actions: ['PAN verified', 'PAN submitted'], userInputs: [] },
+            ],
+            generalConfig: [
+              { id: 'service_provider', name: 'PAN Verification Provider', type: 'select', value: 'pan_profile_detailed',
+                options: [{ label: 'PAN Profile Detailed API', value: 'pan_profile_detailed' }, { label: 'NSDL Protean', value: 'nsdl_protean' }] },
+            ],
+            checks: [
+              { id: 'aml_check', name: 'AML Check', enabled: true, outputResponse: 'reject', fields: [] },
+              { id: 'cfr_check', name: 'CFR Check', enabled: true, outputResponse: 'reject', fields: [
+                { id: 'master_code', name: 'Configure Master Code', type: 'select', value: 'cfr_master_1', options: [{ label: 'CFR Master 1', value: 'cfr_master_1' }, { label: 'CFR Master 2', value: 'cfr_master_2' }, { label: 'CFR Master 3', value: 'cfr_master_3' }] },
+                { id: 'column_field', name: 'Column Field Name', type: 'dependent-select', value: '', dependsOn: 'master_code', masterColumns: { cfr_master_1: [{ label: 'Applicant ID', value: 'applicant_id', isPrimaryKey: true, dataType: 'Integer' }, { label: 'PAN Number', value: 'pan_number', isPrimaryKey: false, dataType: 'String' }, { label: 'CFR Score', value: 'cfr_score', isPrimaryKey: false, dataType: 'Float' }, { label: 'Risk Category', value: 'risk_category', isPrimaryKey: false, dataType: 'String' }], cfr_master_2: [{ label: 'Customer ID', value: 'customer_id', isPrimaryKey: true, dataType: 'Integer' }, { label: 'Full Name', value: 'full_name', isPrimaryKey: false, dataType: 'String' }, { label: 'CFR Flag', value: 'cfr_flag', isPrimaryKey: false, dataType: 'Boolean' }, { label: 'Check Date', value: 'check_date', isPrimaryKey: false, dataType: 'Date' }], cfr_master_3: [{ label: 'Record ID', value: 'record_id', isPrimaryKey: true, dataType: 'Integer' }, { label: 'Bureau Ref', value: 'bureau_ref', isPrimaryKey: false, dataType: 'String' }, { label: 'Fraud Indicator', value: 'fraud_indicator', isPrimaryKey: false, dataType: 'Boolean' }, { label: 'Source System', value: 'source_system', isPrimaryKey: false, dataType: 'String' }] } },
+              ]},
+              { id: 'age_check', name: 'Age Check', enabled: true, outputResponse: 'reject', fields: [
+                { id: 'min_age', name: 'Minimum Age', type: 'number', value: 18 },
+                { id: 'max_age', name: 'Maximum Age', type: 'number', value: 70 },
+              ]},
+              { id: 'pincode_check', name: 'Serviceable Pincode Check', enabled: true, outputResponse: 'reject', fields: [
+                { id: 'master_code', name: 'Configure Master Code', type: 'select', value: 'pincode_master_1', options: [{ label: 'Pincode Master 1', value: 'pincode_master_1' }, { label: 'Pincode Master 2', value: 'pincode_master_2' }, { label: 'Pincode Master 3', value: 'pincode_master_3' }] },
+                { id: 'column_field', name: 'Column Field Name', type: 'dependent-select', value: '', dependsOn: 'master_code', masterColumns: { pincode_master_1: [{ label: 'Pincode', value: 'pincode', isPrimaryKey: true, dataType: 'String' }, { label: 'City', value: 'city', isPrimaryKey: false, dataType: 'String' }, { label: 'State', value: 'state', isPrimaryKey: false, dataType: 'String' }, { label: 'Is Serviceable', value: 'is_serviceable', isPrimaryKey: false, dataType: 'Boolean' }], pincode_master_2: [{ label: 'Zip Code', value: 'zip_code', isPrimaryKey: true, dataType: 'String' }, { label: 'District', value: 'district', isPrimaryKey: false, dataType: 'String' }, { label: 'Region', value: 'region', isPrimaryKey: false, dataType: 'String' }, { label: 'Service Type', value: 'service_type', isPrimaryKey: false, dataType: 'String' }], pincode_master_3: [{ label: 'Postal Code', value: 'postal_code', isPrimaryKey: true, dataType: 'String' }, { label: 'Tier', value: 'tier', isPrimaryKey: false, dataType: 'String' }, { label: 'Coverage Area', value: 'coverage_area', isPrimaryKey: false, dataType: 'String' }, { label: 'Is Active', value: 'is_active', isPrimaryKey: false, dataType: 'Boolean' }] } },
+              ]},
+            ],
+            retryConfig: { maxAttempts: 3, coolingPeriod: 300, velocityCycle: 1 },
+            dataHooks: [
+              {
+                id: 'hook_sab_pan_post', eventKey: 'after_pan_input', eventLabel: 'After PAN Input',
+                apis: [
+                  {
+                    id: 'sab_dhapi_cbs_dedupe', apiId: 'cbs_dedupe_mobile', apiName: 'CBS Dedupe by Mobile',
+                    trigger: 'after_block_complete', latencyP95Ms: 600,
+                    inputMappings: [
+                      { requestPath: 'mobile_number', label: 'Mobile Number', sourceType: 'native', sourceValue: 'mobile_number', isAutoMapped: true },
+                    ],
+                    outputCaptures: [
+                      { id: 'oc_is_etb',   path: 'data.is_etb',      label: 'Is ETB Customer',      storeType: 'custom', storeName: 'is_etb' },
+                      { id: 'oc_cbs_cust', path: 'data.customer_id', label: 'CBS Customer ID (ETB)', storeType: 'custom', storeName: 'existing_customer_id' },
+                    ],
+                  },
+                  {
+                    id: 'sab_dhapi_lms_dedupe', apiId: 'lms_dedupe', apiName: 'LMS Dedupe',
+                    trigger: 'after_block_complete', latencyP95Ms: 400,
+                    inputMappings: [
+                      { requestPath: 'pan_number',    label: 'PAN Number',    sourceType: 'native', sourceValue: 'pan_number',    isAutoMapped: true },
+                      { requestPath: 'mobile_number', label: 'Mobile Number', sourceType: 'native', sourceValue: 'mobile_number', isAutoMapped: true },
+                    ],
+                    outputCaptures: [
+                      { id: 'oc_lms_exists', path: 'data.lead_exists', label: 'LMS Lead Exists',      storeType: 'custom', storeName: 'lms_lead_exists' },
+                      { id: 'oc_lms_id',     path: 'data.lead_id',     label: 'Existing LMS Lead ID', storeType: 'custom', storeName: 'existing_lms_lead_id' },
+                    ],
+                  },
+                  {
+                    id: 'sab_dhapi_ckyc', apiId: 'cersai_ckyc_fetch', apiName: 'CERSAI C-KYC Fetch',
+                    trigger: 'after_block_complete', latencyP95Ms: 1200,
+                    inputMappings: [
+                      { requestPath: 'pan_number',    label: 'PAN Number',    sourceType: 'native', sourceValue: 'pan_number',    isAutoMapped: true },
+                      { requestPath: 'full_name',     label: 'Full Name',     sourceType: 'native', sourceValue: 'customer_name', isAutoMapped: true },
+                      { requestPath: 'date_of_birth', label: 'Date of Birth', sourceType: 'native', sourceValue: 'date_of_birth', isAutoMapped: true },
+                    ],
+                    outputCaptures: [
+                      { id: 'oc_ckyc_id',      path: 'data.ckyc_number', label: 'C-KYC Number',          storeType: 'custom', storeName: 'ckyc_number' },
+                      { id: 'oc_ckyc_found',   path: 'data.ckyc_found',  label: 'C-KYC Record Found',     storeType: 'custom', storeName: 'ckyc_found' },
+                      { id: 'oc_ckyc_address', path: 'data.address',     label: 'C-KYC Address Pre-fill', storeType: 'native', storeName: 'address' },
+                    ],
+                  },
+                  {
+                    id: 'sab_dhapi_lead_create', apiId: 'lms_lead_create', apiName: 'LMS Lead ID Creation',
+                    trigger: 'after_block_complete', latencyP95Ms: 500,
+                    inputMappings: [
+                      { requestPath: 'pan_number',    label: 'PAN Number',    sourceType: 'native', sourceValue: 'pan_number',    isAutoMapped: true },
+                      { requestPath: 'mobile_number', label: 'Mobile Number', sourceType: 'native', sourceValue: 'mobile_number', isAutoMapped: true },
+                      { requestPath: 'is_etb',        label: 'Is ETB',        sourceType: 'custom', sourceValue: 'is_etb',        isAutoMapped: false },
+                      { requestPath: 'program_code',  label: 'Program Code',  sourceType: 'static', sourceValue: 'SA_STP_01',    isAutoMapped: false },
+                    ],
+                    outputCaptures: [
+                      { id: 'oc_lead_id', path: 'data.lead_id', label: 'LMS Lead ID', storeType: 'custom', storeName: 'lead_id' },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+
+          // 3 â”€ Entry Router â€” ETB vs NTB; Lead ID created after routing
+          {
+            id: 'sab_entry_router', type: 'router', name: 'Entry Router',
+            description: 'Route ETB customers to CBS pre-filled profile review; route NTB customers to Aadhaar eKYC. LMS Lead ID created after routing.',
+            configured: true, routerBranchType: 'exclusive', defaultRoute: 'sab_aadhaar',
+            routings: [
+              {
+                id: 'route_sa_etb', label: 'ETB Customer -> Profile Review', routingType: 'condition', saved: true,
+                conditionGroups: [{ id: 'cg_sa_etb', operator: 'AND', conditions: [{ id: 'c_sa_etb', parameter: 'is_etb', operator: '=', value: 'true', fieldType: 'text' }] }],
+                targetBlockId: 'sab_etb_profile',
+              },
+            ],
+          },
+
+          // 4 â”€ ETB Customer Profile (form â€” CBS pre-fill, 3 pages)
+          {
+            id: 'sab_etb_profile', type: 'form', name: 'ETB Customer Profile',
+            description: 'Review and confirm CBS pre-filled personal, contact and address details for existing bank customers',
+            configured: true, journeyState: 'etb_profile_review',
+            pages: [
+              {
+                id: 'pg_sa_etb_personal', name: 'Personal Information',
+                userInputs: [
+                  { id: 'inp_etb_name',     key: 'customer_name',     label: 'Full Name',     type: 'text',   required: true,  fieldSource: 'native' },
+                  { id: 'inp_etb_dob',      key: 'date_of_birth',     label: 'Date of Birth', type: 'date',   required: true,  fieldSource: 'native' },
+                  { id: 'inp_etb_pan',      key: 'pan_number',        label: 'PAN Number',    type: 'text',   required: true,  fieldSource: 'native' },
+                  { id: 'inp_etb_gender',   key: 'gender',            label: 'Gender',        type: 'select', required: true,  fieldSource: 'native' },
+                  { id: 'inp_etb_category', key: 'customer_category', label: 'Category',      type: 'select', required: true,  fieldSource: 'native' },
+                ],
+              },
+              {
+                id: 'pg_sa_etb_contact', name: 'Contact Details',
+                userInputs: [
+                  { id: 'inp_etb_mobile', key: 'mobile_number', label: 'Mobile Number', type: 'tel',   required: true, fieldSource: 'native' },
+                  { id: 'inp_etb_email',  key: 'email_id',      label: 'Email Address', type: 'email', required: true, fieldSource: 'native' },
+                ],
+              },
+              {
+                id: 'pg_sa_etb_address', name: 'Address',
+                userInputs: [
+                  { id: 'inp_etb_addr',    key: 'address_line_1', label: 'Address Line 1', type: 'text', required: true,  fieldSource: 'native' },
+                  { id: 'inp_etb_city',    key: 'city',           label: 'City',           type: 'text', required: true,  fieldSource: 'native' },
+                  { id: 'inp_etb_state',   key: 'state',          label: 'State',          type: 'text', required: true,  fieldSource: 'native' },
+                  { id: 'inp_etb_pincode', key: 'pincode',        label: 'Pincode',        type: 'text', required: true,  fieldSource: 'native' },
+                ],
+              },
+            ],
+          },
+
+          // 5 â”€ Aadhaar OTP eKYC (NTB path)
+          {
+            id: 'sab_aadhaar', type: 'smart', blockTypeId: 'aadhaar_verification',
+            name: 'Aadhaar OTP eKYC', category: 'identity', provider: 'DigiLocker',
+            description: 'OTP-based Aadhaar eKYC for NTB customers. Aadhaar XML fetched â€” number never stored, ARK retained in Vault.',
+            configured: true, hasRetry: true,
+            pages: [
+              { id: 'aadhaar_info',      name: 'Aadhaar Info Page',     actions: ['Confirm Aadhaar Details'], userInputs: [] },
+              { id: 'aadhaar_otp_input', name: 'Aadhaar OTP Input Page', actions: ['Aadhaar OTP verified'],
+                userInputs: [{ id: 'aadhaar_number', name: 'Aadhaar Number', type: 'text', dataType: 'STRING', required: true }] },
+            ],
+            generalConfig: [
+              { id: 'service_provider', name: 'Service Provider', type: 'select', value: 'otp_ekyc',
+                options: [{ label: 'DigiLocker', value: 'digilocker' }, { label: 'OTP eKYC (UIDAI)', value: 'otp_ekyc' }] },
+            ],
+            checks: [
+              { id: 'mobile_linkage', name: 'Aadhaar Mobile Linkage Check', enabled: true, outputResponse: 'reject', fields: [] },
+              { id: 'age_check', name: 'Age Check', enabled: true, outputResponse: 'reject',
+                fields: [{ id: 'min_age', name: 'Minimum Age', type: 'number', value: 18 }, { id: 'max_age', name: 'Maximum Age', type: 'number', value: 70 }] },
+              { id: 'pincode_check', name: 'Serviceable Pincode Check', enabled: false, outputResponse: 'reject', fields: [
+                { id: 'master_code', name: 'Configure Master Code', type: 'select', value: 'pincode_master_1',
+                  options: [{ label: 'Pincode Master 1', value: 'pincode_master_1' }, { label: 'Pincode Master 2', value: 'pincode_master_2' }, { label: 'Pincode Master 3', value: 'pincode_master_3' }] },
+                { id: 'column_field', name: 'Column Field Name', type: 'dependent-select', value: '', dependsOn: 'master_code',
+                  masterColumns: {
+                    pincode_master_1: [{ label: 'Pincode', value: 'pincode', isPrimaryKey: true, dataType: 'String' }, { label: 'City', value: 'city', isPrimaryKey: false, dataType: 'String' }, { label: 'State', value: 'state', isPrimaryKey: false, dataType: 'String' }, { label: 'Is Serviceable', value: 'is_serviceable', isPrimaryKey: false, dataType: 'Boolean' }],
+                    pincode_master_2: [{ label: 'Zip Code', value: 'zip_code', isPrimaryKey: true, dataType: 'String' }, { label: 'District', value: 'district', isPrimaryKey: false, dataType: 'String' }, { label: 'Region', value: 'region', isPrimaryKey: false, dataType: 'String' }, { label: 'Service Type', value: 'service_type', isPrimaryKey: false, dataType: 'String' }],
+                    pincode_master_3: [{ label: 'Postal Code', value: 'postal_code', isPrimaryKey: true, dataType: 'String' }, { label: 'Tier', value: 'tier', isPrimaryKey: false, dataType: 'String' }, { label: 'Coverage Area', value: 'coverage_area', isPrimaryKey: false, dataType: 'String' }, { label: 'Is Active', value: 'is_active', isPrimaryKey: false, dataType: 'Boolean' }],
+                  } },
+              ]},
+            ],
+            retryConfig: { maxAttempts: 3, coolingPeriod: 120, velocityCycle: 3 },
+          },
+
+          // 6 â”€ NTB Personal Details (form â€” post Aadhaar, 3 pages)
+          {
+            id: 'sab_ntb_personal', type: 'form', name: 'NTB Personal Details',
+            description: 'Collect additional personal details for NTB customers â€” pre-filled from Aadhaar where available. Includes place of birth per BRD requirement.',
+            configured: true, journeyState: 'ntb_personal_collection',
+            pages: [
+              {
+                id: 'pg_sa_ntb_personal', name: 'Personal Information',
+                userInputs: [
+                  { id: 'inp_ntb_name',     key: 'customer_name',     label: 'Full Name',       type: 'text',   required: true,  fieldSource: 'native' },
+                  { id: 'inp_ntb_dob',      key: 'date_of_birth',     label: 'Date of Birth',   type: 'date',   required: true,  fieldSource: 'native' },
+                  { id: 'inp_ntb_gender',   key: 'gender',            label: 'Gender',          type: 'select', required: true,  fieldSource: 'native' },
+                  { id: 'inp_ntb_father',   key: 'father_name',       label: 'Father Name',     type: 'text',   required: true,  fieldSource: 'custom' },
+                  { id: 'inp_ntb_mother',   key: 'mother_name',       label: 'Mother Name',     type: 'text',   required: true,  fieldSource: 'custom' },
+                  { id: 'inp_ntb_pob',      key: 'place_of_birth',    label: 'Place of Birth',  type: 'text',   required: true,  fieldSource: 'custom' },
+                  { id: 'inp_ntb_category', key: 'customer_category', label: 'Category',        type: 'select', required: true,  fieldSource: 'custom' },
+                  { id: 'inp_ntb_marital',  key: 'marital_status',    label: 'Marital Status',  type: 'select', required: true,  fieldSource: 'custom' },
+                ],
+              },
+              {
+                id: 'pg_sa_ntb_contact', name: 'Contact Details',
+                userInputs: [
+                  { id: 'inp_ntb_mobile',     key: 'mobile_number', label: 'Mobile Number',    type: 'tel',   required: true,  fieldSource: 'native' },
+                  { id: 'inp_ntb_alt_mobile', key: 'alt_mobile',    label: 'Alternate Mobile', type: 'tel',   required: false, fieldSource: 'custom' },
+                  { id: 'inp_ntb_email',      key: 'email_id',      label: 'Email Address',    type: 'email', required: true,  fieldSource: 'custom' },
+                ],
+              },
+              {
+                id: 'pg_sa_ntb_address', name: 'Address',
+                userInputs: [
+                  { id: 'inp_ntb_addr1',     key: 'address_line_1', label: 'Address Line 1', type: 'text',   required: true,  fieldSource: 'native' },
+                  { id: 'inp_ntb_addr2',     key: 'address_line_2', label: 'Address Line 2', type: 'text',   required: false, fieldSource: 'native' },
+                  { id: 'inp_ntb_city',      key: 'city',           label: 'City',           type: 'text',   required: true,  fieldSource: 'native' },
+                  { id: 'inp_ntb_state',     key: 'state',          label: 'State',          type: 'text',   required: true,  fieldSource: 'native' },
+                  { id: 'inp_ntb_pincode',   key: 'pincode',        label: 'Pincode',        type: 'text',   required: true,  fieldSource: 'native' },
+                  { id: 'inp_ntb_comm_same', key: 'comm_addr_same', label: 'Communication Address Same as Aadhaar Address', type: 'select', required: true, fieldSource: 'custom' },
+                ],
+              },
+            ],
+          },
+
+          // 7 â”€ ETB / NTB Merge
+          {
+            id: 'sab_merge', type: 'merge', name: 'ETB / NTB Merge',
+            description: 'Converge ETB and NTB paths into single common journey flow',
+            configured: true,
+          },
+
+          // 8 â”€ Branch & Nominee Details (form â€” 2 pages, common to ETB and NTB)
+          {
+            id: 'sab_branch_nominee', type: 'form', name: 'Branch & Nominee Details',
+            description: 'Capture preferred branch for account opening and nominee details for the savings account',
+            configured: true, journeyState: 'branch_nominee_collection',
+            pages: [
+              {
+                id: 'pg_sa_branch', name: 'Branch Preference',
+                userInputs: [
+                  { id: 'inp_branch_code', key: 'branch_code', label: 'Preferred Branch Code', type: 'text', required: true,  fieldSource: 'custom' },
+                  { id: 'inp_branch_name', key: 'branch_name', label: 'Branch Name',           type: 'text', required: false, fieldSource: 'custom' },
+                  { id: 'inp_branch_city', key: 'branch_city', label: 'Branch City',           type: 'text', required: false, fieldSource: 'custom' },
+                ],
+              },
+              {
+                id: 'pg_sa_nominee', name: 'Nominee Details',
+                userInputs: [
+                  { id: 'inp_nom_name',     key: 'nominee_name',     label: 'Nominee Full Name',          type: 'text',   required: true,  fieldSource: 'custom' },
+                  { id: 'inp_nom_relation', key: 'nominee_relation', label: 'Relationship with Nominee',  type: 'select', required: true,  fieldSource: 'custom' },
+                  { id: 'inp_nom_dob',      key: 'nominee_dob',      label: 'Nominee Date of Birth',      type: 'date',   required: true,  fieldSource: 'custom' },
+                  { id: 'inp_nom_addr',     key: 'nominee_address',  label: 'Nominee Address',            type: 'text',   required: true,  fieldSource: 'custom' },
+                  { id: 'inp_nom_guardian', key: 'guardian_name',    label: 'Guardian Name (if minor)',   type: 'text',   required: false, fieldSource: 'custom' },
+                ],
+              },
+            ],
+          },
+
+          // 9 â”€ BRE Scheme Selection (Smart â€” offer_generation, savings_account)
+          {
+            id: 'sab_bre', type: 'smart', blockTypeId: 'offer_generation',
+            name: 'BRE Scheme Selection', category: 'decision', provider: 'BRE Integration',
+            description: 'BRE determines eligible savings scheme code (SB101â€”SB190) based on age, gender, employment and income. Customer previews scheme before eSign.',
+            configured: true, hasRetry: false,
+            pages: [
+              { id: 'generate_offer', name: 'Scheme Evaluation â€” Loader', actions: ['Scheme evaluation initiated'], userInputs: [] },
+              { id: 'show_offer',     name: 'Scheme Preview Page',        actions: ['Scheme displayed', 'Scheme accepted'], userInputs: [] },
+            ],
+            generalConfig: [
+              { id: 'bre', name: 'Which BRE to Call', type: 'select', value: 'bre_v1',
+                options: [{ label: 'BRE v1 - Standard', value: 'bre_v1' }, { label: 'BRE v2 - Advanced', value: 'bre_v2' }, { label: 'BRE v3 - Premium', value: 'bre_v3' }] },
+              { id: 'product_type', name: 'Product Type', type: 'select', value: 'savings_account',
+                options: [{ label: 'Lending (Loans)', value: 'lending' }, { label: 'Credit Card', value: 'credit_card' }, { label: 'Savings Account', value: 'savings_account' }] },
+            ],
+          },
+
+          // 10 â”€ Value Added Services (form â€” 1 page)
+          {
+            id: 'sab_vas', type: 'form', name: 'Value Added Services',
+            description: 'Customer selects debit card variant, cheque book, SMS alerts, and optional insurance cover',
+            configured: true, journeyState: 'vas_selection',
+            pages: [
+              {
+                id: 'pg_sa_vas', name: 'Value Added Services',
+                userInputs: [
+                  { id: 'inp_vas_card',      key: 'debit_card_variant', label: 'Debit Card Variant',       type: 'select', required: true,  fieldSource: 'custom' },
+                  { id: 'inp_vas_cheque',    key: 'cheque_book',        label: 'Cheque Book Required',     type: 'select', required: true,  fieldSource: 'custom' },
+                  { id: 'inp_vas_sms',       key: 'sms_alerts',         label: 'SMS Alerts',               type: 'select', required: true,  fieldSource: 'custom' },
+                  { id: 'inp_vas_insurance', key: 'accident_insurance', label: 'Accident Insurance Cover', type: 'select', required: false, fieldSource: 'custom' },
+                ],
+              },
+            ],
+          },
+
+          // 11 â”€ FATCA + PEP + Terms & Conditions (form â€” 2 pages)
+          {
+            id: 'sab_fatca', type: 'form', name: 'FATCA, PEP & Terms',
+            description: 'Regulatory declarations â€” FATCA (US person), PEP, source of funds, annual income, and T&C acceptance',
+            configured: true, journeyState: 'fatca_pep_tnc',
+            pages: [
+              {
+                id: 'pg_sa_fatca', name: 'Regulatory Declarations',
+                userInputs: [
+                  { id: 'inp_fatca_us',      key: 'is_us_person',              label: 'Are you a US Person / US Tax Resident?', type: 'select', required: true,  fieldSource: 'custom' },
+                  { id: 'inp_fatca_tax_id',  key: 'tax_identification_number', label: 'Tax Identification Number (TIN)',         type: 'text',   required: false, fieldSource: 'custom' },
+                  { id: 'inp_fatca_country', key: 'tax_country',               label: 'Country of Tax Residence',               type: 'select', required: false, fieldSource: 'custom' },
+                  { id: 'inp_pep',           key: 'is_pep',                    label: 'Are you a Politically Exposed Person?',  type: 'select', required: true,  fieldSource: 'custom' },
+                  { id: 'inp_pep_related',   key: 'is_pep_related',            label: 'Are you related to a PEP?',              type: 'select', required: true,  fieldSource: 'custom' },
+                ],
+              },
+              {
+                id: 'pg_sa_tnc', name: 'Source of Funds & Terms',
+                userInputs: [
+                  { id: 'inp_sof',    key: 'source_of_funds',     label: 'Source of Funds',                                               type: 'select', required: true, fieldSource: 'custom' },
+                  { id: 'inp_income', key: 'annual_income_range',  label: 'Annual Income Range',                                           type: 'select', required: true, fieldSource: 'custom' },
+                  { id: 'inp_tnc',    key: 'tnc_accepted',         label: 'I accept the Terms & Conditions and Deposit Account Agreement', type: 'select', required: true, fieldSource: 'custom' },
+                ],
+              },
+            ],
+          },
+
+          // 12 â”€ eSign â€” Savings Account Opening Form + 7 post-sign data hooks
+          {
+            id: 'sab_esign', type: 'smart', blockTypeId: 'esign',
+            name: 'eSign â€” Account Opening Form', category: 'fulfilment', provider: 'TKYC',
+            description: 'Digital signing of Savings Account Opening Form via Aadhaar OTP eSign. Triggers CBS account creation chain, banking registrations, and DMS Push 1 post signing.',
+            configured: true, hasRetry: true,
+            pages: [
+              { id: 'esign_initiation', name: 'eSign Initiation Page', actions: ['eSign initiated'], userInputs: [] },
+              { id: 'esign_completion', name: 'eSign Completion Page', actions: ['Document signed'],  userInputs: [] },
+            ],
+            generalConfig: [
+              { id: 'template_id', name: 'Document Template Selection', type: 'select', value: 'esign_savings_account',
+                options: [
+                  { label: 'Personal Loan Agreement',      value: 'esign_personal_loan' },
+                  { label: 'Home Loan Agreement',          value: 'esign_home_loan' },
+                  { label: 'Business Loan Agreement',      value: 'esign_business_loan' },
+                  { label: 'Overdraft Agreement',          value: 'esign_overdraft' },
+                  { label: 'Credit Card Application Form', value: 'esign_credit_card' },
+                  { label: 'Savings Account Opening Form', value: 'esign_savings_account' },
+                ] },
+            ],
+            retryConfig: { maxAttempts: 3, coolingPeriod: 120, velocityCycle: 3 },
+            dataHooks: [
+              {
+                id: 'hook_sab_post_esign', eventKey: 'after_esign_completion_page', eventLabel: 'After eSign Completion Page',
+                apis: [
+                  {
+                    id: 'sab_dhapi_cbs_cust', apiId: 'cbs_customer_create', apiName: 'CBS Customer ID Creation (NTB)',
+                    trigger: 'after_block_complete', latencyP95Ms: 1000,
+                    inputMappings: [
+                      { requestPath: 'full_name',     label: 'Full Name',     sourceType: 'native', sourceValue: 'customer_name',  isAutoMapped: true },
+                      { requestPath: 'date_of_birth', label: 'Date of Birth', sourceType: 'native', sourceValue: 'date_of_birth',  isAutoMapped: true },
+                      { requestPath: 'pan_number',    label: 'PAN Number',    sourceType: 'native', sourceValue: 'pan_number',     isAutoMapped: true },
+                      { requestPath: 'mobile_number', label: 'Mobile Number', sourceType: 'native', sourceValue: 'mobile_number',  isAutoMapped: true },
+                      { requestPath: 'gender',        label: 'Gender',        sourceType: 'native', sourceValue: 'gender',         isAutoMapped: true },
+                      { requestPath: 'address',       label: 'Address',       sourceType: 'native', sourceValue: 'address_line_1', isAutoMapped: true },
+                    ],
+                    outputCaptures: [
+                      { id: 'oc_cbs_cust_id', path: 'data.customer_id', label: 'CBS Customer ID', storeType: 'custom', storeName: 'cbs_customer_id' },
+                    ],
+                  },
+                  {
+                    id: 'sab_dhapi_cbs_acc', apiId: 'cbs_account_create', apiName: 'CBS Account Creation',
+                    trigger: 'after_block_complete', latencyP95Ms: 1500,
+                    inputMappings: [
+                      { requestPath: 'customer_id',  label: 'CBS Customer ID', sourceType: 'custom', sourceValue: 'cbs_customer_id', isAutoMapped: false },
+                      { requestPath: 'scheme_code',  label: 'Scheme Code (BRE)', sourceType: 'custom', sourceValue: 'scheme_code',  isAutoMapped: false },
+                      { requestPath: 'branch_code',  label: 'Branch Code',     sourceType: 'custom', sourceValue: 'branch_code',    isAutoMapped: false },
+                      { requestPath: 'nominee_name', label: 'Nominee Name',    sourceType: 'custom', sourceValue: 'nominee_name',   isAutoMapped: false },
+                    ],
+                    outputCaptures: [
+                      { id: 'oc_account_number', path: 'data.account_number', label: 'Account Number', storeType: 'custom', storeName: 'account_number' },
+                      { id: 'oc_ifsc',           path: 'data.ifsc_code',      label: 'IFSC Code',      storeType: 'custom', storeName: 'account_ifsc' },
+                      { id: 'oc_cif',            path: 'data.cif_number',     label: 'CIF Number',     storeType: 'custom', storeName: 'cif_number' },
+                    ],
+                  },
+                  {
+                    id: 'sab_dhapi_dcms', apiId: 'dcms_virtual_debit_card', apiName: 'DCMS Virtual Debit Card',
+                    trigger: 'after_block_complete', latencyP95Ms: 800,
+                    inputMappings: [
+                      { requestPath: 'account_number', label: 'Account Number', sourceType: 'custom', sourceValue: 'account_number',     isAutoMapped: false },
+                      { requestPath: 'customer_id',    label: 'Customer ID',    sourceType: 'custom', sourceValue: 'cbs_customer_id',    isAutoMapped: false },
+                      { requestPath: 'card_variant',   label: 'Card Variant',   sourceType: 'custom', sourceValue: 'debit_card_variant', isAutoMapped: false },
+                    ],
+                    outputCaptures: [
+                      { id: 'oc_card_num', path: 'data.masked_card_number', label: 'Virtual Debit Card (masked)', storeType: 'custom', storeName: 'virtual_card_number' },
+                      { id: 'oc_kit_num',  path: 'data.kit_number',         label: 'Card Kit Number',             storeType: 'custom', storeName: 'card_kit_number' },
+                    ],
+                  },
+                  {
+                    id: 'sab_dhapi_ib', apiId: 'internet_banking_register', apiName: 'Internet Banking Registration',
+                    trigger: 'after_block_complete', latencyP95Ms: 700,
+                    inputMappings: [
+                      { requestPath: 'customer_id',   label: 'Customer ID',   sourceType: 'custom', sourceValue: 'cbs_customer_id', isAutoMapped: false },
+                      { requestPath: 'mobile_number', label: 'Mobile Number', sourceType: 'native', sourceValue: 'mobile_number',   isAutoMapped: true },
+                      { requestPath: 'email_id',      label: 'Email ID',      sourceType: 'native', sourceValue: 'email_id',        isAutoMapped: true },
+                    ],
+                    outputCaptures: [
+                      { id: 'oc_ib_user', path: 'data.ib_user_id', label: 'Internet Banking User ID', storeType: 'custom', storeName: 'ib_user_id' },
+                    ],
+                  },
+                  {
+                    id: 'sab_dhapi_upi', apiId: 'upi_vpa_register', apiName: 'UPI VPA Registration',
+                    trigger: 'after_block_complete', latencyP95Ms: 600,
+                    inputMappings: [
+                      { requestPath: 'account_number', label: 'Account Number', sourceType: 'custom', sourceValue: 'account_number', isAutoMapped: false },
+                      { requestPath: 'mobile_number',  label: 'Mobile Number',  sourceType: 'native', sourceValue: 'mobile_number',  isAutoMapped: true },
+                    ],
+                    outputCaptures: [
+                      { id: 'oc_upi_vpa', path: 'data.vpa', label: 'UPI VPA', storeType: 'custom', storeName: 'upi_vpa' },
+                    ],
+                  },
+                  {
+                    id: 'sab_dhapi_lms_final', apiId: 'lms_lead_update', apiName: 'LMS Lead Update â€” Account Created',
+                    trigger: 'after_block_complete', latencyP95Ms: 400,
+                    inputMappings: [
+                      { requestPath: 'lead_id',        label: 'Lead ID',        sourceType: 'custom', sourceValue: 'lead_id',        isAutoMapped: false },
+                      { requestPath: 'account_number', label: 'Account Number', sourceType: 'custom', sourceValue: 'account_number', isAutoMapped: false },
+                      { requestPath: 'status',         label: 'Status',         sourceType: 'static', sourceValue: 'ACCOUNT_CREATED', isAutoMapped: false },
+                    ],
+                    outputCaptures: [
+                      { id: 'oc_lms_update', path: 'data.status', label: 'LMS Update Status', storeType: 'custom', storeName: 'lms_update_status' },
+                    ],
+                  },
+                  {
+                    id: 'sab_dhapi_dms1', apiId: 'dms_document_push', apiName: 'DMS Document Push â€” Push 1 (Account Created)',
+                    trigger: 'after_block_complete', latencyP95Ms: 1000,
+                    inputMappings: [
+                      { requestPath: 'account_number', label: 'Account Number', sourceType: 'custom', sourceValue: 'account_number', isAutoMapped: false },
+                      { requestPath: 'cif_number',     label: 'CIF Number',     sourceType: 'custom', sourceValue: 'cif_number',     isAutoMapped: false },
+                      { requestPath: 'document_type',  label: 'Document Type',  sourceType: 'static', sourceValue: 'ACCOUNT_OPENING_FORM', isAutoMapped: false },
+                    ],
+                    outputCaptures: [
+                      { id: 'oc_dms1', path: 'data.push_status', label: 'DMS Push 1 Status', storeType: 'custom', storeName: 'dms_push_1_status' },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+
+          // 13 â”€ Account Funding (Smart â€” BillDesk, max â‚¹10,000, debit freeze active)
+          {
+            id: 'sab_funding', type: 'smart', blockTypeId: 'account_funding',
+            name: 'Account Funding', category: 'fulfilment', provider: 'BillDesk',
+            description: 'Initial deposit up to â‚¹10,000 via BillDesk. Debit freeze applied at account creation per RBI Min KYC â€” removed only after KYC closure.',
+            configured: true, hasRetry: false,
+            pages: [
+              { id: 'funding_input',      name: 'Funding Amount Page',     actions: ['Funding initiated'],                    userInputs: [{ id: 'funding_amount', name: 'Deposit Amount (â‚¹)', type: 'number', dataType: 'NUMBER', required: true }] },
+              { id: 'payment_processing', name: 'Payment Processing Page', actions: ['Payment initiated'],                    userInputs: [] },
+              { id: 'funding_result',     name: 'Funding Result Page',     actions: ['Payment completed', 'Payment failed'], userInputs: [] },
+            ],
+            generalConfig: [
+              { id: 'payment_gateway', name: 'Payment Gateway', type: 'select', value: 'billdesk',
+                options: [{ label: 'BillDesk', value: 'billdesk' }, { label: 'Razorpay', value: 'razorpay' }, { label: 'PayU', value: 'payu' }] },
+              { id: 'min_amount',       name: 'Minimum Funding Amount (â‚¹)',      type: 'number', value: 1 },
+              { id: 'max_amount',       name: 'Maximum Funding Amount (â‚¹)',      type: 'number', value: 10000 },
+              { id: 'funding_optional', name: 'Funding Optional (Skip Allowed)', type: 'toggle', value: false },
+            ],
+            checks: [
+              { id: 'payment_success',      name: 'Payment Success Required',  enabled: true, outputResponse: 'reject', fields: [] },
+              { id: 'minimum_amount_check', name: 'Minimum Amount Validation', enabled: true, outputResponse: 'reject',
+                fields: [{ id: 'min_amount_threshold', name: 'Minimum Amount (â‚¹)', type: 'number', value: 1 }] },
+            ],
+            dataHooks: [
+              {
+                id: 'hook_sab_payment', eventKey: 'after_funding_result_page', eventLabel: 'After Funding Result Page',
+                apis: [
+                  {
+                    id: 'sab_dhapi_billdesk', apiId: 'billdesk_payment', apiName: 'BillDesk Payment Gateway',
+                    trigger: 'after_block_complete', latencyP95Ms: 2000,
+                    inputMappings: [
+                      { requestPath: 'account_number', label: 'Account Number', sourceType: 'custom', sourceValue: 'account_number',  isAutoMapped: false },
+                      { requestPath: 'amount',         label: 'Deposit Amount', sourceType: 'native', sourceValue: 'funding_amount',  isAutoMapped: true },
+                      { requestPath: 'customer_id',    label: 'Customer ID',    sourceType: 'custom', sourceValue: 'cbs_customer_id', isAutoMapped: false },
+                    ],
+                    outputCaptures: [
+                      { id: 'oc_payment_id',     path: 'data.payment_id',      label: 'Payment ID',            storeType: 'custom', storeName: 'payment_id' },
+                      { id: 'oc_payment_status', path: 'data.status',          label: 'Payment Status',        storeType: 'custom', storeName: 'payment_status' },
+                      { id: 'oc_txn_ref',        path: 'data.transaction_ref', label: 'Transaction Reference', storeType: 'custom', storeName: 'transaction_ref' },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+
+          // 14 â”€ KYC Closure Router â€” ETB â†' Liveness; NTB â†' VKYC
+          {
+            id: 'sab_kyc_router', type: 'router', name: 'KYC Closure Router',
+            description: 'Route ETB customers to liveness selfie (triggers debit freeze removal on pass); route NTB customers to mandatory Video KYC',
+            configured: true, routerBranchType: 'exclusive', defaultRoute: 'sab_vkyc',
+            routings: [
+              {
+                id: 'route_sa_etb_kyc', label: 'ETB -> Liveness Check', routingType: 'condition', saved: true,
+                conditionGroups: [{ id: 'cg_sa_etb_kyc', operator: 'AND', conditions: [{ id: 'c_sa_etb_kyc', parameter: 'is_etb', operator: '=', value: 'true', fieldType: 'text' }] }],
+                targetBlockId: 'sab_liveness',
+              },
+            ],
+          },
+
+          // 15 â”€ Liveness & Face Match (ETB path â€” debit freeze removal on pass)
+          {
+            id: 'sab_liveness', type: 'smart', blockTypeId: 'liveness_selfie',
+            name: 'Liveness & Face Match', category: 'identity', provider: 'TKYC',
+            description: 'Liveness selfie and face match for ETB customers post account creation and funding. Successful completion triggers CBS debit freeze removal.',
+            configured: true, hasRetry: true,
+            pages: [
+              { id: 'landing',       name: 'Liveness Landing Page', actions: ['Liveness check initiated'], userInputs: [] },
+              { id: 'photo_capture', name: 'Photo Capture Page',    actions: ['Photo captured'],           userInputs: [] },
+              { id: 'photo_preview', name: 'Photo Preview Page',    actions: ['Photo confirmed'],          userInputs: [] },
+            ],
+            checks: [
+              { id: 'face_match', name: 'Face Match', enabled: true, outputResponse: 'reject', fields: [
+                { id: 'source',    name: 'Face Match Source',  type: 'select', value: 'pan', options: [{ label: 'PAN', value: 'pan' }, { label: 'Aadhaar', value: 'aadhaar' }] },
+                { id: 'threshold', name: 'Match Threshold %', type: 'number', value: 80 },
+              ]},
+              { id: 'liveness_score', name: 'Liveness Score', enabled: true, outputResponse: 'reject',
+                fields: [{ id: 'threshold', name: 'Minimum Score %', type: 'number', value: 80 }] },
+            ],
+            retryConfig: [
+              { id: 'face_match_retry', name: 'Face Match Retry', maxAttempts: 3, coolingPeriod: 120, velocityCycle: 3 },
+              { id: 'liveness_retry',   name: 'Liveness Retry',   maxAttempts: 3, coolingPeriod: 120, velocityCycle: 3 },
+            ],
+            dataHooks: [
+              {
+                id: 'hook_sab_liveness_post', eventKey: 'after_photo_preview_page', eventLabel: 'After Photo Preview Page',
+                apis: [
+                  {
+                    id: 'sab_dhapi_freeze_remove', apiId: 'cbs_debit_freeze_remove', apiName: 'CBS Debit Freeze Removal',
+                    trigger: 'after_block_complete', latencyP95Ms: 600,
+                    inputMappings: [
+                      { requestPath: 'account_number', label: 'Account Number', sourceType: 'custom', sourceValue: 'account_number',  isAutoMapped: false },
+                      { requestPath: 'customer_id',    label: 'Customer ID',    sourceType: 'custom', sourceValue: 'cbs_customer_id', isAutoMapped: false },
+                    ],
+                    outputCaptures: [
+                      { id: 'oc_freeze_status', path: 'data.freeze_removal_status', label: 'Debit Freeze Removal Status', storeType: 'custom', storeName: 'debit_freeze_removal_status' },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+
+          // 16 â”€ ETB Success End
+          {
+            id: 'sab_etb_end', type: 'end', name: 'Account Opened Successfully (ETB)',
+            description: 'Terminal success state for ETB customers â€” account active, debit card issued, internet banking and UPI registered, debit freeze removed',
+            configured: true, journeyState: 'ETB_ACCOUNT_ACTIVE',
+          },
+
+          // 17 â”€ Video KYC (NTB mandatory â€” DMS Push 2 after Concurrent Auditor certifies)
+          {
+            id: 'sab_vkyc', type: 'smart', blockTypeId: 'vkyc',
+            name: 'Video KYC', category: 'identity', provider: 'VKYC Vendor',
+            description: 'Mandatory Video KYC for NTB customers â€” must be completed within 3 working days of eSign. Concurrent Auditor certification triggers DMS Push 2.',
+            configured: true, hasRetry: false,
+            pages: [
+              { id: 'vkyc_schedule',     name: 'VKYC Slot Scheduling Page',             actions: ['VKYC slot scheduled'], userInputs: [] },
+              { id: 'vkyc_instructions', name: 'VKYC Instructions & Requirements Page', actions: ['VKYC initiated'],     userInputs: [] },
+              { id: 'vkyc_result',       name: 'VKYC Outcome Page',                     actions: ['VKYC completed'],     userInputs: [] },
+            ],
+            checks: [
+              { id: 'vkyc_completion',     name: 'VKYC Session Completion Required',           enabled: true, outputResponse: 'reject', fields: [] },
+              { id: 'face_match',          name: 'Face Match (vs Aadhaar Photo)',               enabled: true, outputResponse: 'reject',
+                fields: [{ id: 'threshold', name: 'Match Threshold %', type: 'number', value: 80 }] },
+              { id: 'liveness_check',      name: 'Liveness Detection',                         enabled: true, outputResponse: 'reject', fields: [] },
+              { id: 'document_visibility', name: 'Original Document Visibility (PAN + Aadhaar)', enabled: true, outputResponse: 'reject', fields: [] },
+            ],
+            generalConfig: [
+              { id: 'completion_window_days', name: 'Completion Window (Working Days)',   type: 'number', value: 3 },
+              { id: 'expiry_window_days',     name: 'Expiry After No-Show (Working Days)', type: 'number', value: 7 },
+              { id: 'max_reschedules',        name: 'Max Reschedules Allowed',            type: 'number', value: 2 },
+              { id: 'available_hours',        name: 'Available Slot Hours', type: 'select', value: '9am_6pm',
+                options: [{ label: '9 AM â€” 6 PM (Monâ€”Sat)', value: '9am_6pm' }, { label: '9 AM â€” 8 PM (Monâ€”Sat)', value: '9am_8pm' }, { label: '9 AM â€” 6 PM (Monâ€”Sun)', value: '9am_6pm_all' }] },
+            ],
+            dataHooks: [
+              {
+                id: 'hook_sab_vkyc_post', eventKey: 'after_vkyc_outcome_page', eventLabel: 'After VKYC Outcome Page',
+                apis: [
+                  {
+                    id: 'sab_dhapi_dms2', apiId: 'dms_document_push', apiName: 'DMS Document Push â€” Push 2 (Post CA Certification)',
+                    trigger: 'after_block_complete', latencyP95Ms: 1000,
+                    inputMappings: [
+                      { requestPath: 'account_number', label: 'Account Number', sourceType: 'custom', sourceValue: 'account_number', isAutoMapped: false },
+                      { requestPath: 'cif_number',     label: 'CIF Number',     sourceType: 'custom', sourceValue: 'cif_number',     isAutoMapped: false },
+                      { requestPath: 'document_type',  label: 'Document Type',  sourceType: 'static', sourceValue: 'CA_KYC_CERTIFICATE', isAutoMapped: false },
+                    ],
+                    outputCaptures: [
+                      { id: 'oc_dms2', path: 'data.push_status', label: 'DMS Push 2 Status', storeType: 'custom', storeName: 'dms_push_2_status' },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+
+          // 18 â”€ NTB VKYC Pending End
+          {
+            id: 'sab_ntb_end', type: 'end', name: 'Account Opened â€” VKYC Pending (NTB)',
+            description: 'Terminal state for NTB customers â€” account created with debit freeze, VKYC appointment scheduled, customer notified via SMS/email',
+            configured: true, journeyState: 'NTB_VKYC_PENDING',
+          },
+
+          // 19 â”€ Application Rejected End
+          {
+            id: 'sab_rejected', type: 'end', name: 'Application Rejected',
+            description: 'Terminal rejection state â€” AML / CFR / age / pincode check failure; rejection SMS and email triggered to applicant',
+            configured: true, journeyState: 'APPLICATION_REJECTED',
+          },
+
+          // 20 â”€ Payment Not Completed End
+          {
+            id: 'sab_payment_failed', type: 'end', name: 'Payment Not Completed',
+            description: 'Terminal state when initial funding payment fails or is abandoned â€” account placed on hold, retry link sent to customer within 24 hours',
+            configured: true, journeyState: 'PAYMENT_PENDING',
           },
         ],
       },
