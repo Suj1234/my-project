@@ -21,7 +21,7 @@ const STATUS_CLASS: Record<string, string> = {
 
 const TABS = [
   { value: 'details',            label: 'Program Details'      },
-  { value: 'manage-pages',       label: 'Manage Pages'         },
+  { value: 'manage-pages',       label: 'UI Configuration'     },
   { value: 'scheme',             label: 'Scheme'               },
   { value: 'custom-fields',      label: 'Manage Custom Fields' },
   { value: 'document-templates', label: 'Document Templates'   },

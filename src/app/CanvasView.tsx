@@ -372,6 +372,7 @@ export default function CanvasView() {
             onClose={handleClosePanel}
             onSave={handleSave}
             onDelete={handleBlockDelete}
+            rapidUiAppId={undefined}
           />
         )}
         {journeySettingsOpen && !selectedBlock && (

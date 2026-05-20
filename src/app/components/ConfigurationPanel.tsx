@@ -24,6 +24,7 @@ interface ConfigurationPanelProps {
   onClose: () => void;
   onSave: (block: BlockData) => void;
   onDelete: (blockId: string) => void;
+  rapidUiAppId?: string;
 }
 
 
@@ -172,7 +173,7 @@ const TWO_VALUE_OPERATORS: ConditionOperator[] = ['between'];
 const NDAYS_OPERATORS: ConditionOperator[] = ['is in last N days'];
 
 
-export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete }: ConfigurationPanelProps) {
+export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete, rapidUiAppId }: ConfigurationPanelProps) {
   if (!block) {
     return (
       <div className="w-[420px] bg-white border-l border-gray-200 flex items-center justify-center text-gray-500">
@@ -1385,6 +1386,13 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
                       </div>
                     </AccordionTrigger>
                     <AccordionContent>
+                      {!rapidUiAppId && (
+                        <Alert className="mb-3 border-amber-200 bg-amber-50">
+                          <AlertDescription className="text-xs text-amber-700">
+                            No Rapid UI app set up for this program, or the app has no pages. Create an app in Rapid UI, add this program's code in the app settings, and pages will appear here.
+                          </AlertDescription>
+                        </Alert>
+                      )}
                       {block.type === 'start' ? (
                         <div className="space-y-2">
                           <p className="text-xs text-gray-500 mb-3">

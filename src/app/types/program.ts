@@ -18,6 +18,9 @@ export interface Program {
   description?: string;
   status: ProgramStatus;
   supported_identifiers: ProgramIdentifier[];
+  rapid_ui_app_id?: string;
+  rapid_ui_app_name?: string;
+  default_page_template?: string;
   created_at: string;
   updated_at: string;
 }
