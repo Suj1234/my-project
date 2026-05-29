@@ -8,6 +8,8 @@ import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Switch } from './ui/switch';
+import { Checkbox } from './ui/checkbox';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Alert, AlertDescription } from './ui/alert';
 import { Badge } from './ui/badge';
 import { getShortDescription } from '../data/blockDefinitions';
@@ -294,6 +296,10 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
   };
 
   const routerFields = block?.type === 'router' ? getRouterFields(allBlocks, block.id) : [];
+  const hasFieldSelect = block?.generalConfig?.some((f) => f.type === 'field-select') ?? false;
+  const upstreamFields = hasFieldSelect
+    ? getRouterFields(allBlocks, block.id).filter((f) => f.group !== 'system')
+    : [];
 
   const handleAddFormField = () => {
     if (newFormField.name) {
@@ -1076,6 +1082,20 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
                                 <SelectItem value="tkyc_api_v3">TKYC API v3</SelectItem>
                               </SelectContent>
                             </Select>
+                          ) : block.blockTypeId === 'payment_gateway' ? (
+                            <Select
+                              value={block.provider}
+                              onValueChange={(value) => handleFieldChange('provider', value)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue>{block.provider}</SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="razorpay">Razorpay</SelectItem>
+                                <SelectItem value="payu">PayU</SelectItem>
+                                <SelectItem value="billdesk">BillDesk</SelectItem>
+                              </SelectContent>
+                            </Select>
                           ) : (
                             <Select
                               value={block.provider}
@@ -1298,6 +1318,95 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
                                   disabled={isPhase2}
                                 />
                               </div>
+                            ) : field.type === 'multiselect' ? (
+                              (() => {
+                                const selected: string[] = Array.isArray(field.value) ? field.value : [];
+                                const allOptions = field.options ?? [];
+                                const triggerLabel = selected.length === 0
+                                  ? 'None selected'
+                                  : selected.length === allOptions.length
+                                  ? `All methods (${selected.length})`
+                                  : allOptions.filter((o) => selected.includes(o.value)).map((o) => o.label).join(', ');
+                                return (
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <button
+                                        disabled={isPhase2}
+                                        className="flex items-center justify-between w-full h-8 px-3 text-sm border rounded-md bg-white hover:bg-gray-50 disabled:opacity-50 text-left gap-2"
+                                      >
+                                        <span className="truncate text-gray-700">{triggerLabel}</span>
+                                        <ChevronDown className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                                      </button>
+                                    </PopoverTrigger>
+                                    <PopoverContent align="start" className="w-64 p-2">
+                                      <div className="space-y-1">
+                                        {allOptions.map((option) => {
+                                          const checked = selected.includes(option.value);
+                                          return (
+                                            <label key={option.value} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer">
+                                              <Checkbox
+                                                checked={checked}
+                                                onCheckedChange={(c) => {
+                                                  const next = c
+                                                    ? [...selected, option.value]
+                                                    : selected.filter((v) => v !== option.value);
+                                                  handleGeneralConfigChange(field.id, next);
+                                                }}
+                                              />
+                                              <span className="text-sm">{option.label}</span>
+                                            </label>
+                                          );
+                                        })}
+                                      </div>
+                                      {selected.length === 0 && (
+                                        <p className="text-xs text-red-500 mt-2 px-2">At least one payment method must be enabled.</p>
+                                      )}
+                                    </PopoverContent>
+                                  </Popover>
+                                );
+                              })()
+                            ) : field.type === 'field-select' ? (
+                              (() => {
+                                const nativeFields = upstreamFields.filter((f) => f.group === 'native');
+                                const customFields = upstreamFields.filter((f) => f.group === 'custom');
+                                return upstreamFields.length === 0 ? (
+                                  <p className="text-xs text-gray-400 italic">No upstream fields available yet. Add blocks before this one.</p>
+                                ) : (
+                                  <Select
+                                    value={field.value || ''}
+                                    onValueChange={(value) => handleGeneralConfigChange(field.id, value)}
+                                    disabled={isPhase2}
+                                  >
+                                    <SelectTrigger className="h-8 text-sm">
+                                      <SelectValue placeholder="Select a field..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {nativeFields.length > 0 && (
+                                        <>
+                                          <div className="px-2 py-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Native Fields</div>
+                                          {nativeFields.map((f) => (
+                                            <SelectItem key={f.value} value={f.value}>
+                                              <span>{f.label}</span>
+                                              {f.sourceBlockName && <span className="text-gray-400 ml-1 text-xs">({f.sourceBlockName})</span>}
+                                            </SelectItem>
+                                          ))}
+                                        </>
+                                      )}
+                                      {customFields.length > 0 && (
+                                        <>
+                                          <div className="px-2 py-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Custom Fields</div>
+                                          {customFields.map((f) => (
+                                            <SelectItem key={f.value} value={f.value}>
+                                              <span>{f.label}</span>
+                                              {f.sourceBlockName && <span className="text-gray-400 ml-1 text-xs">({f.sourceBlockName})</span>}
+                                            </SelectItem>
+                                          ))}
+                                        </>
+                                      )}
+                                    </SelectContent>
+                                  </Select>
+                                );
+                              })()
                             ) : field.type === 'select' ? (
                               <Select
                                 value={field.value}
@@ -1330,6 +1439,9 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
                                 className="h-8 text-sm"
                                 disabled={isPhase2}
                               />
+                            )}
+                            {field.hint && (
+                              <p className="text-xs text-gray-400 mt-1">{field.hint}</p>
                             )}
                           </div>
                           );

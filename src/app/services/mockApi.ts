@@ -1233,39 +1233,40 @@ const WORKFLOWS_STORE: Workflow[] = [
             ],
           },
 
-          // 13 â”€ Account Funding (Smart â€” BillDesk, max â‚¹10,000, debit freeze active)
+          // 13 — Payment Collection (Smart — BillDesk, max ₹10,000, customer enters amount)
           {
-            id: 'sab_funding', type: 'smart', blockTypeId: 'account_funding',
-            name: 'Account Funding', category: 'fulfilment', provider: 'BillDesk',
-            description: 'Initial deposit up to â‚¹10,000 via BillDesk. Debit freeze applied at account creation per RBI Min KYC â€” removed only after KYC closure.',
-            configured: true, hasRetry: false,
+            id: 'sab_funding', type: 'smart', blockTypeId: 'payment_gateway',
+            name: 'Payment Collection', category: 'fulfilment', provider: 'billdesk',
+            description: 'Initial deposit up to ₹10,000 via BillDesk. Debit freeze applied at account creation per RBI Min KYC — removed only after KYC closure.',
+            configured: true, hasRetry: true,
             pages: [
-              { id: 'funding_input',      name: 'Funding Amount Page',     actions: ['Funding initiated'],                    userInputs: [{ id: 'funding_amount', name: 'Deposit Amount (â‚¹)', type: 'number', dataType: 'NUMBER', required: true }] },
-              { id: 'payment_processing', name: 'Payment Processing Page', actions: ['Payment initiated'],                    userInputs: [] },
-              { id: 'funding_result',     name: 'Funding Result Page',     actions: ['Payment completed', 'Payment failed'], userInputs: [] },
+              { id: 'payment_summary',    name: 'Payment Summary Page',    actions: ['Payment initiated'],                    userInputs: [{ id: 'payment_amount', name: 'Payment Amount (₹)', type: 'number', dataType: 'NUMBER', required: true, fieldSource: 'custom', key: 'payment_amount' }] },
+              { id: 'payment_processing', name: 'Payment Processing Page', actions: ['Payment submitted'],                    userInputs: [] },
+              { id: 'payment_result',     name: 'Payment Result Page',     actions: ['Payment completed', 'Payment failed'], userInputs: [] },
             ],
             generalConfig: [
-              { id: 'payment_gateway', name: 'Payment Gateway', type: 'select', value: 'billdesk',
-                options: [{ label: 'BillDesk', value: 'billdesk' }, { label: 'Razorpay', value: 'razorpay' }, { label: 'PayU', value: 'payu' }] },
-              { id: 'min_amount',       name: 'Minimum Funding Amount (â‚¹)',      type: 'number', value: 1 },
-              { id: 'max_amount',       name: 'Maximum Funding Amount (â‚¹)',      type: 'number', value: 10000 },
-              { id: 'funding_optional', name: 'Funding Optional (Skip Allowed)', type: 'toggle', value: false },
-            ],
-            checks: [
-              { id: 'payment_success',      name: 'Payment Success Required',  enabled: true, outputResponse: 'reject', fields: [] },
-              { id: 'minimum_amount_check', name: 'Minimum Amount Validation', enabled: true, outputResponse: 'reject',
-                fields: [{ id: 'min_amount_threshold', name: 'Minimum Amount (â‚¹)', type: 'number', value: 1 }] },
+              { id: 'payment_purpose',   name: 'Payment Description',   type: 'text',   value: 'Initial deposit for savings account activation' },
+              { id: 'amount_source',     name: 'Amount Source',         type: 'select', value: 'customer_enters',
+                options: [{ label: 'Fixed Amount (configured here)', value: 'fixed_amount' }, { label: 'Customer Enters Amount', value: 'customer_enters' }, { label: 'Amount from an Earlier Step', value: 'previous_step' }] },
+              { id: 'min_amount',        name: 'Minimum Amount (₹)',    type: 'number', value: 1 },
+              { id: 'max_amount',        name: 'Maximum Amount (₹)',    type: 'number', value: 10000 },
+              { id: 'currency',          name: 'Currency',              type: 'select', value: 'INR',
+                options: [{ label: 'Indian Rupee (₹ INR)', value: 'INR' }, { label: 'US Dollar ($ USD)', value: 'USD' }] },
+              { id: 'allowed_payment_methods', name: 'Allowed Payment Methods', type: 'multiselect', value: ['upi', 'cards', 'emi', 'netbanking', 'wallet', 'paylater'],
+                options: [{ label: 'UPI', value: 'upi' }, { label: 'Credit & Debit Cards', value: 'cards' }, { label: 'EMI', value: 'emi' }, { label: 'Net Banking', value: 'netbanking' }, { label: 'Wallets', value: 'wallet' }, { label: 'Pay Later', value: 'paylater' }] },
+              { id: 'prefill_customer_details', name: 'Pre-fill Customer Contact Details', type: 'toggle', value: true },
+              { id: 'payment_timeout_minutes',  name: 'Payment Session Timeout (minutes)', type: 'number', value: 15 },
             ],
             dataHooks: [
               {
-                id: 'hook_sab_payment', eventKey: 'after_funding_result_page', eventLabel: 'After Funding Result Page',
+                id: 'hook_sab_payment', eventKey: 'after_payment_result_page', eventLabel: 'After Payment Result Page',
                 apis: [
                   {
                     id: 'sab_dhapi_billdesk', apiId: 'billdesk_payment', apiName: 'BillDesk Payment Gateway',
                     trigger: 'after_block_complete', latencyP95Ms: 2000,
                     inputMappings: [
                       { requestPath: 'account_number', label: 'Account Number', sourceType: 'custom', sourceValue: 'account_number',  isAutoMapped: false },
-                      { requestPath: 'amount',         label: 'Deposit Amount', sourceType: 'native', sourceValue: 'funding_amount',  isAutoMapped: true },
+                      { requestPath: 'amount',         label: 'Payment Amount', sourceType: 'custom', sourceValue: 'payment_amount',  isAutoMapped: true },
                       { requestPath: 'customer_id',    label: 'Customer ID',    sourceType: 'custom', sourceValue: 'cbs_customer_id', isAutoMapped: false },
                     ],
                     outputCaptures: [

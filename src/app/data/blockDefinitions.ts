@@ -18,9 +18,9 @@ export function getShortDescription(blockTypeId: string): string {
     profile_address: 'Profile & address',
     udyam_verification: 'Udyam fetch (OTPless)',
     business_image_geo: 'Business image & geo check',
-    account_funding: 'Initial deposit collection',
     nominee_details: 'Nominee collection',
     ckyc_verification: 'CKYC registry lookup',
+    payment_gateway: 'Payment collection',
   };
   return shortDescriptions[blockTypeId] || 'Block configuration';
 }
@@ -1177,98 +1177,6 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
       },
     ],
   },
-  // ─── Savings / Banking Blocks ─────────────────────────────────────────────────
-  {
-    id: 'account_funding',
-    name: 'Account Funding',
-    description: 'Collect initial deposit from the customer via payment gateway. Supports configurable minimum and maximum funding limits. Mandatory for savings account activation per RBI Minimum KYC guidelines.',
-    category: 'fulfilment',
-    icon: 'Wallet',
-    hasChecks: true,
-    hasRetry: false,
-    pages: [
-      {
-        id: 'funding_input',
-        name: 'Funding Amount Page',
-        actions: ['Funding initiated'],
-        userInputs: [
-          {
-            id: 'funding_amount',
-            name: 'Deposit Amount (₹)',
-            type: 'number',
-            dataType: 'NUMBER',
-            required: true,
-          },
-        ],
-      },
-      {
-        id: 'payment_processing',
-        name: 'Payment Processing Page',
-        actions: ['Payment initiated'],
-        userInputs: [],
-      },
-      {
-        id: 'funding_result',
-        name: 'Funding Result Page',
-        actions: ['Payment completed', 'Payment failed'],
-        userInputs: [],
-      },
-    ],
-    generalConfig: [
-      {
-        id: 'payment_gateway',
-        name: 'Payment Gateway',
-        type: 'select',
-        value: 'billdesk',
-        options: [
-          { label: 'BillDesk', value: 'billdesk' },
-          { label: 'Razorpay', value: 'razorpay' },
-          { label: 'PayU', value: 'payu' },
-        ],
-      },
-      {
-        id: 'min_amount',
-        name: 'Minimum Funding Amount (₹)',
-        type: 'number',
-        value: 1,
-      },
-      {
-        id: 'max_amount',
-        name: 'Maximum Funding Amount (₹)',
-        type: 'number',
-        value: 10000,
-      },
-      {
-        id: 'funding_optional',
-        name: 'Funding Optional (Skip Allowed)',
-        type: 'toggle',
-        value: false,
-      },
-    ],
-    checks: [
-      {
-        id: 'payment_success',
-        name: 'Payment Success Required',
-        enabled: true,
-        outputResponse: 'reject',
-        fields: [],
-      },
-      {
-        id: 'minimum_amount_check',
-        name: 'Minimum Amount Validation',
-        enabled: true,
-        outputResponse: 'reject',
-        fields: [
-          {
-            id: 'min_amount_threshold',
-            name: 'Minimum Amount (₹)',
-            type: 'number',
-            value: 1,
-          },
-        ],
-      },
-    ],
-  },
   // ─── Nominee & KYC Blocks ────────────────────────────────────────────────────
   {
     id: 'nominee_details',
@@ -1458,6 +1366,145 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
         maxAttempts: 3,
         coolingPeriod: 120,
         velocityCycle: 3,
+      },
+    ],
+  },
+  // ─── Payment Gateway Block ───────────────────────────────────────────────────
+  {
+    id: 'payment_gateway',
+    name: 'Payment Collection',
+    description: 'Collect payment from the applicant via a configured payment gateway. Supports fixed amounts, customer-entered amounts, or amounts resolved from a prior journey step. Integrates with Razorpay, PayU, and BillDesk with configurable payment method restrictions.',
+    category: 'fulfilment',
+    icon: 'Wallet',
+    provider: 'razorpay',
+    hasChecks: false,
+    hasRetry: true,
+    pages: [
+      {
+        id: 'payment_summary',
+        name: 'Payment Summary Page',
+        actions: ['Payment initiated'],
+        userInputs: [
+          {
+            id: 'payment_amount',
+            name: 'Payment Amount (₹)',
+            type: 'number',
+            dataType: 'NUMBER',
+            required: true,
+            fieldSource: 'custom',
+            key: 'payment_amount',
+          },
+        ],
+      },
+      {
+        id: 'payment_processing',
+        name: 'Payment Processing Page',
+        actions: ['Payment submitted'],
+        userInputs: [],
+      },
+      {
+        id: 'payment_result',
+        name: 'Payment Result Page',
+        actions: ['Payment completed', 'Payment failed'],
+        userInputs: [],
+      },
+    ],
+    generalConfig: [
+      {
+        id: 'payment_purpose',
+        name: 'Payment Description',
+        type: 'text',
+        value: '',
+      },
+      {
+        id: 'amount_source',
+        name: 'Amount Source',
+        type: 'select',
+        value: 'fixed_amount',
+        options: [
+          { label: 'Fixed Amount (configured here)', value: 'fixed_amount'   },
+          { label: 'Customer Enters Amount',          value: 'customer_enters' },
+          { label: 'Amount from an Earlier Step',     value: 'previous_step'  },
+        ],
+      },
+      {
+        id: 'fixed_amount',
+        name: 'Fixed Amount (₹)',
+        type: 'number',
+        value: 0,
+        dependsOn: 'amount_source',
+        showWhen: 'fixed_amount',
+      },
+      {
+        id: 'amount_field',
+        name: 'Select Amount Field',
+        type: 'field-select',
+        value: '',
+        dependsOn: 'amount_source',
+        showWhen: 'previous_step',
+      },
+      {
+        id: 'min_amount',
+        name: 'Minimum Amount (₹)',
+        type: 'number',
+        value: 1,
+        dependsOn: 'amount_source',
+        showWhen: 'customer_enters',
+      },
+      {
+        id: 'max_amount',
+        name: 'Maximum Amount (₹)',
+        type: 'number',
+        value: 100000,
+        dependsOn: 'amount_source',
+        showWhen: 'customer_enters',
+      },
+      {
+        id: 'currency',
+        name: 'Currency',
+        type: 'select',
+        value: 'INR',
+        options: [
+          { label: 'Indian Rupee (₹ INR)', value: 'INR' },
+          { label: 'US Dollar ($ USD)',     value: 'USD' },
+        ],
+      },
+      {
+        id: 'allowed_payment_methods',
+        name: 'Allowed Payment Methods',
+        type: 'multiselect',
+        value: ['upi', 'cards', 'emi', 'netbanking', 'wallet', 'paylater'],
+        options: [
+          { label: 'UPI',               value: 'upi'        },
+          { label: 'Credit & Debit Cards', value: 'cards'   },
+          { label: 'EMI',               value: 'emi'        },
+          { label: 'Net Banking',       value: 'netbanking' },
+          { label: 'Wallets',           value: 'wallet'     },
+          { label: 'Pay Later',         value: 'paylater'   },
+        ],
+      },
+      {
+        id: 'prefill_customer_details',
+        name: 'Pre-fill Customer Contact Details',
+        type: 'toggle',
+        value: true,
+        hint: 'Pre-fills the customer\'s name, email address, and phone number from earlier journey steps into the payment form.',
+      },
+      {
+        id: 'payment_timeout_minutes',
+        name: 'Payment Session Timeout (minutes)',
+        type: 'number',
+        value: 15,
+        hint: 'Controls how long the checkout stays open before auto-closing. Default is 15 minutes. Check with your Razorpay account manager for the maximum allowed duration. The Payment Processing Page should show a countdown to the customer.',
+      },
+    ],
+    retryConfig: [
+      {
+        id: 'payment_retry',
+        name: 'Payment Retry',
+        maxAttempts: 3,
+        coolingPeriod: 0,
+        velocityCycle: 1,
       },
     ],
   },

@@ -149,12 +149,13 @@ export interface CheckField {
 export interface GeneralConfigField {
   id: string;
   name: string;
-  type: 'select' | 'number' | 'text' | 'date' | 'toggle';
+  type: 'select' | 'number' | 'text' | 'date' | 'toggle' | 'multiselect' | 'field-select';
   value: any;
   options?: { label: string; value: string }[];
   dependsOn?: string;
   showWhen?: any;
   phase?: number;
+  hint?: string;
 }
 
 // Block Data

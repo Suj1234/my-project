@@ -3,7 +3,7 @@ import { Input } from './ui/input';
 import {
   Search, ChevronDown, ChevronRight,
   CreditCard, Fingerprint, Camera, Building, TrendingUp, Landmark,
-  FileText, FileCheck, PenTool, User, Users, FileBarChart, ReceiptText, Award, Store, ShieldCheck,
+  FileText, FileCheck, PenTool, User, Users, FileBarChart, ReceiptText, Award, Store, ShieldCheck, Wallet,
   FileInput, GitBranch, GitMerge, CircleStop, SplitSquareHorizontal,
 } from 'lucide-react';
 import { SMART_BLOCKS } from '../data/blockDefinitions';
@@ -16,7 +16,7 @@ interface BlockLibraryProps {
 
 const iconMap: Record<string, any> = {
   CreditCard, Fingerprint, Camera, Building, TrendingUp, Landmark,
-  FileText, FileCheck, PenTool, User, Users, FileBarChart, ReceiptText, Award, Store, ShieldCheck,
+  FileText, FileCheck, PenTool, User, Users, FileBarChart, ReceiptText, Award, Store, ShieldCheck, Wallet,
 };
 
 // Colors per smart category — matches SmartBlockNode canvas colors
@@ -68,7 +68,7 @@ export function BlockLibrary({ onBlockSelect }: BlockLibraryProps) {
         </div>
       </div>
 
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 min-h-0">
         <div className="p-4 space-y-4">
 
           {/* ── Smart Components ── */}
