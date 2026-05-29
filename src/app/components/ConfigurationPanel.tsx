@@ -1358,9 +1358,6 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
                                           );
                                         })}
                                       </div>
-                                      {selected.length === 0 && (
-                                        <p className="text-xs text-red-500 mt-2 px-2">At least one payment method must be enabled.</p>
-                                      )}
                                     </PopoverContent>
                                   </Popover>
                                 );

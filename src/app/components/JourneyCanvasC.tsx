@@ -18,7 +18,7 @@ import { StartNodeC } from './nodes/StartNodeC';
 import { SmartBlockNode } from './nodes/SmartBlockNode';
 import { FormBlockNode } from './nodes/FormBlockNode';
 import { EndNodeC } from './nodes/EndNodeC';
-import { RouterNode } from './nodes/RouterNode';
+import { RouterNodeB } from './nodes/RouterNodeB';
 import { MergeNode } from './nodes/MergeNode';
 import { DecisionNode } from './nodes/DecisionNode';
 import { StepBadgeNode } from './nodes/StepBadgeNode';
@@ -30,7 +30,7 @@ const nodeTypes = {
   smart: SmartBlockNode,
   form: FormBlockNode,
   end: EndNodeC,
-  router: RouterNode,
+  router: RouterNodeB,
   merge: MergeNode,
   decision: DecisionNode,
   stepbadge: StepBadgeNode,
@@ -39,6 +39,7 @@ const nodeTypes = {
 const LOGIC_TYPES = new Set(['router', 'merge', 'decision']);
 const BLOCK_X = 400;
 const BLOCK_STEP = 280;
+const LANE_WIDTH = 380; // horizontal spread per branch
 
 function isVisibleToApplicant(block: BlockData): boolean {
   if (LOGIC_TYPES.has(block.type)) return false;
@@ -53,6 +54,7 @@ interface JourneyCanvasCProps {
   onBlockUpdate: (block: BlockData) => void;
   onBlockDelete: (blockId: string) => void;
   onAddBlockAfter: (sourceBlockId: string) => void;
+  onAddBlockFromBranch?: (routerBlockId: string, routingId: string) => void;
   onConnect: (connection: Connection) => void;
   steps: StepDefinition[];
 }
@@ -64,6 +66,7 @@ function CanvasCInner({
   onBlockUpdate,
   onBlockDelete,
   onAddBlockAfter,
+  onAddBlockFromBranch,
   onConnect,
   steps,
 }: JourneyCanvasCProps) {
@@ -78,6 +81,38 @@ function CanvasCInner({
       positions[block.id] = idx * BLOCK_STEP;
     });
 
+    // Assign X lane offsets: branch targets of each router fan out horizontally.
+    // Offsets propagate sequentially until a merge or another router (which reset to 0).
+    const laneOffsets: Record<string, number> = {};
+
+    // Phase 1 — direct branch targets get spread offsets centered on BLOCK_X
+    flatBlocks.forEach((block) => {
+      if (block.type !== 'router') return;
+      const targets: string[] = [];
+      (block.routings ?? []).forEach((r) => { if (r.targetBlockId) targets.push(r.targetBlockId); });
+      if (block.defaultRoute) targets.push(block.defaultRoute);
+      const n = targets.length;
+      if (n === 0) return;
+      targets.forEach((id, i) => {
+        laneOffsets[id] = (i - (n - 1) / 2) * LANE_WIDTH;
+      });
+    });
+
+    // Phase 2 — propagate lanes sequentially (skip merge/router which reset to center)
+    flatBlocks.forEach((block, idx) => {
+      if (block.type === 'merge' || block.type === 'router') {
+        laneOffsets[block.id] = 0;
+        return;
+      }
+      if (laneOffsets[block.id] !== undefined) return; // already assigned by Phase 1
+      if (idx > 0) {
+        const prev = flatBlocks[idx - 1];
+        if (prev.type !== 'router' && laneOffsets[prev.id] !== undefined && laneOffsets[prev.id] !== 0) {
+          laneOffsets[block.id] = laneOffsets[prev.id];
+        }
+      }
+    });
+
     const nodes: Node<FlowNodeData>[] = [];
 
     // ── Block nodes ────────────────────────────────────────────────────────────
@@ -85,17 +120,21 @@ function CanvasCInner({
 
     flatBlocks.forEach((block, idx) => {
       const y = positions[block.id];
+      const x = BLOCK_X + (laneOffsets[block.id] ?? 0);
 
       nodes.push({
         id: block.id,
         type: block.type,
-        position: { x: BLOCK_X, y },
+        position: { x, y },
         zIndex: 1,
         data: {
           ...block,
           onAddBlock: (nodeId: string) => { onAddBlockAfter(nodeId); },
           onConfigure: (nodeId: string) => { onBlockSelect(nodeId); },
           onDelete: (nodeId: string) => { onBlockDelete(nodeId); },
+          onAddBlockFromBranch: onAddBlockFromBranch
+            ? (routerBlockId: string, routingId: string) => { onAddBlockFromBranch(routerBlockId, routingId); }
+            : undefined,
         } as FlowNodeData,
       });
 
@@ -112,7 +151,7 @@ function CanvasCInner({
             nodes.push({
               id: `__chip__${block.id}`,
               type: 'stepbadge',
-              position: { x: BLOCK_X + 8, y: y - 28 },
+              position: { x: x + 8, y: y - 28 },
               zIndex: 10,
               selectable: false,
               draggable: false,
@@ -131,7 +170,7 @@ function CanvasCInner({
           nodes.push({
             id: `__chip__${block.id}`,
             type: 'stepbadge',
-            position: { x: BLOCK_X + 8, y: y - 28 },
+            position: { x: x + 8, y: y - 28 },
             zIndex: 10,
             selectable: false,
             draggable: false,
@@ -155,13 +194,25 @@ function CanvasCInner({
     const flatBlocks = blocks.filter((b) => b.type !== 'group');
     const edges: Edge[] = [];
 
+    // All blocks that are direct targets of a router branch or default route.
+    // Sequential edges must never point INTO these blocks — the router provides those edges.
+    const routerTargetIds = new Set<string>();
+    flatBlocks.forEach((b) => {
+      if (b.type !== 'router') return;
+      (b.routings ?? []).forEach((r) => { if (r.targetBlockId) routerTargetIds.add(r.targetBlockId); });
+      if (b.defaultRoute) routerTargetIds.add(b.defaultRoute);
+    });
+
     flatBlocks.forEach((block, index) => {
       if (block.type === 'router') {
+        // Draw an edge for every routing that has a target (regardless of saved state).
+        // sourceHandle must match the handle ID on RouterNodeB so ReactFlow routes from the correct position.
         (block.routings || []).forEach((routing) => {
-          if (!routing.saved || !routing.targetBlockId) return;
+          if (!routing.targetBlockId) return;
           edges.push({
             id: `${block.id}-${routing.id}`,
             source: block.id,
+            sourceHandle: `route-${routing.id}`,
             target: routing.targetBlockId,
             type: 'smoothstep',
             label: routing.label,
@@ -174,6 +225,7 @@ function CanvasCInner({
           edges.push({
             id: `${block.id}-default`,
             source: block.id,
+            sourceHandle: 'default-route',
             target: block.defaultRoute,
             type: 'smoothstep',
             label: 'Default',
@@ -184,11 +236,16 @@ function CanvasCInner({
         }
         return;
       }
+
       if (index < flatBlocks.length - 1) {
+        const next = flatBlocks[index + 1];
+        // Skip sequential edge if the next block is a router's direct branch/default target.
+        // The router already provides that edge; a sequential one would be spurious.
+        if (routerTargetIds.has(next.id)) return;
         edges.push({
-          id: `${block.id}-${flatBlocks[index + 1].id}`,
+          id: `${block.id}-${next.id}`,
           source: block.id,
-          target: flatBlocks[index + 1].id,
+          target: next.id,
           type: 'smoothstep',
           markerEnd: { type: MarkerType.ArrowClosed, color: '#64748b' },
           style: { stroke: '#64748b', strokeWidth: 2 },

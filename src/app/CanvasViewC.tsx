@@ -46,6 +46,7 @@ export default function CanvasViewC() {
   const [journeySettings, setJourneySettings] = useState<JourneySettings>(DEFAULT_JOURNEY_SETTINGS);
   const [addBlockDialogOpen, setAddBlockDialogOpen] = useState(false);
   const [addBlockAfterNodeId, setAddBlockAfterNodeId] = useState<string | null>(null);
+  const [pendingBranchWire, setPendingBranchWire] = useState<{ routerBlockId: string; routingId: string } | null>(null);
   const [loadingCanvas, setLoadingCanvas] = useState(isWorkflowMode);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
   const [workflowName, setWorkflowName] = useState('');
@@ -239,15 +240,67 @@ export default function CanvasViewC() {
     setAddBlockDialogOpen(true);
   }, []);
 
+  const handleAddBlockFromBranch = useCallback((routerBlockId: string, routingId: string) => {
+    setPendingBranchWire({ routerBlockId, routingId });
+    setAddBlockDialogOpen(true);
+  }, []);
+
   const handleDialogSelect = useCallback((blockType: string, blockTypeId?: string) => {
+    const newBlockId = `${blockType}-${Date.now()}`;
     handleBlockSelect(blockType, blockTypeId);
+
+    if (pendingBranchWire) {
+      const { routerBlockId, routingId } = pendingBranchWire;
+      setBlocks((prev) => {
+        const updated = prev.map((b) => {
+          if (b.id !== routerBlockId) return b;
+          if (routingId === '__default__') {
+            return { ...b, defaultRoute: newBlockId };
+          }
+          return {
+            ...b,
+            routings: (b.routings ?? []).map((r) =>
+              r.id === routingId ? { ...r, targetBlockId: newBlockId } : r
+            ),
+          };
+        });
+        autoSave(updated);
+        return updated;
+      });
+      setPendingBranchWire(null);
+    }
+
     setAddBlockDialogOpen(false);
     setAddBlockAfterNodeId(null);
-  }, [handleBlockSelect]);
+  }, [handleBlockSelect, pendingBranchWire, autoSave]);
 
   const handleConnect = useCallback((connection: Connection) => {
-    console.log('Connection created:', connection);
-  }, []);
+    if (!connection.target) return;
+    if (connection.sourceHandle === 'default-route') {
+      setBlocks((prev) => {
+        const updated = prev.map((b) =>
+          b.id === connection.source ? { ...b, defaultRoute: connection.target! } : b
+        );
+        autoSave(updated);
+        return updated;
+      });
+    } else if (connection.sourceHandle?.startsWith('route-')) {
+      const routingId = connection.sourceHandle.slice('route-'.length);
+      setBlocks((prev) => {
+        const updated = prev.map((b) => {
+          if (b.id !== connection.source) return b;
+          return {
+            ...b,
+            routings: (b.routings ?? []).map((r) =>
+              r.id === routingId ? { ...r, targetBlockId: connection.target! } : r
+            ),
+          };
+        });
+        autoSave(updated);
+        return updated;
+      });
+    }
+  }, [autoSave]);
 
   const handleClosePanel = useCallback(() => setSelectedBlockId(null), []);
 
@@ -422,6 +475,7 @@ export default function CanvasViewC() {
           onBlockUpdate={handleBlockUpdate}
           onBlockDelete={handleBlockDelete}
           onAddBlockAfter={handleAddBlockAfter}
+          onAddBlockFromBranch={handleAddBlockFromBranch}
           onConnect={handleConnect}
           steps={steps}
         />
