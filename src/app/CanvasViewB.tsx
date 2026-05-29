@@ -4,6 +4,8 @@ import { ArrowLeft, Save, Settings2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './components/ui/select';
 import { BlockLibrary } from './components/BlockLibrary';
 import { JourneyCanvasB } from './components/JourneyCanvasB';
+import { StepAssignmentDialog } from './components/StepAssignmentDialog';
+import type { StepDefinition } from './components/StepAssignmentDialog';
 import { ConfigurationPanelB } from './components/ConfigurationPanelB';
 import { AddBlockDialog } from './components/AddBlockDialog';
 import { JourneySettingsPanel } from './components/JourneySettingsPanel';
@@ -36,6 +38,8 @@ export default function CanvasViewB() {
   const isWorkflowMode = !!(workflowId && versionId);
 
   const [blocks, setBlocks] = useState<BlockData[]>(DEFAULT_BLOCKS);
+  const [steps, setSteps] = useState<StepDefinition[]>([]);
+  const [pendingStepAssignment, setPendingStepAssignment] = useState<string | null>(null);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [journeySettingsOpen, setJourneySettingsOpen] = useState(false);
   const [journeySettings, setJourneySettings] = useState<JourneySettings>(DEFAULT_JOURNEY_SETTINGS);
@@ -225,7 +229,49 @@ export default function CanvasViewB() {
 
     setAddBlockDialogOpen(false);
     setAddBlockAfterNodeId(null);
+
+    // Show step assignment dialog after adding any non-structural block
+    if (blockType !== 'router' && blockType !== 'merge' && blockType !== 'end') {
+      setPendingStepAssignment(newBlockId);
+    }
   }, [handleBlockSelect, pendingBranchWire, autoSave]);
+
+  const handleStepAssign = useCallback((stepId: string) => {
+    if (!pendingStepAssignment) return;
+    const step = steps.find((s) => s.id === stepId);
+    if (!step) return;
+    const stepIdx = steps.indexOf(step);
+    setBlocks((prev) => {
+      const updated = prev.map((b) =>
+        b.id === pendingStepAssignment
+          ? { ...b, stepId, stepLabel: `Step ${stepIdx + 1}: ${step.name}`, stepColor: step.color }
+          : b
+      );
+      autoSave(updated);
+      return updated;
+    });
+    setPendingStepAssignment(null);
+  }, [pendingStepAssignment, steps, autoSave]);
+
+  const handleStepCreateAndAssign = useCallback((newStep: StepDefinition) => {
+    setSteps((prev) => {
+      const updated = [...prev, newStep];
+      if (pendingStepAssignment) {
+        const stepIdx = updated.length - 1;
+        setBlocks((bPrev) => {
+          const bUpdated = bPrev.map((b) =>
+            b.id === pendingStepAssignment
+              ? { ...b, stepId: newStep.id, stepLabel: `Step ${stepIdx + 1}: ${newStep.name}`, stepColor: newStep.color }
+              : b
+          );
+          autoSave(bUpdated);
+          return bUpdated;
+        });
+        setPendingStepAssignment(null);
+      }
+      return updated;
+    });
+  }, [pendingStepAssignment, autoSave]);
 
   const handleConnect = useCallback((connection: Connection) => {
     if (!connection.target) return;
@@ -332,7 +378,7 @@ export default function CanvasViewB() {
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-gray-700">Canvas B</span>
               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200 tracking-wide">
-                Circle
+                Ask When You Add
               </span>
             </div>
           )}
@@ -412,6 +458,7 @@ export default function CanvasViewB() {
         <BlockLibrary onBlockSelect={handleBlockSelect} />
         <JourneyCanvasB
           blocks={blocks}
+          steps={steps}
           selectedBlockId={selectedBlockId}
           onBlockSelect={handleNodeSelect}
           onBlockUpdate={handleBlockUpdate}
@@ -452,6 +499,14 @@ export default function CanvasViewB() {
           open={addBlockDialogOpen}
           onClose={() => { setAddBlockDialogOpen(false); setAddBlockAfterNodeId(null); }}
           onSelect={handleDialogSelect}
+        />
+
+        <StepAssignmentDialog
+          open={!!pendingStepAssignment}
+          steps={steps}
+          onClose={() => setPendingStepAssignment(null)}
+          onAssign={handleStepAssign}
+          onCreateAndAssign={handleStepCreateAndAssign}
         />
       </div>
     </div>

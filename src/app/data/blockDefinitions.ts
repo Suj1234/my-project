@@ -19,6 +19,8 @@ export function getShortDescription(blockTypeId: string): string {
     udyam_verification: 'Udyam fetch (OTPless)',
     business_image_geo: 'Business image & geo check',
     account_funding: 'Initial deposit collection',
+    nominee_details: 'Nominee collection',
+    ckyc_verification: 'CKYC registry lookup',
   };
   return shortDescriptions[blockTypeId] || 'Block configuration';
 }
@@ -1263,6 +1265,118 @@ export const SMART_BLOCKS: SmartBlockDefinition[] = [
             type: 'number',
             value: 1,
           },
+        ],
+      },
+    ],
+  },
+  // ─── Nominee & KYC Blocks ────────────────────────────────────────────────────
+  {
+    id: 'nominee_details',
+    name: 'Nominee Details',
+    description: 'Collect and validate nominee details for the account. Supports successive and simultaneous nomination. Guardian details are automatically required when a nominee is a minor.',
+    category: 'fulfilment',
+    icon: 'Users',
+    hasChecks: false,
+    hasRetry: false,
+    pages: [
+      {
+        id: 'nominee_details',
+        name: 'Nominee Details Page',
+        actions: ['Nominee details submitted'],
+        userInputs: [],
+      },
+    ],
+    generalConfig: [
+      {
+        id: 'max_nominees',
+        name: 'Maximum Nominees Allowed',
+        type: 'select',
+        value: '1',
+        options: [
+          { label: '1', value: '1' },
+          { label: '2', value: '2' },
+          { label: '3', value: '3' },
+          { label: '4', value: '4' },
+          { label: '5', value: '5' },
+          { label: '6', value: '6' },
+          { label: '7', value: '7' },
+          { label: '8', value: '8' },
+          { label: '9', value: '9' },
+          { label: '10', value: '10' },
+        ],
+      },
+      {
+        id: 'nomination_type',
+        name: 'Nomination Type',
+        type: 'select',
+        value: 'successive',
+        options: [
+          { label: 'Successive (rank order)', value: 'successive' },
+          { label: 'Simultaneous (share %)', value: 'simultaneous' },
+          { label: 'Allow Both', value: 'both' },
+        ],
+      },
+      {
+        id: 'step_optional',
+        name: 'Allow Applicant to Skip This Step',
+        type: 'toggle',
+        value: false,
+      },
+    ],
+  },
+  {
+    id: 'ckyc_verification',
+    name: 'CKYC Verification',
+    description: 'Fetch customer\'s existing KYC record from CERSAI Central KYC Registry using PAN or Aadhaar and present pre-filled details for confirmation. Configurable fallback when no CKYC record is found.',
+    category: 'identity',
+    icon: 'ShieldCheck',
+    provider: 'TKYC',
+    hasChecks: false,
+    hasRetry: false,
+    pages: [
+      {
+        id: 'ckyc_id_input',
+        name: 'CKYC ID Input Page',
+        actions: ['CKYC lookup initiated'],
+        userInputs: [
+          {
+            id: 'id_number',
+            name: 'ID Number',
+            type: 'text',
+            dataType: 'STRING',
+            required: true,
+          },
+        ],
+      },
+      {
+        id: 'ckyc_fetch',
+        name: 'CKYC Fetch Page',
+        actions: ['CKYC record fetched'],
+        userInputs: [],
+      },
+      {
+        id: 'ckyc_confirmation',
+        name: 'Pre-filled Details Confirmation Page',
+        actions: ['Details confirmed'],
+        userInputs: [],
+      },
+    ],
+    generalConfig: [
+      {
+        id: 'id_type',
+        name: 'ID Type for CKYC Lookup',
+        type: 'select',
+        value: 'PAN',
+        options: [
+          { label: 'PAN', value: 'PAN' },
+          { label: 'Aadhaar (UID)', value: 'UID' },
+          { label: 'Passport', value: 'PASSPORT' },
+          { label: 'Voter ID', value: 'VOTER' },
+          { label: 'Driving Licence', value: 'DL' },
+          { label: 'NREGA Job Card', value: 'NREGAID' },
+          { label: 'NPRL ID', value: 'NPRL' },
+          { label: 'CKYC ID', value: 'CKYCID' },
+          { label: 'Mobile Number', value: 'MOBILE_NUMBER' },
         ],
       },
     ],

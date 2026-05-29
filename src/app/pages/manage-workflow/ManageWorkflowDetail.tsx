@@ -221,7 +221,10 @@ export function ManageWorkflowDetail() {
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end space-x-1">
                       <button
-                        onClick={() => navigate(`/manage-programs/workflows/${workflow.id}/versions/${v.id}/canvas`)}
+                        onClick={() => {
+                          const suffix = workflow.id.endsWith('-a') ? 'canvas-a' : workflow.id.endsWith('-b') ? 'canvas-b' : workflow.id.endsWith('-c') ? 'canvas-c' : 'canvas';
+                          navigate(`/manage-programs/workflows/${workflow.id}/versions/${v.id}/${suffix}`);
+                        }}
                         className="p-2 hover:bg-gray-100 rounded-full"
                         title="Edit Canvas"
                       >

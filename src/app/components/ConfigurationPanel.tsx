@@ -11,7 +11,7 @@ import { Switch } from './ui/switch';
 import { Alert, AlertDescription } from './ui/alert';
 import { Badge } from './ui/badge';
 import { getShortDescription } from '../data/blockDefinitions';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { PageConfigCard } from './PageConfigCard';
 import { ABTestingPageCard } from './ABTestingPageCard';
 import { DataHooksSection } from './DataHooksSection';
@@ -25,6 +25,8 @@ interface ConfigurationPanelProps {
   onSave: (block: BlockData) => void;
   onDelete: (blockId: string) => void;
   rapidUiAppId?: string;
+  stepSection?: ReactNode;
+  stepUnassigned?: boolean;
 }
 
 
@@ -173,7 +175,7 @@ const TWO_VALUE_OPERATORS: ConditionOperator[] = ['between'];
 const NDAYS_OPERATORS: ConditionOperator[] = ['is in last N days'];
 
 
-export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete, rapidUiAppId }: ConfigurationPanelProps) {
+export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete, rapidUiAppId, stepSection, stepUnassigned }: ConfigurationPanelProps) {
   if (!block) {
     return (
       <div className="w-[420px] bg-white border-l border-gray-200 flex items-center justify-center text-gray-500">
@@ -344,7 +346,7 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
       {/* Content */}
       <ScrollArea className="flex-1 min-h-0">
         <div className="p-4">
-          <Accordion type="multiple" defaultValue={[]}>
+          <Accordion type="multiple" defaultValue={['journey-step']}>
             {/* Block Info */}
             <AccordionItem value="block-info">
               <AccordionTrigger>Component Info</AccordionTrigger>
@@ -399,6 +401,20 @@ export function ConfigurationPanel({ block, allBlocks, onClose, onSave, onDelete
               </AccordionContent>
             </AccordionItem>
 
+            {/* Journey Step & Progress */}
+            {stepSection && (
+              <AccordionItem value="journey-step">
+                <AccordionTrigger>
+                  <span className="flex items-center gap-2">
+                    Journey Step &amp; Progress
+                    {stepUnassigned && (
+                      <span className="h-2 w-2 rounded-full bg-red-500 flex-shrink-0" />
+                    )}
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent>{stepSection}</AccordionContent>
+              </AccordionItem>
+            )}
 
             {/* Routing Conditions (Router Block Only) */}
             {block.type === 'router' && (

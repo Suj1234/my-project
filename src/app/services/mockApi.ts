@@ -14,6 +14,7 @@ import type { FieldManagementEntry } from '../types/fieldManagement';
 import type { Workflow, WorkflowVersion } from '../types/workflow';
 import type { Application } from '../types/opsDashboard';
 import type { BlockData } from '../types/journey';
+import { buildCCBlocks, buildSABlocks } from './mockApiHelpers';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -1409,6 +1410,150 @@ const WORKFLOWS_STORE: Workflow[] = [
             configured: true, journeyState: 'PAYMENT_PENDING',
           },
         ],
+      },
+    ],
+  },
+
+  // ── Canvas A: Credit Card Onboarding (Step Divider approach) ──────────────
+  {
+    id: 'wf-cc-a',
+    program_id: '13',
+    workflow_name: 'CC Onboarding — Canvas A (Step Divider)',
+    workflow_code: 'CCO_A_01',
+    description: 'Credit Card Onboarding replica for Canvas A — Step Divider blocks separate logical steps',
+    default_version: 'v1',
+    status: 'DRAFT',
+    created_at: '2026-05-25T10:00:00Z',
+    updated_at: '2026-05-25T10:00:00Z',
+    versions: [
+      {
+        id: 'wfv-cc-a',
+        workflow_id: 'wf-cc-a',
+        version: 'v1',
+        status: 'DRAFT',
+        created_at: '2026-05-25T10:00:00Z',
+        updated_at: '2026-05-25T10:00:00Z',
+        canvas_blocks: buildCCBlocks('a'),
+      },
+    ],
+  },
+
+  // ── Canvas B: Credit Card Onboarding (Ask When You Add approach) ──────────
+  {
+    id: 'wf-cc-b',
+    program_id: '13',
+    workflow_name: 'CC Onboarding — Canvas B (Ask When Add)',
+    workflow_code: 'CCO_B_01',
+    description: 'Credit Card Onboarding replica for Canvas B — step badge assigned to each block via dialog',
+    default_version: 'v1',
+    status: 'DRAFT',
+    created_at: '2026-05-25T10:00:00Z',
+    updated_at: '2026-05-25T10:00:00Z',
+    versions: [
+      {
+        id: 'wfv-cc-b',
+        workflow_id: 'wf-cc-b',
+        version: 'v1',
+        status: 'DRAFT',
+        created_at: '2026-05-25T10:00:00Z',
+        updated_at: '2026-05-25T10:00:00Z',
+        canvas_blocks: buildCCBlocks('b'),
+      },
+    ],
+  },
+
+  // ── Canvas C: Credit Card Onboarding (Container Box approach) ────────────
+  {
+    id: 'wf-cc-c',
+    program_id: '13',
+    workflow_name: 'CC Onboarding — Canvas C (Container Box)',
+    workflow_code: 'CCO_C_01',
+    description: 'Credit Card Onboarding replica for Canvas C — group container boxes wrap related blocks',
+    default_version: 'v1',
+    status: 'DRAFT',
+    created_at: '2026-05-25T10:00:00Z',
+    updated_at: '2026-05-25T10:00:00Z',
+    versions: [
+      {
+        id: 'wfv-cc-c',
+        workflow_id: 'wf-cc-c',
+        version: 'v1',
+        status: 'DRAFT',
+        created_at: '2026-05-25T10:00:00Z',
+        updated_at: '2026-05-25T10:00:00Z',
+        canvas_blocks: buildCCBlocks('c'),
+      },
+    ],
+  },
+
+  // ── Canvas A: Savings Account STP (Step Divider approach) ────────────────
+  {
+    id: 'wf-sa-a',
+    program_id: '14',
+    workflow_name: 'SA STP — Canvas A (Step Divider)',
+    workflow_code: 'SA_A_01',
+    description: 'Savings Account STP replica for Canvas A — Step Divider blocks separate logical steps',
+    default_version: 'v1',
+    status: 'DRAFT',
+    created_at: '2026-05-25T10:00:00Z',
+    updated_at: '2026-05-25T10:00:00Z',
+    versions: [
+      {
+        id: 'wfv-sa-a',
+        workflow_id: 'wf-sa-a',
+        version: 'v1',
+        status: 'DRAFT',
+        created_at: '2026-05-25T10:00:00Z',
+        updated_at: '2026-05-25T10:00:00Z',
+        canvas_blocks: buildSABlocks('a'),
+      },
+    ],
+  },
+
+  // ── Canvas B: Savings Account STP (Ask When You Add approach) ────────────
+  {
+    id: 'wf-sa-b',
+    program_id: '14',
+    workflow_name: 'SA STP — Canvas B (Ask When Add)',
+    workflow_code: 'SA_B_01',
+    description: 'Savings Account STP replica for Canvas B — step badge assigned to each block via dialog',
+    default_version: 'v1',
+    status: 'DRAFT',
+    created_at: '2026-05-25T10:00:00Z',
+    updated_at: '2026-05-25T10:00:00Z',
+    versions: [
+      {
+        id: 'wfv-sa-b',
+        workflow_id: 'wf-sa-b',
+        version: 'v1',
+        status: 'DRAFT',
+        created_at: '2026-05-25T10:00:00Z',
+        updated_at: '2026-05-25T10:00:00Z',
+        canvas_blocks: buildSABlocks('b'),
+      },
+    ],
+  },
+
+  // ── Canvas C: Savings Account STP (Container Box approach) ───────────────
+  {
+    id: 'wf-sa-c',
+    program_id: '14',
+    workflow_name: 'SA STP — Canvas C (Container Box)',
+    workflow_code: 'SA_C_01',
+    description: 'Savings Account STP replica for Canvas C — group container boxes wrap related blocks',
+    default_version: 'v1',
+    status: 'DRAFT',
+    created_at: '2026-05-25T10:00:00Z',
+    updated_at: '2026-05-25T10:00:00Z',
+    versions: [
+      {
+        id: 'wfv-sa-c',
+        workflow_id: 'wf-sa-c',
+        version: 'v1',
+        status: 'DRAFT',
+        created_at: '2026-05-25T10:00:00Z',
+        updated_at: '2026-05-25T10:00:00Z',
+        canvas_blocks: buildSABlocks('c'),
       },
     ],
   },

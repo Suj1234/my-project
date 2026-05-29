@@ -21,7 +21,9 @@ import { EndNodeB } from './nodes/EndNodeB';
 import { RouterNodeB } from './nodes/RouterNodeB';
 import { MergeNode } from './nodes/MergeNode';
 import { DecisionNode } from './nodes/DecisionNode';
+import { StepBadgeNode } from './nodes/StepBadgeNode';
 import { FlowNodeData, BlockData } from '../types/journey';
+import type { StepDefinition } from './StepAssignmentDialog';
 
 const nodeTypes = {
   start: StartNodeB,
@@ -31,10 +33,12 @@ const nodeTypes = {
   router: RouterNodeB,
   merge: MergeNode,
   decision: DecisionNode,
+  stepbadge: StepBadgeNode,
 };
 
 interface JourneyCanvasBProps {
   blocks: BlockData[];
+  steps: StepDefinition[];
   selectedBlockId: string | null;
   onBlockSelect: (blockId: string | null) => void;
   onBlockUpdate: (block: BlockData) => void;
@@ -46,6 +50,7 @@ interface JourneyCanvasBProps {
 
 function CanvasBInner({
   blocks,
+  steps,
   selectedBlockId,
   onBlockSelect,
   onBlockUpdate,
@@ -56,7 +61,7 @@ function CanvasBInner({
 }: JourneyCanvasBProps) {
 
   const initialNodes: Node<FlowNodeData>[] = useMemo(() => {
-    return blocks.map((block, index) => ({
+    const blockNodes: Node<FlowNodeData>[] = blocks.map((block, index) => ({
       id: block.id,
       type: block.type,
       position: { x: 400, y: index * 280 },
@@ -70,7 +75,30 @@ function CanvasBInner({
           : undefined,
       },
     }));
-  }, [blocks, onBlockSelect, onBlockDelete, onAddBlockAfter]);
+
+    // Add step badge overlay nodes for blocks that have a stepId
+    const badgeNodes: Node<any>[] = [];
+    blocks.forEach((block, index) => {
+      if (!block.stepId) return;
+      const step = steps.find((s) => s.id === block.stepId);
+      if (!step) return;
+      const stepIdx = steps.indexOf(step);
+      badgeNodes.push({
+        id: `stepbadge-${block.id}`,
+        type: 'stepbadge',
+        position: { x: 400 - 4, y: index * 280 - 22 },
+        draggable: false,
+        selectable: false,
+        data: {
+          stepId: block.stepId,
+          stepLabel: `Step ${stepIdx + 1}: ${step.name}`,
+          stepColor: step.color,
+        } as FlowNodeData,
+      });
+    });
+
+    return [...blockNodes, ...badgeNodes];
+  }, [blocks, steps, onBlockSelect, onBlockDelete, onAddBlockAfter]);
 
   const initialEdges: Edge[] = useMemo(() => {
     const edges: Edge[] = [];

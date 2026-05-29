@@ -21,6 +21,7 @@ import { EndNodeA } from './nodes/EndNodeA';
 import { RouterNode } from './nodes/RouterNode';
 import { MergeNode } from './nodes/MergeNode';
 import { DecisionNode } from './nodes/DecisionNode';
+import { StepDividerNode } from './nodes/StepDividerNode';
 import { FlowNodeData, BlockData } from '../types/journey';
 
 const nodeTypes = {
@@ -31,6 +32,7 @@ const nodeTypes = {
   router: RouterNode,
   merge: MergeNode,
   decision: DecisionNode,
+  step: StepDividerNode,
 };
 
 interface JourneyCanvasAProps {

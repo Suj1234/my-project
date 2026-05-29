@@ -1,6 +1,7 @@
 import { BlockData } from '../types/journey';
 import { ConfigurationPanel } from './ConfigurationPanel';
 import { RouterPanelA } from './RouterPanelA';
+import { StepDividerPanel } from './StepDividerPanel';
 
 interface Props {
   block: BlockData | null;
@@ -16,6 +17,16 @@ export function ConfigurationPanelA(props: Props) {
       <RouterPanelA
         block={props.block}
         allBlocks={props.allBlocks}
+        onClose={props.onClose}
+        onSave={props.onSave}
+        onDelete={props.onDelete}
+      />
+    );
+  }
+  if (props.block?.type === 'step') {
+    return (
+      <StepDividerPanel
+        block={props.block}
         onClose={props.onClose}
         onSave={props.onSave}
         onDelete={props.onDelete}

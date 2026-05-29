@@ -3,23 +3,22 @@ import { Input } from './ui/input';
 import {
   Search, ChevronDown, ChevronRight,
   CreditCard, Fingerprint, Camera, Building, TrendingUp, Landmark,
-  FileText, FileCheck, PenTool, User, Users, FileBarChart, ReceiptText, Award, Store, ShieldCheck,
-  FileInput, GitBranch, GitMerge, CircleStop, SplitSquareHorizontal,
+  FileText, FileCheck, PenTool, User, FileBarChart, ReceiptText, Award, Store,
+  FileInput, GitBranch, GitMerge, CircleStop, SplitSquareHorizontal, Layers,
 } from 'lucide-react';
 import { SMART_BLOCKS } from '../data/blockDefinitions';
 import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
 
-interface BlockLibraryProps {
+interface BlockLibraryAProps {
   onBlockSelect: (blockType: string, blockId?: string) => void;
 }
 
 const iconMap: Record<string, any> = {
   CreditCard, Fingerprint, Camera, Building, TrendingUp, Landmark,
-  FileText, FileCheck, PenTool, User, Users, FileBarChart, ReceiptText, Award, Store, ShieldCheck,
+  FileText, FileCheck, PenTool, User, FileBarChart, ReceiptText, Award, Store,
 };
 
-// Colors per smart category — matches SmartBlockNode canvas colors
 const CATEGORY_COLORS: Record<string, { border: string; icon: string; badge: string; dot: string }> = {
   identity:        { border: 'border-blue-500',    icon: 'text-blue-500',    badge: 'bg-blue-100 text-blue-700',    dot: 'text-blue-500' },
   financial:       { border: 'border-emerald-500', icon: 'text-emerald-500', badge: 'bg-emerald-100 text-emerald-700', dot: 'text-emerald-500' },
@@ -30,7 +29,6 @@ const CATEGORY_COLORS: Record<string, { border: string; icon: string; badge: str
   data_collection: { border: 'border-indigo-500',  icon: 'text-indigo-500',  badge: 'bg-indigo-100 text-indigo-700', dot: 'text-indigo-500' },
 };
 
-// Each grouped category in the library and its color key
 const SMART_CATEGORIES: { key: string; label: string; colorKey: string; filter: (c: string) => boolean }[] = [
   { key: 'identity',   label: 'Identity & Profile', colorKey: 'identity',   filter: (c) => c === 'identity' || c === 'profile' },
   { key: 'financial',  label: 'Financial',           colorKey: 'financial',  filter: (c) => c === 'financial' },
@@ -39,7 +37,7 @@ const SMART_CATEGORIES: { key: string; label: string; colorKey: string; filter: 
   { key: 'decision',   label: 'Decision',            colorKey: 'decision',   filter: (c) => c === 'decision' },
 ];
 
-export function BlockLibrary({ onBlockSelect }: BlockLibraryProps) {
+export function BlockLibraryA({ onBlockSelect }: BlockLibraryAProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
@@ -70,6 +68,41 @@ export function BlockLibrary({ onBlockSelect }: BlockLibraryProps) {
 
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-4">
+
+          {/* ── Journey Structure ── */}
+          <div>
+            <h3 className="text-xs font-bold text-gray-500 tracking-widest mb-1.5 uppercase">● Journey Structure</h3>
+            <div>
+              <button
+                className="flex items-center gap-1.5 w-full text-sm font-medium text-gray-700 hover:text-gray-900 py-1"
+                onClick={() => toggle('structure')}
+              >
+                {expanded['structure'] ? <ChevronDown className="h-3.5 w-3.5 text-gray-400" /> : <ChevronRight className="h-3.5 w-3.5 text-gray-400" />}
+                <span className="w-2 h-2 rounded-full bg-slate-500 flex-shrink-0" />
+                <span>Step Markers</span>
+                <span className="text-gray-400 text-xs ml-auto">(1)</span>
+              </button>
+              {expanded['structure'] && (
+                <div className="ml-4 mt-1">
+                  <div
+                    className="border-l-4 border-slate-500 bg-slate-50 p-3 rounded cursor-pointer hover:bg-slate-100 transition-colors"
+                    onClick={() => onBlockSelect('step')}
+                  >
+                    <div className="flex items-start gap-2">
+                      <Layers className="h-4 w-4 text-slate-600 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-sm font-medium">Step Divider</span>
+                          <Badge variant="secondary" className="bg-slate-200 text-slate-700 text-[10px]">STEP</Badge>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-0.5">Group blocks under a named step</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* ── Smart Components ── */}
           <div>

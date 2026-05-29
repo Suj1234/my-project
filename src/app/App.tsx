@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
+import { Toaster } from 'sonner';
 import { Layout } from './components/shell/Layout';
 
 // Manage Program
@@ -39,6 +40,7 @@ import { MasterManagementView } from './pages/master-management/MasterManagement
 export default function App() {
   return (
     <BrowserRouter>
+      <Toaster position="bottom-right" richColors />
       <Routes>
         <Route element={<Layout />}>
           {/* Default */}
@@ -52,6 +54,9 @@ export default function App() {
           {/* Manage Workflow — list is a tab inside ManageProgramView */}
           <Route path="manage-programs/workflows/:id" element={<ManageWorkflowDetail />} />
           <Route path="manage-programs/workflows/:workflowId/versions/:versionId/canvas" element={<CanvasView />} />
+          <Route path="manage-programs/workflows/:workflowId/versions/:versionId/canvas-a" element={<CanvasViewA />} />
+          <Route path="manage-programs/workflows/:workflowId/versions/:versionId/canvas-b" element={<CanvasViewB />} />
+          <Route path="manage-programs/workflows/:workflowId/versions/:versionId/canvas-c" element={<CanvasViewC />} />
 
           {/* Manage Actions */}
           <Route path="manage-actions/canvas" element={<CanvasView />} />

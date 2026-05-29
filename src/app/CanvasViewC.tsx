@@ -1,17 +1,21 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router';
+import { toast } from 'sonner';
 import { ArrowLeft, Save, Settings2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './components/ui/select';
-import { BlockLibrary } from './components/BlockLibrary';
+import { BlockLibraryC } from './components/BlockLibraryC';
 import { JourneyCanvasC } from './components/JourneyCanvasC';
 import { ConfigurationPanelC } from './components/ConfigurationPanelC';
 import { AddBlockDialog } from './components/AddBlockDialog';
 import { JourneySettingsPanel } from './components/JourneySettingsPanel';
+import { StepDefinition } from './components/StepAssignmentDialog';
 import { BlockData, JourneySettings, DEFAULT_JOURNEY_SETTINGS } from './types/journey';
 import type { WorkflowVersion } from './types/workflow';
 import { SMART_BLOCKS } from './data/blockDefinitions';
 import { Connection } from '@xyflow/react';
 import { workflowsApi } from './services/mockApi';
+
+const LOGIC_TYPES = new Set(['router', 'merge', 'decision', 'start', 'end']);
 
 const DEFAULT_BLOCKS: BlockData[] = [
   {
@@ -24,8 +28,8 @@ const DEFAULT_BLOCKS: BlockData[] = [
     authMethod: 'otp',
     collectConsent: false,
     pages: [
-      { id: 'start-welcome', name: 'Welcome Screen', action: 'Applicant views welcome screen', userInputs: [], isConfigured: false },
-      { id: 'start-consent', name: 'Consent Screen', action: 'Applicant provides consent', userInputs: [], isConfigured: false },
+      { id: 'start-welcome', name: 'Welcome Screen', actions: [], userInputs: [], isConfigured: false },
+      { id: 'start-consent', name: 'Consent Screen', actions: [], userInputs: [], isConfigured: false },
     ],
   },
 ];
@@ -36,6 +40,7 @@ export default function CanvasViewC() {
   const isWorkflowMode = !!(workflowId && versionId);
 
   const [blocks, setBlocks] = useState<BlockData[]>(DEFAULT_BLOCKS);
+  const [steps, setSteps] = useState<StepDefinition[]>([]);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [journeySettingsOpen, setJourneySettingsOpen] = useState(false);
   const [journeySettings, setJourneySettings] = useState<JourneySettings>(DEFAULT_JOURNEY_SETTINGS);
@@ -57,7 +62,22 @@ export default function CanvasViewC() {
       const version = w.versions.find((v) => v.id === versionId);
       if (version) {
         setVersionLabel(version.version);
-        setBlocks(version.canvas_blocks.length > 0 ? version.canvas_blocks : DEFAULT_BLOCKS);
+        const loaded = version.canvas_blocks.length > 0 ? version.canvas_blocks : DEFAULT_BLOCKS;
+        setBlocks(loaded);
+        // Reconstruct step definitions from pre-assigned step data in replica workflows
+        const seenIds = new Set<string>();
+        const derivedSteps: StepDefinition[] = [];
+        for (const block of loaded) {
+          if (block.stepId && !seenIds.has(block.stepId)) {
+            seenIds.add(block.stepId);
+            derivedSteps.push({
+              id: block.stepId,
+              name: block.stepLabel ?? block.stepId,
+              description: '',
+            });
+          }
+        }
+        if (derivedSteps.length > 0) setSteps(derivedSteps);
       }
     }).catch(console.error).finally(() => setLoadingCanvas(false));
   }, [workflowId, versionId, isWorkflowMode]);
@@ -79,6 +99,16 @@ export default function CanvasViewC() {
   }, [isWorkflowMode, workflowId, versionId]);
 
   const selectedBlock = blocks.find((b) => b.id === selectedBlockId) || null;
+
+  const handleCreateStep = useCallback((name: string): StepDefinition => {
+    const newStep: StepDefinition = {
+      id: `step-${Date.now()}`,
+      name,
+      description: '',
+    };
+    setSteps((prev) => [...prev, newStep]);
+    return newStep;
+  }, []);
 
   const handleBlockSelect = useCallback((blockType: string, blockTypeId?: string) => {
     const newBlockId = `${blockType}-${Date.now()}`;
@@ -105,6 +135,7 @@ export default function CanvasViewC() {
           : smartBlockDef.hasRetry
           ? { maxAttempts: 3, coolingPeriod: 120, velocityCycle: 3 }
           : undefined,
+        visibleToApplicant: true,
       };
     } else if (blockType === 'form') {
       newBlock = {
@@ -114,7 +145,8 @@ export default function CanvasViewC() {
         description: 'User-defined input collection',
         configured: false,
         formFields: [],
-        pages: [{ id: 'form-page', name: 'Form Page', action: 'Form submitted', userInputs: [] }],
+        pages: [{ id: 'form-page', name: 'Form Page', actions: [], userInputs: [] }],
+        visibleToApplicant: true,
       };
     } else if (blockType === 'router') {
       newBlock = {
@@ -125,6 +157,7 @@ export default function CanvasViewC() {
         configured: false,
         routings: [],
         defaultRoute: '',
+        visibleToApplicant: false,
       };
     } else if (blockType === 'merge') {
       newBlock = {
@@ -133,6 +166,7 @@ export default function CanvasViewC() {
         name: 'Merge Block',
         description: 'Merge multiple branches into a single flow',
         configured: false,
+        visibleToApplicant: false,
       };
     } else if (blockType === 'decision') {
       newBlock = {
@@ -142,6 +176,7 @@ export default function CanvasViewC() {
         description: 'Evaluate rules to produce PASS / REJECT / FLAG verdict',
         configured: false,
         decisionConfig: { rules: [], defaultVerdict: 'PASS' },
+        visibleToApplicant: false,
       };
     } else if (blockType === 'end') {
       newBlock = {
@@ -150,7 +185,8 @@ export default function CanvasViewC() {
         name: 'Journey End',
         description: 'Journey terminus',
         configured: false,
-        pages: [{ id: 'outcome-page', name: 'Outcome Screen', action: 'Journey completed', userInputs: [] }],
+        pages: [{ id: 'outcome-page', name: 'Outcome Screen', actions: [], userInputs: [] }],
+        visibleToApplicant: true,
       };
     } else {
       return;
@@ -173,13 +209,30 @@ export default function CanvasViewC() {
   }, [autoSave]);
 
   const handleBlockDelete = useCallback((blockId: string) => {
+    const deletedBlock = blocks.find((b) => b.id === blockId);
+
     setBlocks((prev) => {
       const updated = prev.filter((b) => b.id !== blockId);
       autoSave(updated);
       return updated;
     });
+
+    // Notify when deletion renumbers remaining sub-steps in a step
+    if (deletedBlock?.stepId && !LOGIC_TYPES.has(deletedBlock.type) && deletedBlock.visibleToApplicant !== false) {
+      const remainingInStep = blocks.filter(
+        (b) => b.id !== blockId && b.stepId === deletedBlock.stepId &&
+               !LOGIC_TYPES.has(b.type) && b.visibleToApplicant !== false
+      );
+      if (remainingInStep.length > 0) {
+        const stepName = steps.find((s) => s.id === deletedBlock.stepId)?.name ?? deletedBlock.stepLabel ?? deletedBlock.stepId;
+        toast('Sub-step numbers updated', {
+          description: `"${stepName}" has been renumbered — ${remainingInStep.length} block${remainingInStep.length !== 1 ? 's' : ''} remain.`,
+        });
+      }
+    }
+
     if (selectedBlockId === blockId) setSelectedBlockId(null);
-  }, [selectedBlockId, autoSave]);
+  }, [selectedBlockId, autoSave, blocks, steps]);
 
   const handleAddBlockAfter = useCallback((sourceBlockId: string) => {
     setAddBlockAfterNodeId(sourceBlockId);
@@ -217,7 +270,7 @@ export default function CanvasViewC() {
   }, []);
 
   const handleExport = useCallback(() => {
-    const data = JSON.stringify({ blocks, journeySettings }, null, 2);
+    const data = JSON.stringify({ blocks, steps, journeySettings }, null, 2);
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -225,7 +278,7 @@ export default function CanvasViewC() {
     a.download = `journey-${workflowName || 'export'}.json`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [blocks, journeySettings, workflowName]);
+  }, [blocks, steps, journeySettings, workflowName]);
 
   const handleImport = useCallback(() => {
     const input = document.createElement('input');
@@ -239,6 +292,7 @@ export default function CanvasViewC() {
         try {
           const parsed = JSON.parse(ev.target?.result as string);
           if (parsed.blocks) setBlocks(parsed.blocks);
+          if (parsed.steps) setSteps(parsed.steps);
           if (parsed.journeySettings) setJourneySettings(parsed.journeySettings);
         } catch { console.error('Invalid JSON'); }
       };
@@ -255,6 +309,7 @@ export default function CanvasViewC() {
 
   return (
     <div className="h-full flex flex-col">
+      {/* Toolbar */}
       <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-gray-200 flex-shrink-0">
         <div className="flex items-center space-x-3">
           {isWorkflowMode && (
@@ -273,13 +328,20 @@ export default function CanvasViewC() {
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-gray-700">Canvas C</span>
               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 border border-violet-200 tracking-wide">
-                Enhanced Card
+                Inline Step Config
               </span>
             </div>
           )}
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Steps count chip */}
+          {steps.length > 0 && (
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+              {steps.length} step{steps.length !== 1 ? 's' : ''} defined
+            </span>
+          )}
+
           {saveStatus === 'saving' && (
             <span className="text-xs text-gray-400 flex items-center gap-1"><Save size={11} className="animate-pulse" />Saving...</span>
           )}
@@ -349,8 +411,10 @@ export default function CanvasViewC() {
         </div>
       </div>
 
+      {/* Main layout */}
       <div className="flex-1 flex overflow-hidden">
-        <BlockLibrary onBlockSelect={handleBlockSelect} />
+        <BlockLibraryC onBlockSelect={handleBlockSelect} />
+
         <JourneyCanvasC
           blocks={blocks}
           selectedBlockId={selectedBlockId}
@@ -359,6 +423,7 @@ export default function CanvasViewC() {
           onBlockDelete={handleBlockDelete}
           onAddBlockAfter={handleAddBlockAfter}
           onConnect={handleConnect}
+          steps={steps}
         />
 
         {selectedBlock && !journeySettingsOpen && (
@@ -368,6 +433,8 @@ export default function CanvasViewC() {
             onClose={handleClosePanel}
             onSave={handleSave}
             onDelete={handleBlockDelete}
+            steps={steps}
+            onCreateStep={handleCreateStep}
           />
         )}
         {journeySettingsOpen && !selectedBlock && (
@@ -383,7 +450,7 @@ export default function CanvasViewC() {
           <div className="w-[420px] bg-white border-l border-gray-200 flex items-center justify-center text-gray-400 flex-col gap-2">
             <Settings2 className="h-8 w-8 opacity-20" />
             <p className="text-sm">Select a block to configure</p>
-            <p className="text-xs opacity-60">or click Settings to configure the journey</p>
+            <p className="text-xs opacity-60">Step assignment appears at the top of each block's panel</p>
           </div>
         )}
 

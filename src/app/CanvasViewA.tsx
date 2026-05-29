@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { ArrowLeft, Save, Settings2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './components/ui/select';
-import { BlockLibrary } from './components/BlockLibrary';
+import { BlockLibraryA } from './components/BlockLibraryA';
 import { JourneyCanvasA } from './components/JourneyCanvasA';
 import { ConfigurationPanelA } from './components/ConfigurationPanelA';
 import { AddBlockDialog } from './components/AddBlockDialog';
@@ -152,6 +152,18 @@ export default function CanvasViewA() {
         configured: false,
         pages: [{ id: 'outcome-page', name: 'Outcome Screen', action: 'Journey completed', userInputs: [] }],
       };
+    } else if (blockType === 'step') {
+      const existingStepCount = blocks.filter((b) => b.type === 'step').length;
+      newBlock = {
+        id: newBlockId,
+        type: 'step',
+        name: 'Step Divider',
+        description: 'Groups blocks under a named step',
+        configured: false,
+        stepName: `Step ${existingStepCount + 1}`,
+        stepDescription: 'Describe what happens in this step',
+        stepNumber: existingStepCount + 1,
+      };
     } else {
       return;
     }
@@ -272,8 +284,8 @@ export default function CanvasViewA() {
           {!isWorkflowMode && (
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-gray-700">Canvas A</span>
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 tracking-wide">
-                Pill / Stadium
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 tracking-wide">
+                Step Divider
               </span>
             </div>
           )}
@@ -350,7 +362,7 @@ export default function CanvasViewA() {
       </div>
 
       <div className="flex-1 flex overflow-hidden">
-        <BlockLibrary onBlockSelect={handleBlockSelect} />
+        <BlockLibraryA onBlockSelect={handleBlockSelect} />
         <JourneyCanvasA
           blocks={blocks}
           selectedBlockId={selectedBlockId}

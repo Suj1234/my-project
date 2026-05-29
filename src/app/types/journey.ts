@@ -1,5 +1,5 @@
 // Block Types
-export type BlockType = 'start' | 'smart' | 'form' | 'end' | 'router' | 'merge' | 'decision';
+export type BlockType = 'start' | 'smart' | 'form' | 'end' | 'router' | 'merge' | 'decision' | 'step' | 'group';
 
 export type BlockCategory = 'identity' | 'financial' | 'documents' | 'profile' | 'fulfilment' | 'decision' | 'data_collection';
 
@@ -197,6 +197,25 @@ export interface BlockData {
   dataHooks?: HookEventSlot[];
   decisionConfig?: DecisionBlockConfig;
   abPages?: PageConfig[];
+
+  // ─── Canvas A: Step Divider fields ──────────────────────────────────────────
+  stepName?: string;        // e.g. "KYC Details"
+  stepDescription?: string; // e.g. "Verify your identity"
+  stepNumber?: number;      // auto-calculated, 1-indexed
+
+  // ─── Canvas B: Step Badge fields ────────────────────────────────────────────
+  stepId?: string;          // which step this block belongs to
+  stepLabel?: string;       // e.g. "① KYC Details"
+  stepColor?: string;       // tailwind color key for the badge
+  subStepLabel?: string;    // applicant-facing short name shown on canvas chip
+
+  // ─── Canvas C: Inline step config fields ────────────────────────────────────
+  groupId?: string;         // legacy — unused in new Canvas C approach
+  groupName?: string;       // legacy — unused
+  groupColor?: string;      // legacy — unused
+  groupWidth?: number;      // legacy — unused
+  groupHeight?: number;     // legacy — unused
+  visibleToApplicant?: boolean; // false for router/merge/decision (excluded from sub-step count)
 }
 
 export interface RetryConfig {

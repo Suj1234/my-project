@@ -2,7 +2,7 @@ import { Handle, Position } from '@xyflow/react';
 import { FlowNodeData, BlockCategory } from '../../types/journey';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { Plus, X, CreditCard, Fingerprint, Camera, Building, TrendingUp, Landmark, FileText, FileCheck, PenTool, User, Award } from 'lucide-react';
+import { Plus, X, CreditCard, Fingerprint, Camera, Building, TrendingUp, Landmark, FileText, FileCheck, PenTool, User, Users, Award, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import type React from 'react';
 import { getShortDescription } from '../../data/blockDefinitions';
@@ -23,7 +23,9 @@ const iconMap: Record<string, any> = {
   FileCheck,
   PenTool,
   User,
+  Users,
   Award,
+  ShieldCheck,
 };
 
 // Gradient + accent colors per category
@@ -159,6 +161,8 @@ function getIconForBlockType(blockTypeId: string): string {
     esign: 'PenTool',
     profile_address: 'User',
     udyam_verification: 'Award',
+    nominee_details: 'Users',
+    ckyc_verification: 'ShieldCheck',
   };
   return iconMapping[blockTypeId] || 'CreditCard';
 }
